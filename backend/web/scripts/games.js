@@ -21,7 +21,7 @@
 
   // --- Base URL helper: force :8080 for local host like other pages ------
   const API_BASE = (() => {
-    const { protocol, hostname, port } = window.location;
+    const { protocol, hostname } = window.location;
     const isLocalHost = hostname === '127.0.0.1' || hostname === 'localhost';
     if (isLocalHost) {
       // Явно используем порт 8080 для всех запросов в dev
@@ -331,7 +331,7 @@
     try {
       const url = buildUrl('/api/games/');
       console.debug('Loading games from URL:', url);
-      const res = await fetch(url);
+      const res = await authedFetch(url);
       if (!res.ok) throw new Error(await res.text());
       state.games = await res.json();
       await ensureUsernamesForGames(state.games);
@@ -455,7 +455,25 @@
       const detail = await res.json();
       state.selectedGame = detail;
       state.moves = detail.moves || [];
-      state.lastStateTimestamp = Date.now();
+      
+      // Устанавливаем время последнего обновления на основе последнего хода
+      // Это важно для правильного вычисления времени на часах
+      let lastStateTimestamp = Date.now();
+      if (detail.moves && detail.moves.length > 0) {
+        // Используем время последнего хода
+        const lastMove = detail.moves[detail.moves.length - 1];
+        if (lastMove.created_at) {
+          lastStateTimestamp = new Date(lastMove.created_at).getTime();
+        }
+      } else if (detail.started_at) {
+        // Если ходов нет, но игра началась, используем время начала игры
+        lastStateTimestamp = new Date(detail.started_at).getTime();
+      } else if (detail.created_at) {
+        // Если игра еще не началась, используем время создания игры
+        lastStateTimestamp = new Date(detail.created_at).getTime();
+      }
+      state.lastStateTimestamp = lastStateTimestamp;
+      
       await ensureUsernamesForGames([detail]);
       renderGameDetail();
       connectWebSocket(gameId);
@@ -635,7 +653,35 @@
     if (payload.type === 'state' || payload.type === 'game_finished' || payload.type === 'move_made') {
       state.selectedGame = payload.game;
       state.moves = payload.game.moves || [];
-      state.lastStateTimestamp = Date.now();
+      
+      // Устанавливаем время последнего обновления
+      // ВАЖНО: Время в БД - это время на момент последнего хода (после вычитания прошедшего времени и добавления инкремента)
+      // После хода время в БД уже актуально для обоих игроков:
+      // - Для игрока, который сделал ход: время уже обновлено (вычтено прошедшее время и добавлен инкремент)
+      // - Для противника: время не изменилось (оно не тикало, так как не его ход)
+      // После хода next_turn меняется, и время начинает тикать у следующего игрока
+      // Для WebSocket обновлений (после хода) используем текущее время, так как время в БД уже актуально
+      let lastStateTimestamp = Date.now();
+      if (payload.game.status === 'ACTIVE' && payload.game.moves && payload.game.moves.length > 0) {
+        // Для WebSocket обновлений после хода: время в БД уже актуально для обоих игроков
+        // Используем текущее время, чтобы время начало тикать у следующего игрока с момента обновления
+        // НЕ вычитаем прошедшее время, так как время в БД уже актуально
+        lastStateTimestamp = Date.now();
+      } else if (payload.game.moves && payload.game.moves.length > 0) {
+        // Для HTTP загрузки: используем время последнего хода для правильного вычисления прошедшего времени
+        const lastMove = payload.game.moves[payload.game.moves.length - 1];
+        if (lastMove.created_at) {
+          lastStateTimestamp = new Date(lastMove.created_at).getTime();
+        }
+      } else if (payload.game.started_at) {
+        // Если ходов нет, но игра началась, используем время начала игры
+        lastStateTimestamp = new Date(payload.game.started_at).getTime();
+      } else if (payload.game.created_at) {
+        // Если игра еще не началась, используем время создания игры
+        lastStateTimestamp = new Date(payload.game.created_at).getTime();
+      }
+      state.lastStateTimestamp = lastStateTimestamp;
+      
       await ensureUsernamesForGames([payload.game]);
       renderGameDetail();
       loadGames(false);
@@ -678,28 +724,6 @@
         renderActions();
       }, 1000);
     }
-  }
-
-  function computeClocksAfterMove() {
-    if (!state.selectedGame) return null;
-    const base = getDisplayedClocks(true);
-    if (!base) return null;
-    const increment = (state.selectedGame.time_control && state.selectedGame.time_control.increment_ms) || 0;
-    // next_turn указывает на того, кто должен ходить СЛЕДУЮЩИМ
-    // Значит, если next_turn === 'w', то только что ходили чёрные (black)
-    // и инкремент нужно добавить чёрным
-    if (state.selectedGame.next_turn === 'w') {
-      // Только что ходили чёрные - добавляем инкремент чёрным
-      return {
-        white: Math.max(0, base.white),
-        black: Math.max(0, base.black) + increment,
-      };
-    }
-    // Только что ходили белые - добавляем инкремент белым
-    return {
-      white: Math.max(0, base.white) + increment,
-      black: Math.max(0, base.black),
-    };
   }
 
   // -------------------- Actions -----------------------
@@ -798,17 +822,30 @@
       showToast('Введите ход в формате UCI', 'error');
       return;
     }
-    const clocks = computeClocksAfterMove();
+    // Вычисляем текущее время на клиенте (время тикает на клиенте)
+    // Отправляем время для обоих игроков:
+    // - Для игрока, который делает ход: время после вычитания прошедшего времени
+    // - Для противника: время из БД (оно не тикало, так как не его ход)
+    const clocks = getDisplayedClocks(true);
     if (!clocks) {
-      showToast('Не удалось вычислить таймеры', 'error');
+      showToast('Не удалось вычислить время', 'error');
+      return;
+    }
+    // Время противника берем из БД (оно не тикало, так как не его ход)
+    const opponentClocks = getDisplayedClocks(false);
+    if (!opponentClocks) {
+      showToast('Не удалось вычислить время', 'error');
       return;
     }
     const payload = {
       type: 'make_move',
       uci,
       promotion: promotion || null,
-      white_clock_ms: Math.round(clocks.white),
-      black_clock_ms: Math.round(clocks.black),
+      // Отправляем время для обоих игроков
+      // Для игрока, который делает ход: время после вычитания прошедшего времени
+      // Для противника: время из БД (оно не тикало)
+      white_clock_ms: state.selectedGame.next_turn === 'w' ? clocks.white : opponentClocks.white,
+      black_clock_ms: state.selectedGame.next_turn === 'b' ? clocks.black : opponentClocks.black,
       client_move_id: `web-${Date.now()}`,
     };
     state.ws.send(JSON.stringify(payload));
@@ -887,10 +924,6 @@
     const authButtons = document.getElementById('authButtons');
     const mobileUser = document.getElementById('mobileUserActions');
     const mobileAuth = document.getElementById('mobileAuthButtons');
-
-    const displayName = state.currentUser
-      ? state.currentUser.username || `ID ${state.currentUser.id}`
-      : '—';
 
     // Hide user info pills (name) on games page
     if (info) info.style.display = 'none';
@@ -1269,7 +1302,7 @@
   window.createGame = createGame;
 
   // -------------------- Init --------------------------
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     state.wsStatusEl = document.getElementById('wsStatus');
     bindEvents();
     setActiveTab('quick');
@@ -1282,42 +1315,49 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeMobileMenu();
     });
-    fetchCurrentUser();
+    // Wait for user to be fetched before loading games (important for pendingGameId)
+    await fetchCurrentUser();
     loadGames(true);
-    setInterval(() => loadGames(false), 15000);
+    // Загружаем списки ожидания и активных игр для всех пользователей (включая неавторизованных)
+    loadWaitingRoomGames();
+    loadTVGames();
+    setInterval(() => {
+      loadGames(false);
+      loadWaitingRoomGames();
+      loadTVGames();
+    }, 15000);
   });
 })();
 
-// ===== New UI functionality for games.html =====
-// Tab switching is handled inside IIFE via bindTabs() function
-
 // Initialize UI elements when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  // Game type toggle
-  document.querySelectorAll('.game-type-toggle').forEach(toggle => {
-      const options = toggle.querySelectorAll('.type-option');
-      options.forEach(option => {
-          option.addEventListener('click', (e) => {
-              e.preventDefault();
-              options.forEach(o => o.classList.remove('active'));
-              option.classList.add('active');
-          });
-      });
-  });
+// Game type toggle
+document.querySelectorAll('.game-type-toggle').forEach(toggle => {
+    const options = toggle.querySelectorAll('.type-option');
+    options.forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.preventDefault();
+            options.forEach(o => o.classList.remove('active'));
+            option.classList.add('active');
+        });
+    });
+});
 
   // Mode card click - Open friend game modal with selected time
-  document.querySelectorAll('.mode-card').forEach(card => {
+document.querySelectorAll('.mode-card').forEach(card => {
       card.addEventListener('click', () => {
-          const time = card.dataset.time;
+        const time = card.dataset.time;
           if (!time) return; // Skip custom game button
 
-          // Check authentication
+        // Check authentication
           if (!window.requireAuth || !window.requireAuth()) {
-              return;
-          }
+            return;
+        }
 
-          // Parse time control
-          const [minutes, increment] = time.split('+').map(Number);
+          // Parse time control (format: "minutes+increment" or "minutes")
+          const parts = time.split('+').map(Number);
+          const minutes = parts[0] || 5;
+          const increment = parts[1] || 0;
 
           // Get friend game modal elements
           const friendGameModal = document.getElementById('friendGameModal');
@@ -1334,7 +1374,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (friendMinutesSlider) {
               friendMinutesSlider.value = minutes;
               if (friendMinutesValue) friendMinutesValue.textContent = minutes;
-          }
+            }
           if (friendIncrementSlider) {
               friendIncrementSlider.value = increment || 0;
               if (friendIncrementValue) friendIncrementValue.textContent = increment || 0;
@@ -1344,41 +1384,41 @@ document.addEventListener('DOMContentLoaded', () => {
           friendGameModal.classList.add('active');
           friendSetupScreen.style.display = 'block';
           if (friendShareScreen) friendShareScreen.classList.remove('active');
-      });
-  });
+    });
+});
 
-  // Custom game modal
-  const customGameBtn = document.getElementById('customGameBtn');
-  const customGameModal = document.getElementById('customGameModal');
-  const closeModal = document.getElementById('closeModal');
+// Custom game modal
+const customGameBtn = document.getElementById('customGameBtn');
+const customGameModal = document.getElementById('customGameModal');
+const closeModal = document.getElementById('closeModal');
 
-  if (customGameBtn && customGameModal) {
-      customGameBtn.addEventListener('click', () => {
-          customGameModal.classList.add('active');
-      });
-  }
+if (customGameBtn && customGameModal) {
+    customGameBtn.addEventListener('click', () => {
+        customGameModal.classList.add('active');
+    });
+}
 
-  if (closeModal) {
-      closeModal.addEventListener('click', () => {
-          customGameModal.classList.remove('active');
-      });
-  }
+if (closeModal) {
+    closeModal.addEventListener('click', () => {
+        customGameModal.classList.remove('active');
+    });
+}
 
-  if (customGameModal) {
-      customGameModal.addEventListener('click', (e) => {
-          if (e.target === customGameModal) {
-              customGameModal.classList.remove('active');
-          }
-      });
-  }
+if (customGameModal) {
+    customGameModal.addEventListener('click', (e) => {
+        if (e.target === customGameModal) {
+            customGameModal.classList.remove('active');
+        }
+    });
+}
 
-  // Friend game modal
-  const friendGameModal = document.getElementById('friendGameModal');
-  const closeFriendModal = document.getElementById('closeFriendModal');
-  const friendSetupScreen = document.getElementById('friendSetupScreen');
-  const friendShareScreen = document.getElementById('friendShareScreen');
+// Friend game modal
+const friendGameModal = document.getElementById('friendGameModal');
+const closeFriendModal = document.getElementById('closeFriendModal');
+const friendSetupScreen = document.getElementById('friendSetupScreen');
+const friendShareScreen = document.getElementById('friendShareScreen');
 
-  if (closeFriendModal) {
+if (closeFriendModal) {
     closeFriendModal.addEventListener('click', () => {
         friendGameModal.classList.remove('active');
         // Stop polling when modal is closed
@@ -1390,63 +1430,63 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 }
 
-  if (friendGameModal) {
-      friendGameModal.addEventListener('click', (e) => {
-          if (e.target === friendGameModal) {
-              friendGameModal.classList.remove('active');
+if (friendGameModal) {
+    friendGameModal.addEventListener('click', (e) => {
+        if (e.target === friendGameModal) {
+            friendGameModal.classList.remove('active');
               // Stop polling when modal is closed
               if (opponentPollingInterval) {
                   clearInterval(opponentPollingInterval);
                   opponentPollingInterval = null;
               }
               opponentPollingStartTime = null;
-          }
-      });
-  }
+        }
+    });
+}
 
-  // Sliders - Custom game
-  const minutesSlider = document.getElementById('minutesSlider');
-  const minutesValue = document.getElementById('minutesValue');
-  const incrementSlider = document.getElementById('incrementSlider');
-  const incrementValue = document.getElementById('incrementValue');
+// Sliders - Custom game
+const minutesSlider = document.getElementById('minutesSlider');
+const minutesValue = document.getElementById('minutesValue');
+const incrementSlider = document.getElementById('incrementSlider');
+const incrementValue = document.getElementById('incrementValue');
 
-  if (minutesSlider && minutesValue) {
-      minutesSlider.addEventListener('input', () => {
-          minutesValue.textContent = minutesSlider.value;
-      });
-  }
+if (minutesSlider && minutesValue) {
+    minutesSlider.addEventListener('input', () => {
+        minutesValue.textContent = minutesSlider.value;
+    });
+}
 
-  if (incrementSlider && incrementValue) {
-      incrementSlider.addEventListener('input', () => {
-          incrementValue.textContent = incrementSlider.value;
-      });
-  }
+if (incrementSlider && incrementValue) {
+    incrementSlider.addEventListener('input', () => {
+        incrementValue.textContent = incrementSlider.value;
+    });
+}
 
-  // Sliders - Friend game
-  const friendMinutesSlider = document.getElementById('friendMinutesSlider');
-  const friendMinutesValue = document.getElementById('friendMinutesValue');
-  const friendIncrementSlider = document.getElementById('friendIncrementSlider');
-  const friendIncrementValue = document.getElementById('friendIncrementValue');
+// Sliders - Friend game
+const friendMinutesSlider = document.getElementById('friendMinutesSlider');
+const friendMinutesValue = document.getElementById('friendMinutesValue');
+const friendIncrementSlider = document.getElementById('friendIncrementSlider');
+const friendIncrementValue = document.getElementById('friendIncrementValue');
 
-  if (friendMinutesSlider && friendMinutesValue) {
-      friendMinutesSlider.addEventListener('input', () => {
-          friendMinutesValue.textContent = friendMinutesSlider.value;
-      });
-  }
+if (friendMinutesSlider && friendMinutesValue) {
+    friendMinutesSlider.addEventListener('input', () => {
+        friendMinutesValue.textContent = friendMinutesSlider.value;
+    });
+}
 
-  if (friendIncrementSlider && friendIncrementValue) {
-      friendIncrementSlider.addEventListener('input', () => {
-          friendIncrementValue.textContent = friendIncrementSlider.value;
-      });
-  }
+if (friendIncrementSlider && friendIncrementValue) {
+    friendIncrementSlider.addEventListener('input', () => {
+        friendIncrementValue.textContent = friendIncrementSlider.value;
+    });
+}
 
-  // Forms - Create Game (Quick Game Tab)
+// Forms - Create Game (Quick Game Tab)
   // Обработчик createGameForm находится внутри IIFE (bindEvents -> handleCreateGame)
 
   const customGameForm = document.getElementById('customGameForm');
   if (customGameForm && minutesSlider && incrementSlider) {
       customGameForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
+        e.preventDefault();
           
           const submitBtn = customGameForm.querySelector('button[type="submit"]');
           if (submitBtn) submitBtn.disabled = true;
@@ -1457,11 +1497,11 @@ document.addEventListener('DOMContentLoaded', () => {
               const gameType = document.querySelector('#customGameForm .type-option.active');
               if (!gameType) {
                   if (submitBtn) submitBtn.disabled = false;
-                  return;
-              }
+            return;
+        }
 
-              const isRated = gameType.dataset.type === 'rated';
-              
+        const isRated = gameType.dataset.type === 'rated';
+
               const game = await window.createGame({
                   minutes,
                   increment,
@@ -1473,8 +1513,8 @@ document.addEventListener('DOMContentLoaded', () => {
                           window.showToast('Партия создана! Ищем соперника...');
                       }
                       if (customGameModal) customGameModal.classList.remove('active');
-                      if (game && game.id) {
-                          window.location.href = `/match/${game.id}`;
+            if (game && game.id) {
+                window.location.href = `/match/${game.id}`;
                       }
                   },
                   onError: (err, message) => {
@@ -1484,18 +1524,18 @@ document.addEventListener('DOMContentLoaded', () => {
               
               if (!game && submitBtn) {
                   submitBtn.disabled = false;
-              }
-          } catch (err) {
-              console.error(err);
-              if (submitBtn) submitBtn.disabled = false;
-          }
-      });
-  }
+            }
+        } catch (err) {
+            console.error(err);
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+}
 
   const friendGameForm = document.getElementById('friendGameForm');
   if (friendGameForm && friendMinutesSlider && friendIncrementSlider) {
       friendGameForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
+        e.preventDefault();
           
           const submitBtn = friendGameForm.querySelector('button[type="submit"]');
           if (submitBtn) submitBtn.disabled = true;
@@ -1506,10 +1546,10 @@ document.addEventListener('DOMContentLoaded', () => {
               const gameType = document.querySelector('#friendGameForm .type-option.active');
               if (!gameType) {
                   if (submitBtn) submitBtn.disabled = false;
-                  return;
-              }
+            return;
+        }
 
-              const isRated = gameType.dataset.type === 'rated';
+        const isRated = gameType.dataset.type === 'rated';
               
               const game = await window.createGame({
                   minutes,
@@ -1528,7 +1568,7 @@ document.addEventListener('DOMContentLoaded', () => {
                       const shareLink = document.getElementById('shareLink');
                       if (shareLink && game.id) {
                           shareLink.value = `${window.location.origin}/match/${game.id}`;
-                      }
+                }
                       
                       // Show share screen
                       if (friendSetupScreen) friendSetupScreen.style.display = 'none';
@@ -1547,13 +1587,13 @@ document.addEventListener('DOMContentLoaded', () => {
               
               if (!game && submitBtn) {
                   submitBtn.disabled = false;
-              }
-          } catch (err) {
-              console.error(err);
-              if (submitBtn) submitBtn.disabled = false;
-          }
-      });
-  }
+            }
+        } catch (err) {
+            console.error(err);
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+}
 
 // Wait for opponent to join
 let opponentPollingInterval = null;
@@ -1617,13 +1657,13 @@ function startWaitingForOpponent(gameId) {
                     const friendGameModal = document.getElementById('friendGameModal');
                     if (friendGameModal) {
                         friendGameModal.classList.remove('active');
-                    }
+                }
                 } else {
                     console.error('Failed to check game status');
                 }
                 return;
             }
-            
+
             const game = await res.json();
             
             // Check if both players have joined
@@ -1635,7 +1675,7 @@ function startWaitingForOpponent(gameId) {
                 if (opponentPollingInterval) {
                     clearInterval(opponentPollingInterval);
                     opponentPollingInterval = null;
-                }
+            }
                 opponentPollingStartTime = null;
                 
                 // Redirect to match page
@@ -1649,35 +1689,31 @@ function startWaitingForOpponent(gameId) {
 
   // Stop polling when modal is closed (handlers added to existing modal handlers above)
 
-  // Copy link button
-  const copyLinkBtn = document.getElementById('copyLinkBtn');
-  if (copyLinkBtn) {
-      copyLinkBtn.addEventListener('click', async () => {
-          const linkInput = document.getElementById('shareLink');
-          if (linkInput) {
-              try {
-                  await navigator.clipboard.writeText(linkInput.value);
-                  const originalHTML = copyLinkBtn.innerHTML;
-                  copyLinkBtn.innerHTML = '<i class="fas fa-check"></i> Скопировано!';
-                  setTimeout(() => {
-                      copyLinkBtn.innerHTML = originalHTML;
-                  }, 2000);
+// Copy link button
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', async () => {
+        const linkInput = document.getElementById('shareLink');
+        if (linkInput) {
+            try {
+                await navigator.clipboard.writeText(linkInput.value);
+                const originalHTML = copyLinkBtn.innerHTML;
+                copyLinkBtn.innerHTML = '<i class="fas fa-check"></i> Скопировано!';
+                setTimeout(() => {
+                    copyLinkBtn.innerHTML = originalHTML;
+                }, 2000);
                   if (typeof window.showToast === 'function') {
                       window.showToast('Ссылка скопирована');
                   }
-              } catch (err) {
-                  // Fallback for older browsers
-                  linkInput.select();
-                  document.execCommand('copy');
+            } catch (err) {
+                // Fallback for older browsers
+                linkInput.select();
+                document.execCommand('copy');
                   if (typeof window.showToast === 'function') {
                       window.showToast('Ссылка скопирована');
                   }
-              }
-          }
-      });
-  }
+            }
+        }
+    });
+}
 }); // End of DOMContentLoaded
-
-// Functions loadWaitingRoomGames and loadTVGames are now defined inside the IIFE above
-// Tab switching is handled inside IIFE via bindTabs() function
-

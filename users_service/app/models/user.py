@@ -14,6 +14,16 @@ class User(Base):
 	email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
 	hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
 	is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+	
+	# Рейтинги по форматам игры
+	blitz_rating: Mapped[int] = mapped_column(Integer, default=1200, nullable=False)
+	bullet_rating: Mapped[int] = mapped_column(Integer, default=1200, nullable=False)
+	rapid_rating: Mapped[int] = mapped_column(Integer, default=1200, nullable=False)
+	puzzle_rating: Mapped[int] = mapped_column(Integer, default=1200, nullable=False)
+	
+	# Статистика
+	games_played: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+	
 	created_at: Mapped[datetime] = mapped_column(
 		DateTime(timezone=True), server_default=func.now(), nullable=False
 	)

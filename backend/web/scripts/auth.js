@@ -236,9 +236,10 @@
     let btn = container.querySelector(SELECTORS.CABINET_BTN);
     if (!btn) {
       btn = document.createElement('a');
-      btn.href = '/cabinet.html';
+      // href будет обновлен в updateAuthUI когда будет известен username
+      btn.href = '/profile';
       btn.className = 'btn-register btn-cabinet';
-      btn.innerHTML = '<i class="fas fa-user-circle"></i> Личный кабинет';
+      btn.innerHTML = '<i class="fas fa-user-circle"></i> Мой профиль';
       btn.style.display = 'none';
       
       // Check if it's mobile menu - use isMobileContext but also check for .mobile-menu specifically
@@ -300,7 +301,7 @@
   }
 
   // Update cabinet buttons in header-actions
-  function updateHeaderCabinetButtons(isLoggedIn) {
+  function updateHeaderCabinetButtons(isLoggedIn, user) {
     document.querySelectorAll(SELECTORS.HEADER_ACTIONS).forEach((container) => {
       if (!container) return;
       
@@ -308,6 +309,12 @@
       const cabinetBtn = ensureCabinetButton(container);
       
       if (cabinetBtn) {
+        // Обновляем href с username если пользователь авторизован
+        if (isLoggedIn && user && user.username) {
+          cabinetBtn.href = `/profile/${encodeURIComponent(user.username)}`;
+        } else {
+          cabinetBtn.href = '/profile';
+        }
         cabinetBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
         if (mobileMenuBtn && cabinetBtn.parentNode === container && cabinetBtn !== mobileMenuBtn.previousSibling) {
           container.insertBefore(cabinetBtn, mobileMenuBtn);
@@ -334,12 +341,18 @@
   }
 
   // Update cabinet buttons in mobile menu
-  function updateMobileCabinetButtons(isLoggedIn) {
+  function updateMobileCabinetButtons(isLoggedIn, user) {
     document.querySelectorAll(SELECTORS.MOBILE_MENU).forEach((container) => {
       if (!container) return;
       
       const cabinetBtn = ensureCabinetButton(container);
       if (cabinetBtn) {
+        // Обновляем href с username если пользователь авторизован
+        if (isLoggedIn && user && user.username) {
+          cabinetBtn.href = `/profile/${encodeURIComponent(user.username)}`;
+        } else {
+          cabinetBtn.href = '/profile';
+        }
         cabinetBtn.style.display = isLoggedIn ? 'block' : 'none';
       }
     });
@@ -450,9 +463,9 @@
     
     // Update UI components
     updateStandardButtons(isLoggedIn);
-    updateHeaderCabinetButtons(isLoggedIn);
+    updateHeaderCabinetButtons(isLoggedIn, user);
     updateHeaderLogoutButtons(isLoggedIn, existingGamesLogoutBtn, existingGamesLogoutBtnMobile);
-    updateMobileCabinetButtons(isLoggedIn);
+    updateMobileCabinetButtons(isLoggedIn, user);
     updateMobileLogoutButtons(isLoggedIn, existingGamesLogoutBtn, existingGamesLogoutBtnMobile);
     updateAuthContainers(isLoggedIn, isDesktop, existingGamesLogoutBtn, existingGamesLogoutBtnMobile);
     updateUserPills(user, isLoggedIn);

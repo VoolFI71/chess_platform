@@ -19,6 +19,10 @@ class UserOut(BaseModel):
 	email: EmailStr
 	username: str
 	is_active: bool
+	blitz_rating: int = 1200
+	bullet_rating: int = 1200
+	rapid_rating: int = 1200
+	puzzle_rating: int = 1200
 	created_at: datetime
 	updated_at: datetime
 

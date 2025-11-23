@@ -119,11 +119,6 @@ async def create_course(data: CourseCreate, db: AsyncSession = Depends(get_db)) 
 	return await _create_course_record(db, data)
 
 
-@router.post("", response_model=CourseOut, status_code=status.HTTP_201_CREATED)
-async def create_course_alias(data: CourseCreate, db: AsyncSession = Depends(get_db)) -> CourseOut:
-	return await _create_course_record(db, data)
-
-
 @router.post("/{course_id}/enroll", response_model=CourseOut, status_code=status.HTTP_201_CREATED)
 async def enroll_course(
 	course_id: int,

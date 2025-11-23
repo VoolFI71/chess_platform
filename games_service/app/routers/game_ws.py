@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -14,6 +15,7 @@ from ..models import Game, GameStatus
 from ..realtime import ConnectionInfo, game_ws_manager
 from ..schemas import (
 	MakeMovePayload,
+	MoveOut,
 	WsErrorPayload,
 	WsGameFinishedPayload,
 	WsMoveMadePayload,
@@ -23,12 +25,13 @@ from ..services import (
 	GameService,
 	GameServiceError,
 	build_game_detail,
-	build_move_out,
+	extract_move_data,
 )
 
 router = APIRouter()
 
 RECENT_MOVES_LIMIT = 60
+LOGGER = logging.getLogger(__name__)
 
 
 def _resolve_role(game: Game, user_id: int | None) -> str:
@@ -78,6 +81,10 @@ async def game_socket(
 			WsStatePayload(type="state", game=detail).model_dump(mode="json")
 		)
 
+		# Оптимизация: кэш последних ходов для избежания повторных запросов к БД
+		# Извлекаем данные из Move объектов сразу, пока они еще не expired
+		cached_moves: list[MoveOut] = [await extract_move_data(m) for m in moves] if moves else []
+
 		try:
 			while True:
 				data = await websocket.receive_json()
@@ -119,16 +126,35 @@ async def game_socket(
 						).model_dump()
 					)
 					continue
+				except Exception as exc:
+					# Обрабатываем любые другие исключения, чтобы не закрывать соединение
+					LOGGER.exception("Unexpected error in make_move: %s", exc)
+					await websocket.send_json(
+						WsErrorPayload(
+							type="error",
+							message="Internal server error",
+							client_move_id=payload.client_move_id,
+						).model_dump()
+					)
+					continue
 
-				moves = await service.get_moves(game_id, limit=RECENT_MOVES_LIMIT)
-				game_detail = build_game_detail(game, moves=moves)
+				# Оптимизация: добавляем новый ход в кэш вместо загрузки всех ходов
+				# Ходы должны быть в хронологическом порядке (от старых к новым)
+				# Извлекаем данные из Move объекта сразу, пока он еще не expired
+				move_data = await extract_move_data(move)
+				cached_moves.append(move_data)
+				# Ограничиваем размер кэша (оставляем последние RECENT_MOVES_LIMIT ходов)
+				if len(cached_moves) > RECENT_MOVES_LIMIT:
+					cached_moves = cached_moves[-RECENT_MOVES_LIMIT:]
+				# Используем кэшированные ходы
+				game_detail = build_game_detail(game, moves=cached_moves)
 
 				await game_ws_manager.broadcast(
 					game_id,
 					WsMoveMadePayload(
 						type="move_made",
 						client_move_id=payload.client_move_id,
-						move=build_move_out(move),
+						move=move_data,
 						game=game_detail,
 					).model_dump(mode="json"),
 				)
@@ -142,6 +168,10 @@ async def game_socket(
 					)
 
 		except WebSocketDisconnect:
+			await game_ws_manager.disconnect(websocket)
+		except Exception as exc:
+			# Обрабатываем любые другие исключения, чтобы не закрывать соединение неожиданно
+			LOGGER.exception("Unexpected error in WebSocket handler: %s", exc)
 			await game_ws_manager.disconnect(websocket)
 		# Сессия автоматически закроется здесь при выходе из async with
 

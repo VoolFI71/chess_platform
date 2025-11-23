@@ -17,7 +17,7 @@
       })();
     </script>
     
-    <meta name="description" content="PowerChess - революционная AI-платформа для изучения шахмат. 10,000+ учеников, 50+ курсов, 20+ тренеров. Мастер-классы от гроссмейстеров.">
+    <meta name="description" content="PowerChess - революционная платформа для изучения шахмат. 10,000+ учеников, 50+ курсов, 20+ тренеров. Мастер-классы от гроссмейстеров.">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -979,103 +979,6 @@
             50% { transform: translateY(-20px) rotate(10deg); }
         }
 
-        /* ===== REVIEWS SECTION ===== */
-        .reviews-section {
-            padding: 6rem 0;
-        }
-
-        .review-filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            justify-content: center;
-            margin-bottom: 3rem;
-        }
-
-        .filter-btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 2rem;
-            border: 2px solid var(--border-light);
-            background: var(--card-light);
-            color: inherit;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        body.dark .filter-btn {
-            border-color: var(--border-dark);
-            background: var(--card-dark);
-        }
-
-        .filter-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.2);
-        }
-
-        .filter-btn.active {
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 5px 20px rgba(124, 58, 237, 0.4);
-        }
-
-        .reviews-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-
-        @media (min-width: 768px) {
-            .reviews-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        .review-card {
-            background: var(--card-light);
-            padding: 2.5rem;
-            border-radius: 1.5rem;
-            border: 2px solid var(--border-light);
-            transition: all 0.3s;
-            display: none;
-        }
-
-        .review-card.show {
-            display: block;
-        }
-
-        body.dark .review-card {
-            background: var(--card-dark);
-            border-color: var(--border-dark);
-        }
-
-        .review-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 25px 50px rgba(124, 58, 237, 0.3);
-        }
-
-        .review-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .review-avatar {
-            width: 4rem;
-            height: 4rem;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-            font-weight: 700;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
         .rating-stars {
             color: #fbbf24;
             font-size: 1.25rem;
@@ -1653,9 +1556,9 @@
                 </a>
                 <nav class="nav">
                     <a href="/games" class="nav-link">Играть</a>
+                    <a href="#puzzles" class="nav-link">Задачи</a>
                     <a href="/course" class="nav-link">Курсы</a>
                     <a href="/couch" class="nav-link">Тренеры</a>
-                    <a href="#reviews" class="nav-link">Отзывы</a>
                     <a href="#tournaments" class="nav-link">Турниры</a>
                 </nav>
                 <div class="header-actions">
@@ -1680,9 +1583,8 @@
                     <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
                         <i class="fas fa-bars" id="menuIcon"></i>
                     </button>
-                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn">
+                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
                         <i class="fas fa-sign-out-alt"></i>
-                        Выйти
                     </button>
                 </div>
             </div>
@@ -1690,9 +1592,9 @@
             <div class="mobile-menu" id="mobileMenu">
                 <div>
                     <a href="/games" class="nav-link" onclick="closeMobileMenu()">Играть</a>
+                    <a href="#puzzles" class="nav-link" onclick="closeMobileMenu()">Задачи</a>
                     <a href="/course" class="nav-link" onclick="closeMobileMenu()">Курсы</a>
                     <a href="/couch" class="nav-link" onclick="closeMobileMenu()">Тренеры</a>
-                    <a href="#reviews" class="nav-link" onclick="closeMobileMenu()">Отзывы</a>
                     <a href="#tournaments" class="nav-link" onclick="closeMobileMenu()">Турниры</a>
                     <hr>
                     <div id="mobileAuthButtons">
@@ -1709,9 +1611,8 @@
                         <div id="gamesUserInfoMobile">
                             <span></span>
                         </div>
-                        <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile">
+                        <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile" title="Выйти">
                             <i class="fas fa-sign-out-alt"></i>
-                            Выйти
                         </button>
                     </div>
                 </div>
@@ -1739,15 +1640,12 @@
                             Мастерство в <span class="gradient-text" style="font-family: 'Roboto', sans-serif;">шахматах</span> начинается здесь
                         </h1>
                         <p style="font-size: 1.25rem; color: var(--muted); max-width: 600px; margin-bottom: 2.5rem;">
-                            Присоединяйтесь к революции в шахматном обучении! Наша AI-платформа поможет вам стать мастером быстрее.
+                            Присоединяйтесь к революции в шахматном обучении! Наша платформа поможет вам стать мастером быстрее.
                         </p>
 
                         <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 3rem;">
-                            <a href="#start" class="btn btn-primary btn-lg">
-                                🎯 Начать обучение
-                            </a>
-                            <a href="#demo" class="btn btn-outline btn-lg">
-                                📺 Смотреть демо
+                            <a href="/games" class="btn btn-primary btn-lg">
+                                ♟ Играть
                             </a>
                         </div>
 
@@ -1789,9 +1687,9 @@
                         <div class="platform-board">
                             <div class="features-grid">
                                 <div class="feature-item">
-                                    <div class="feature-icon"><i class="fas fa-brain" style="color: #3b82f6;"></i></div>
-                                    <div style="font-weight: 600; font-size: 0.875rem;">AI Анализ</div>
-                                    <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Умный помощник</div>
+                                    <div class="feature-icon"><i class="fas fa-puzzle-piece" style="color: #3b82f6;"></i></div>
+                                    <div style="font-weight: 600; font-size: 0.875rem;">Chess Puzzle</div>
+                                    <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Решение задач</div>
                                 </div>
                                 <div class="feature-item">
                                     <div class="feature-icon"><i class="fas fa-chart-line" style="color: #10b981;"></i></div>
@@ -1818,16 +1716,6 @@
                                     <div style="font-weight: 600; font-size: 0.875rem;">Комьюнити</div>
                                     <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Общайтесь</div>
                                 </div>
-                            </div>
-
-                            <!-- Corner Badges -->
-                            <div class="corner-badge" style="background: linear-gradient(135deg, #f59e0b, #dc2626); top: -0.75rem; right: -0.75rem; transform: rotate(12deg);">
-                                <i class="fas fa-bolt"></i>
-                                <span>AI</span>
-                            </div>
-                            <div class="corner-badge" style="background: linear-gradient(135deg, #10b981, #059669); bottom: -0.75rem; left: -0.75rem; transform: rotate(-12deg);">
-                                <i class="fas fa-trophy"></i>
-                                <span>WIN</span>
                             </div>
                         </div>
                     </div>
@@ -2136,10 +2024,10 @@
 
                         <div class="about-features">
                             <div class="about-feature">
-                                <div class="about-feature-icon">🧠</div>
-                                <h4 style="margin-bottom: 0.75rem; font-size: 1.125rem;">AI-анализ</h4>
+                                <div class="about-feature-icon">🧩</div>
+                                <h4 style="margin-bottom: 0.75rem; font-size: 1.125rem;">Решение задач</h4>
                                 <p style="color: var(--muted); font-size: 0.875rem; line-height: 1.6;">
-                                    Персональные рекомендации на основе ваших партий с глубоким анализом
+                                    Тысячи шахматных задач для развития тактического мышления и улучшения навыков
                                 </p>
                             </div>
                             <div class="about-feature">
@@ -2183,147 +2071,6 @@
         </section>
 
         <div id="tournaments"></div>
-        <!-- Enhanced Reviews Section -->
-        <section id="reviews" class="reviews-section">
-            <div class="container">
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <h2 class="gradient-text" style="margin-bottom: 1rem;">Отзывы учеников</h2>
-                    <p style="font-size: 1.125rem; color: var(--muted);">Что говорят о нас наши студенты</p>
-                </div>
-
-                <!-- Review Filters -->
-                <div class="review-filters">
-                    <button class="filter-btn active" onclick="filterReviews('all')">
-                        <i class="fas fa-th" style="margin-right: 0.5rem;"></i>
-                        Все отзывы
-                    </button>
-                    <button class="filter-btn" onclick="filterReviews('basic')">
-                        <i class="fas fa-chess-pawn" style="margin-right: 0.5rem;"></i>
-                        Основы шахмат
-                    </button>
-                    <button class="filter-btn" onclick="filterReviews('tactical')">
-                        <i class="fas fa-chess-knight" style="margin-right: 0.5rem;"></i>
-                        Тактическое мастерство
-                    </button>
-                    <button class="filter-btn" onclick="filterReviews('master')">
-                        <i class="fas fa-chess-king" style="margin-right: 0.5rem;"></i>
-                        Мастер-класс
-                    </button>
-                </div>
-
-                <div class="reviews-grid">
-                    <!-- Basic Course Reviews -->
-                    <div class="review-card show" data-course="basic">
-                        <div class="review-header">
-                            <div class="review-avatar" style="background: linear-gradient(135deg, #7c3aed, #3b82f6);">А</div>
-                            <div>
-                                <h4>Алексей Петров</h4>
-                                <div class="rating-stars">★★★★★</div>
-                            </div>
-                        </div>
-                        <p style="color: var(--muted); line-height: 1.7;">
-                            "Отличная платформа! За 3 месяца поднял свой рейтинг на 300 пунктов. 
-                            AI-анализ партий помогает найти слабые места."
-                        </p>
-                        <div class="review-course-tag" style="background: rgba(124, 58, 237, 0.1); color: var(--primary);">
-                            <i class="fas fa-chess-pawn" style="margin-right: 0.25rem;"></i>
-                            Основы шахмат
-                        </div>
-                    </div>
-
-                    <div class="review-card show" data-course="tactical">
-                        <div class="review-header">
-                            <div class="review-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">М</div>
-                            <div>
-                                <h4>Мария Сидорова</h4>
-                                <div class="rating-stars">★★★★★</div>
-                            </div>
-                        </div>
-                        <p style="color: var(--muted); line-height: 1.7;">
-                            "Начинала с нуля, теперь играю в турнирах! Курсы структурированы идеально, 
-                            а тренеры объясняют очень доступно."
-                        </p>
-                        <div class="review-course-tag" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
-                            <i class="fas fa-chess-knight" style="margin-right: 0.25rem;"></i>
-                            Тактическое мастерство
-                        </div>
-                    </div>
-
-                    <div class="review-card show" data-course="master">
-                        <div class="review-header">
-                            <div class="review-avatar" style="background: linear-gradient(135deg, #f59e0b, #dc2626);">И</div>
-                            <div>
-                                <h4>Игорь Волков</h4>
-                                <div class="rating-stars">★★★★★</div>
-                            </div>
-                        </div>
-                        <p style="color: var(--muted); line-height: 1.7;">
-                            "Мастер-классы от гроссмейстеров - это нечто! Получил КМС благодаря 
-                            знаниям, полученным на PowerChess."
-                        </p>
-                        <div class="review-course-tag" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
-                            <i class="fas fa-chess-king" style="margin-right: 0.25rem;"></i>
-                            Мастер-класс от ГМ
-                        </div>
-                    </div>
-
-                    <div class="review-card show" data-course="basic">
-                        <div class="review-header">
-                            <div class="review-avatar" style="background: linear-gradient(135deg, #ec4899, #be185d);">Е</div>
-                            <div>
-                                <h4>Елена Кузнецова</h4>
-                                <div class="rating-stars">★★★★★</div>
-                            </div>
-                        </div>
-                        <p style="color: var(--muted); line-height: 1.7;">
-                            "Замечательный курс для начинающих! Все объясняется просто и понятно. 
-                            Уже через месяц начала выигрывать партии."
-                        </p>
-                        <div class="review-course-tag" style="background: rgba(124, 58, 237, 0.1); color: var(--primary);">
-                            <i class="fas fa-chess-pawn" style="margin-right: 0.25rem;"></i>
-                            Основы шахмат
-                        </div>
-                    </div>
-
-                    <div class="review-card show" data-course="tactical">
-                        <div class="review-header">
-                            <div class="review-avatar" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">Д</div>
-                            <div>
-                                <h4>Дмитрий Соколов</h4>
-                                <div class="rating-stars">★★★★★</div>
-                            </div>
-                        </div>
-                        <p style="color: var(--muted); line-height: 1.7;">
-                            "Курс тактики просто шикарен! Теперь вижу комбинации, которые раньше пропускал. 
-                            Рейтинг вырос на 400 пунктов!"
-                        </p>
-                        <div class="review-course-tag" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
-                            <i class="fas fa-chess-knight" style="margin-right: 0.25rem;"></i>
-                            Тактическое мастерство
-                        </div>
-                    </div>
-
-                    <div class="review-card show" data-course="master">
-                        <div class="review-header">
-                            <div class="review-avatar" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">В</div>
-                            <div>
-                                <h4>Виктория Морозова</h4>
-                                <div class="rating-stars">★★★★★</div>
-                            </div>
-                        </div>
-                        <p style="color: var(--muted); line-height: 1.7;">
-                            "Мастер-класс превзошел все ожидания! Разборы партий от ГМ - это бесценный опыт. 
-                            Выполнила норму мастера!"
-                        </p>
-                        <div class="review-course-tag" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
-                            <i class="fas fa-chess-king" style="margin-right: 0.25rem;"></i>
-                            Мастер-класс от ГМ
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- Consultation Section -->
         <section class="consultation-section">
             <div class="container">
@@ -2402,7 +2149,7 @@
                         </div>
                         <h3>PowerChess</h3>
                         <p>
-                            Революционная AI-платформа для изучения шахмат. Станьте мастером быстрее с PowerChess! 
+                            Революционная платформа для изучения шахмат. Станьте мастером быстрее с PowerChess! 
                             Объединяем классическую шахматную мудрость с современными технологиями.
                         </p>
                         <div class="social-links">
@@ -2428,7 +2175,7 @@
                             <li><a href="/course">♟ Курсы</a></li>
                             <li><a href="#free">♟ Бесплатные уроки</a></li>
                             <li><a href="#masterclass">♟ Мастер-классы</a></li>
-                            <li><a href="#ai-analysis">♟ AI-анализ</a></li>
+                            <li><a href="#puzzles">♟ Решение задач</a></li>
                         </ul>
                     </div>
 

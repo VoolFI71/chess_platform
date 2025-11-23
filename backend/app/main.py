@@ -72,6 +72,24 @@ def serve_match_page(match_id: str):
     return FileResponse(str(match_file))
 
 
+@app.get("/profile")
+def serve_profile_page():
+    # Always serve profile.html for pretty URL, frontend reads username from path
+    profile_file = WEB_DIR / "profile.html"
+    if not profile_file.is_file():
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    return FileResponse(str(profile_file))
+
+
+@app.get("/profile/{username}")
+def serve_profile_page_with_username(username: str):
+    # Always serve profile.html for pretty URL, frontend reads username from path
+    profile_file = WEB_DIR / "profile.html"
+    if not profile_file.is_file():
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    return FileResponse(str(profile_file))
+
+
 @app.get("/{full_path:path}")
 def serve_frontend(full_path: str):
     resolved = _resolve_web_path(full_path)

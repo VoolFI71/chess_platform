@@ -9,6 +9,7 @@ from jose import JWTError, jwt
 
 
 bearer_scheme = HTTPBearer(auto_error=True)
+optional_bearer_scheme = HTTPBearer(auto_error=False)
 
 
 @dataclass
@@ -100,4 +101,54 @@ def make_get_current_user_id(
 		return current_user.id
 	
 	return get_current_user_id
+
+
+def make_get_current_user_optional(
+	get_settings: Callable,
+) -> Callable:
+	"""
+	Создает опциональную функцию get_current_user, которая не требует аутентификацию.
+	
+	Args:
+		get_settings: Функция для получения настроек
+	
+	Returns:
+		Функция get_current_user_optional для использования в Depends()
+	"""
+	async def get_current_user_optional(
+		credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer_scheme),
+	) -> CurrentUser | None:
+		if not credentials:
+			return None
+		settings = get_settings()
+		try:
+			return decode_access_token(
+				credentials.credentials,
+				settings.jwt_secret,
+				settings.jwt_algorithm,
+			)
+		except HTTPException:
+			return None
+	
+	return get_current_user_optional
+
+
+def make_get_current_user_id_optional(
+	get_current_user_optional: Callable,
+) -> Callable:
+	"""
+	Создает опциональную функцию get_current_user_id, которая не требует аутентификацию.
+	
+	Args:
+		get_current_user_optional: Функция get_current_user_optional
+	
+	Returns:
+		Функция get_current_user_id_optional для использования в Depends()
+	"""
+	async def get_current_user_id_optional(
+		current_user: CurrentUser | None = Depends(get_current_user_optional),
+	) -> int | None:
+		return current_user.id if current_user else None
+	
+	return get_current_user_id_optional
 

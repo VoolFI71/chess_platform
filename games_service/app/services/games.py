@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import datetime, timezone, timedelta
 from threading import Lock
 from typing import Sequence
@@ -8,7 +9,7 @@ from uuid import UUID
 
 import chess
 from fastapi import status
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import SessionLocal
@@ -29,6 +30,8 @@ from ..schemas import (
 	MoveOut,
 )
 from ..realtime.manager import game_ws_manager
+
+LOGGER = logging.getLogger(__name__)
 
 SNAPSHOT_INTERVAL = 50
 AUTO_CANCEL_TIMEOUT_SECONDS = 30
@@ -63,15 +66,53 @@ def _initial_board(initial_fen: str | None) -> tuple[chess.Board, str]:
 	return board, board.fen()
 
 
-def build_move_out(move: Move) -> MoveOut:
-	return MoveOut.model_validate(move)
+def build_move_out(move: Move | MoveOut) -> MoveOut:
+	# Если move уже является MoveOut, возвращаем его как есть
+	if isinstance(move, MoveOut):
+		return move
+	# Явно извлекаем атрибуты из SQLAlchemy модели, чтобы избежать ошибки MissingGreenlet
+	# при доступе к атрибутам вне async контекста
+	# ВАЖНО: эта функция должна вызываться только в async контексте, когда объект еще не expired
+	return MoveOut(
+		id=move.id,
+		game_id=move.game_id,
+		move_index=move.move_index,
+		uci=move.uci,
+		san=move.san,
+		fen_after=move.fen_after,
+		player_id=move.player_id,
+		clocks_after=move.clocks_after,
+		is_capture=move.is_capture,
+		promotion=move.promotion,
+		created_at=move.created_at,
+	)
+
+
+async def extract_move_data(move: Move) -> MoveOut:
+	"""Извлекает данные из Move объекта в async контексте.
+	Используйте эту функцию для извлечения данных сразу после загрузки/создания объекта,
+	пока он еще не expired в сессии SQLAlchemy.
+	"""
+	return MoveOut(
+		id=move.id,
+		game_id=move.game_id,
+		move_index=move.move_index,
+		uci=move.uci,
+		san=move.san,
+		fen_after=move.fen_after,
+		player_id=move.player_id,
+		clocks_after=move.clocks_after,
+		is_capture=move.is_capture,
+		promotion=move.promotion,
+		created_at=move.created_at,
+	)
 
 
 def build_game_summary(game: Game) -> GameSummary:
 	return GameSummary.model_validate(game)
 
 
-def build_game_detail(game: Game, moves: Sequence[Move] | None = None) -> GameDetail:
+def build_game_detail(game: Game, moves: Sequence[Move | MoveOut] | None = None) -> GameDetail:
 	summary = build_game_summary(game)
 	data = summary.model_dump()
 	data.update(
@@ -167,27 +208,90 @@ class GameService:
 	def __init__(self, db: AsyncSession):
 		self.db = db
 
-	async def _get_last_activity_timestamp(self, game: Game) -> datetime | None:
+	async def _get_last_move(self, game: Game) -> Move | None:
+		"""Получает последний ход игры. Кэшируется для оптимизации."""
 		stmt = (
-			select(Move.created_at)
+			select(Move)
 			.where(Move.game_id == game.id)
 			.order_by(Move.move_index.desc())
 			.limit(1)
 		)
 		result = await self.db.execute(stmt)
-		last_move_ts = result.scalar_one_or_none()
-		if last_move_ts:
-			return last_move_ts
+		return result.scalar_one_or_none()
+	
+	async def _get_last_activity_timestamp(self, game: Game, last_move: Move | None = None) -> datetime | None:
+		"""Получает timestamp последней активности. Оптимизировано для использования кэшированного last_move."""
+		if last_move is not None:
+			return last_move.created_at
+		last_move = await self._get_last_move(game)
+		if last_move:
+			return last_move.created_at
 		if game.started_at:
 			return game.started_at
 		return game.created_at
 
-	async def _compute_effective_clocks(self, game: Game) -> tuple[int, int]:
+	async def _compute_elapsed_ms(self, game: Game, last_move: Move | None = None) -> int:
+		"""Вычисляет прошедшее время с момента последней активности в миллисекундах."""
+		if game.move_count > 0:
+			last_activity = await self._get_last_activity_timestamp(game, last_move)
+			if last_activity:
+				elapsed_ms = int((_utcnow() - last_activity).total_seconds() * 1000)
+				return max(0, elapsed_ms)
+		elif game.status == GameStatus.ACTIVE.value and game.started_at:
+			elapsed_ms = int((_utcnow() - game.started_at).total_seconds() * 1000)
+			return max(0, elapsed_ms)
+		return 0
+	
+	async def _compute_clocks_for_move(
+		self,
+		game: Game,
+		current_turn: str,
+		payload: MakeMovePayload,
+		elapsed_ms: int,
+		increment_ms: int,
+	) -> tuple[int, int]:
+		"""Вычисляет время для обоих игроков при ходе."""
+		if payload.white_clock_ms is not None and payload.black_clock_ms is not None:
+			# Клиент отправил время для обоих игроков
+			white_clock = payload.white_clock_ms
+			black_clock = payload.black_clock_ms
+		elif payload.white_clock_ms is not None or payload.black_clock_ms is not None:
+			# Клиент отправил время только для одного игрока (старая версия)
+			white_clock = game.white_clock_ms
+			black_clock = game.black_clock_ms
+			if current_turn == SideToMove.WHITE.value:
+				if payload.white_clock_ms is not None:
+					white_clock = payload.white_clock_ms
+			else:
+				if payload.black_clock_ms is not None:
+					black_clock = payload.black_clock_ms
+		else:
+			# Вычисляем время на сервере (для обратной совместимости)
+			white_clock = game.white_clock_ms
+			black_clock = game.black_clock_ms
+			if current_turn == SideToMove.WHITE.value:
+				white_clock = max(0, white_clock - elapsed_ms)
+			else:
+				black_clock = max(0, black_clock - elapsed_ms)
+		
+		# Добавляем инкремент игроку, который сделал ход
+		if current_turn == SideToMove.WHITE.value:
+			white_clock += increment_ms
+		else:
+			black_clock += increment_ms
+		
+		return white_clock, black_clock
+
+	async def _compute_effective_clocks(self, game: Game, last_move: Move | None = None) -> tuple[int, int]:
 		white = game.white_clock_ms
 		black = game.black_clock_ms
 		if game.status == GameStatus.FINISHED.value:
 			return white, black
-		last_activity = await self._get_last_activity_timestamp(game)
+		# Время начинает тикать только после первого хода
+		# Если ходов еще не было (move_count == 0), время не тикает
+		if game.move_count == 0:
+			return white, black
+		last_activity = await self._get_last_activity_timestamp(game, last_move)
 		if not last_activity:
 			return white, black
 		elapsed_ms = int((_utcnow() - last_activity).total_seconds() * 1000)
@@ -305,7 +409,7 @@ class GameService:
 		payload: MakeMovePayload,
 	) -> tuple[Game, Move]:
 		# Сбрасываем кэш всех объектов в сессии, чтобы получить актуальные данные из БД
-		# Это важно, так как другой игрок мог присоединиться в другой транзакции
+		# Это важно, так как другой игрок мог сделать ход в другой транзакции
 		# и объект Game может быть закэширован в текущей сессии
 		# expire_all() - синхронный метод, не требует await
 		self.db.expire_all()
@@ -334,6 +438,54 @@ class GameService:
 		board.push(move_obj)
 		new_fen = board.fen()
 
+		# Сохраняем, чей ход был ДО этого хода (игрок, который делает ход сейчас)
+		current_turn = game.next_turn
+		
+		# Оптимизация: загружаем последний ход один раз для всех вычислений
+		last_move = await self._get_last_move(game) if game.move_count > 0 else None
+		
+		# Проверка таймаута: проверяем, не закончилось ли время у игрока, который делает ход
+		effective_white, effective_black = await self._compute_effective_clocks(game, last_move)
+		if current_turn == SideToMove.WHITE.value:
+			if effective_white <= 0:
+				LOGGER.info(
+					"Move rejected: timeout - game_id=%s, player_id=%s, turn=white, "
+					"effective_time=%dms",
+					game.id, player_id, effective_white
+				)
+				raise GameServiceError("White player ran out of time", status.HTTP_400_BAD_REQUEST)
+		else:
+			if effective_black <= 0:
+				LOGGER.info(
+					"Move rejected: timeout - game_id=%s, player_id=%s, turn=black, "
+					"effective_time=%dms",
+					game.id, player_id, effective_black
+				)
+				raise GameServiceError("Black player ran out of time", status.HTTP_400_BAD_REQUEST)
+		
+		# Время тикает на клиенте, клиент отправляет текущее время
+		# Используем время с клиента, если оно предоставлено, иначе вычисляем на сервере
+		increment_ms = 0
+		if game.time_control and isinstance(game.time_control, dict):
+			increment_ms = game.time_control.get("increment_ms", 0) or 0
+		
+		# Вычисляем прошедшее время (используется для вычисления времени на сервере, если клиент не отправил)
+		# Используем кэшированный last_move для оптимизации
+		elapsed_ms = await self._compute_elapsed_ms(game, last_move)
+		
+		# Вычисляем время для обоих игроков
+		white_clock, black_clock = await self._compute_clocks_for_move(
+			game, current_turn, payload, elapsed_ms, increment_ms
+		)
+		
+		# Логируем успешный ход (только на уровне DEBUG для оптимизации)
+		LOGGER.debug(
+			"Move made: game_id=%s, player_id=%s, turn=%s, move_index=%d, "
+			"white_clock=%dms, black_clock=%dms, elapsed=%dms, increment=%dms",
+			game.id, player_id, current_turn, game.move_count + 1,
+			white_clock, black_clock, elapsed_ms, increment_ms
+		)
+
 		move_index = game.move_count + 1
 		move = Move(
 			game_id=game.id,
@@ -343,20 +495,17 @@ class GameService:
 			fen_after=new_fen,
 			player_id=player_id,
 			clocks_after={
-				"white_ms": payload.white_clock_ms,
-				"black_ms": payload.black_clock_ms,
+				"white_ms": white_clock,
+				"black_ms": black_clock,
 			},
 			is_capture=is_capture,
 			promotion=payload.promotion,
 		)
 
-		if payload.white_clock_ms < 0 or payload.black_clock_ms < 0:
-			raise GameServiceError("Clock values must be non-negative")
-
 		game.current_pos = new_fen
 		game.move_count = move_index
-		game.white_clock_ms = payload.white_clock_ms
-		game.black_clock_ms = payload.black_clock_ms
+		game.white_clock_ms = white_clock
+		game.black_clock_ms = black_clock
 		game.next_turn = SideToMove.BLACK.value if game.next_turn == SideToMove.WHITE.value else SideToMove.WHITE.value
 
 		if game.status == GameStatus.CREATED.value:
@@ -374,19 +523,39 @@ class GameService:
 				)
 			)
 
+		# Проверка окончания игры
 		if board.is_checkmate():
 			winner = SideToMove.WHITE.value if player_id == game.white_id else SideToMove.BLACK.value
-			self._finish_game(
+			await self._finish_game(
 				game,
 				winner=winner,
 				reason=TerminationReason.CHECKMATE.value,
 				ended_by=player_id,
 			)
+		elif board.is_stalemate() or board.is_insufficient_material() or board.is_seventyfive_moves() or board.is_repetition(3):
+			# Ничья: пат, недостаточно материала, правило 75 ходов или трёхкратное повторение
+			# Используем строку для reason, так как в enum нет специальных значений для ничьих
+			reason_str = "STALEMATE" if board.is_stalemate() else \
+						"INSUFFICIENT_MATERIAL" if board.is_insufficient_material() else \
+						"SEVENTY_FIVE_MOVES" if board.is_seventyfive_moves() else \
+						"THREEFOLD_REPETITION"
+			await self._finish_game(
+				game,
+				winner=None,
+				reason=reason_str,
+				ended_by=player_id,
+			)
 
 		await self.db.commit()
+		# Оптимизация: refresh только game, move уже в сессии и обновлен
 		await self.db.refresh(game)
-		await self.db.refresh(move)
-		await cancel_auto_cancel(game.id)
+		# move уже обновлен после commit, refresh не нужен
+		# await self.db.refresh(move)  # Убрано для оптимизации
+		
+		# Оптимизация: cancel_auto_cancel выполняется асинхронно после коммита
+		# Не блокируем ответ на это
+		asyncio.create_task(cancel_auto_cancel(game.id))
+		
 		return game, move
 
 	async def resign(self, game_id: UUID, *, player_id: int) -> Game:
@@ -451,13 +620,28 @@ class GameService:
 		game.ended_by = ended_by
 		if winner is None:
 			game.result = GameResult.DRAW.value
-			return
-		game.result = (
-			GameResult.WHITE_WIN.value if winner == SideToMove.WHITE.value else GameResult.BLACK_WIN.value
-		)
+		else:
+			game.result = (
+				GameResult.WHITE_WIN.value if winner == SideToMove.WHITE.value else GameResult.BLACK_WIN.value
+			)
+		
+		# Обновляем счетчик сыгранных партий для обоих игроков
+		# Используем raw SQL для обновления, чтобы не создавать зависимость от users_service
+		if game.white_id:
+			await self.db.execute(
+				text("UPDATE users SET games_played = games_played + 1 WHERE id = :user_id"),
+				{"user_id": game.white_id}
+			)
+		if game.black_id:
+			await self.db.execute(
+				text("UPDATE users SET games_played = games_played + 1 WHERE id = :user_id"),
+				{"user_id": game.black_id}
+			)
 
 	async def _lock_game(self, game_id: UUID) -> Game:
-		stmt = select(Game).where(Game.id == game_id).with_for_update()
+		# Используем populate_existing() чтобы гарантировать загрузку свежих данных из БД
+		# даже если объект уже есть в сессии (перезаписывает существующий объект)
+		stmt = select(Game).where(Game.id == game_id).with_for_update().execution_options(populate_existing=True)
 		result = await self.db.execute(stmt)
 		game = result.scalars().first()
 		if not game:

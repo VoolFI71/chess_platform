@@ -11,9 +11,9 @@
     const params = new URLSearchParams(window.location.search);
     const raw = params.get('next');
     if (raw && raw.startsWith('/') && !raw.startsWith('//')) {
-      return { url: raw, isCustom: raw !== '/cabinet' };
+      return { url: raw, isCustom: raw !== '/profile' };
     }
-    return { url: '/cabinet', isCustom: false };
+    return { url: '/profile', isCustom: false };
   }
 
   function setTokens(access, refresh) {
@@ -301,7 +301,7 @@
       if (redirectTarget.isCustom) {
         el.textContent = `После входа мы перенаправим вас на ${redirectTarget.url}.`;
       } else {
-        el.textContent = 'После входа вы автоматически перейдёте в личный кабинет.';
+        el.textContent = 'После входа вы автоматически перейдёте в профиль.';
       }
     });
   }

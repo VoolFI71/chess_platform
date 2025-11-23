@@ -9,7 +9,7 @@ from .database import SessionLocal
 from .models import Game, GameStatus, SideToMove
 from .realtime import game_ws_manager
 from .schemas import WsGameFinishedPayload
-from .services import GameService, GameServiceError, build_game_detail
+from .services import GameService, GameServiceError, build_game_detail, extract_move_data
 
 LOGGER = logging.getLogger(__name__)
 WATCHDOG_INTERVAL_SECONDS = 15
@@ -86,7 +86,9 @@ class TimeoutWatchdog:
 					continue
 
 				moves = await service.get_moves(game.id, limit=RECENT_MOVES_LIMIT)
-				detail = build_game_detail(finished_game, moves=moves)
+				# Извлекаем данные из Move объектов в async контексте
+				move_data = [await extract_move_data(move) for move in moves]
+				detail = build_game_detail(finished_game, moves=move_data)
 				await game_ws_manager.broadcast(
 					game.id,
 					WsGameFinishedPayload(type="game_finished", game=detail).model_dump(mode="json"),

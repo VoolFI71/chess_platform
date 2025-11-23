@@ -241,16 +241,6 @@ body.dark .square .piece svg {
     animation: fadeIn 0.2s ease;
 }
 
-.square.highlighted {
-    box-shadow: inset 0 0 0 3px rgba(16, 185, 129, 0.8), 0 0 10px rgba(16, 185, 129, 0.3);
-    background: rgba(16, 185, 129, 0.12) !important;
-}
-
-.square.highlighted .highlight-overlay {
-    background: rgba(16, 185, 129, 0.25);
-    animation: fadeIn 0.2s ease;
-}
-
 .square.selected .piece,
 .square.highlighted .piece {
     transform: scale(1.08);
@@ -324,7 +314,4 @@ body.dark .square.selected {
     box-shadow: inset 0 0 0 3px rgba(96, 165, 250, 0.8), 0 0 10px rgba(96, 165, 250, 0.4);
 }
 
-body.dark .square.highlighted {
-    box-shadow: inset 0 0 0 3px rgba(52, 211, 153, 0.8), 0 0 10px rgba(52, 211, 153, 0.4);
-}
 

@@ -10,6 +10,11 @@ class UserPublic(BaseModel):
 	display_name: Optional[str] = None
 	title: Optional[str] = None
 	rating: Optional[int] = None
+	blitz_rating: Optional[int] = None
+	bullet_rating: Optional[int] = None
+	rapid_rating: Optional[int] = None
+	puzzle_rating: Optional[int] = None
+	games_played: Optional[int] = None
 	country: Optional[str] = None
 	avatar_url: Optional[HttpUrl] = None
 	created_at: Optional[datetime] = None

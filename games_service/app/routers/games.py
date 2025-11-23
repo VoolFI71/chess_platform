@@ -5,9 +5,10 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import or_, select, text
 
 from ..database import get_db
-from ..models import Game, GameStatus, SideToMove
+from ..models import Game, GameStatus, GameResult, SideToMove
 from ..realtime import game_ws_manager
 from ..schemas import (
 	CreateGameRequest,
@@ -20,13 +21,13 @@ from ..schemas import (
 	WsGameFinishedPayload,
 	WsStatePayload,
 )
-from ..security import get_current_user_id
+from ..security import get_current_user_id, get_current_user_id_optional, get_current_user_id_optional
 from ..services import (
 	GameService,
 	GameServiceError,
 	build_game_detail,
 	build_game_summary,
-	build_move_out,
+	extract_move_data,
 	schedule_auto_cancel,
 )
 
@@ -75,26 +76,46 @@ async def create_game(
 	return game_detail
 
 
+
+
 @router.get("/", response_model=list[GameSummary])
 async def list_games(
 	statuses: Annotated[list[GameStatus] | None, Query(alias="status")] = None,
+	user_id: Annotated[str | None, Query(alias="user_id")] = None,
 	limit: Annotated[int, Query(ge=1, le=100)] = 25,
-	db: AsyncSession = Depends(get_db),
-) -> list[GameSummary]:
-	service = GameService(db)
-	games = await service.list_games(statuses=statuses, limit=limit)
-	return [build_game_summary(game) for game in games]
-
-
-@router.get("/history/me", response_model=list[GameSummary])
-async def list_my_games(
-	current_user_id: Annotated[int, Depends(get_current_user_id)],
-	limit: Annotated[int, Query(ge=1, le=100)] = 10,
 	offset: Annotated[int, Query(ge=0, le=5000)] = 0,
 	db: AsyncSession = Depends(get_db),
+	current_user_id: Annotated[int | None, Depends(get_current_user_id_optional)] = None,
 ) -> list[GameSummary]:
+	"""Список игр с фильтрацией по статусу и/или пользователю.
+	user_id может быть числом, 'me' для текущего пользователя, или username"""
 	service = GameService(db)
-	games = await service.list_games_for_user(current_user_id, limit=limit, offset=offset)
+	
+	# Обрабатываем user_id
+	resolved_user_id = None
+	if user_id:
+		if user_id.lower() == "me":
+			if current_user_id is None:
+				raise HTTPException(
+					status_code=status.HTTP_401_UNAUTHORIZED,
+					detail="Authentication required for 'me'"
+				)
+			resolved_user_id = current_user_id
+		elif user_id.isdigit():
+			resolved_user_id = int(user_id)
+		else:
+			# Это username, нужно получить ID
+			user_stmt = text("SELECT id FROM users WHERE LOWER(username) = LOWER(:username) AND is_active = TRUE")
+			user_result = await db.execute(user_stmt, {"username": user_id})
+			user_row = user_result.first()
+			if not user_row:
+				raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+			resolved_user_id = user_row[0]
+	
+	if resolved_user_id:
+		games = await service.list_games_for_user(resolved_user_id, limit=limit, offset=offset)
+	else:
+		games = await service.list_games(statuses=statuses, limit=limit)
 	return [build_game_summary(game) for game in games]
 
 
@@ -120,7 +141,9 @@ async def list_moves(
 ) -> MoveListResponse:
 	service = GameService(db)
 	moves = await service.get_moves(game_id, limit=limit)
-	return MoveListResponse(items=[build_move_out(move) for move in moves])
+	# Извлекаем данные из Move объектов в async контексте, пока они еще не expired
+	move_data = [await extract_move_data(move) for move in moves]
+	return MoveListResponse(items=move_data)
 
 
 @router.post("/{game_id}/join", response_model=JoinGameResponse)

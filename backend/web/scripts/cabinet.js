@@ -312,7 +312,7 @@ async function loadMatchHistory() {
   `;
 
   try {
-    const res = await apiFetch(`/api/games/history/me?limit=${Math.min(Math.max(limit, 1), 200)}`);
+    const res = await apiFetch(`/api/games/?user_id=me&limit=${Math.min(Math.max(limit, 1), 200)}`);
     if (!res.ok) throw new Error(await res.text());
     historyState.items = await res.json();
     historyState.loaded = true;
@@ -359,14 +359,165 @@ window.copyMatchLink = function copyMatchLink(gameId) {
     });
 };
 
+const formatNames = {
+  bullet: 'Пуля',
+  blitz: 'Блиц',
+  rapid: 'Рапид',
+  classical: 'Классика'
+};
+
+const formatIcons = {
+  bullet: 'fa-bolt',
+  blitz: 'fa-bolt',
+  rapid: 'fa-clock',
+  classical: 'fa-chess'
+};
+
+async function loadGameStats(username = null) {
+  try {
+    // Если передан username, загружаем статистику этого пользователя, иначе текущего
+    const statsPath = username ? `/api/users/${encodeURIComponent(username)}/stats` : '/api/users/me/stats';
+    const statsRes = await apiFetch(statsPath);
+    if (!statsRes.ok) {
+      throw new Error('Failed to load stats');
+    }
+    const stats = await statsRes.json();
+    
+    // Обновляем общую статистику
+    const totalGamesEl = document.getElementById('totalGames');
+    const overallWinRateEl = document.getElementById('overallWinRate');
+    const overallRatingEl = document.getElementById('overallRating');
+    
+    if (totalGamesEl) totalGamesEl.textContent = stats.total_games || 0;
+    if (overallWinRateEl) overallWinRateEl.textContent = `${stats.overall_win_rate || 0}%`;
+    
+    // Вычисляем средний рейтинг (взвешенный по количеству партий)
+    let totalRating = 0;
+    let totalWeight = 0;
+    if (stats.by_format && stats.by_format.length > 0) {
+      stats.by_format.forEach(fmt => {
+        const weight = fmt.games_played;
+        let rating = 0;
+        if (fmt.format === 'bullet') rating = stats.bullet_rating || 1200;
+        else if (fmt.format === 'blitz') rating = stats.blitz_rating || 1200;
+        else if (fmt.format === 'rapid') rating = stats.rapid_rating || 1200;
+        else if (fmt.format === 'classical') rating = stats.rapid_rating || 1200; // Используем rapid для classical
+        
+        totalRating += rating * weight;
+        totalWeight += weight;
+      });
+    }
+    const avgRating = totalWeight > 0 ? Math.round(totalRating / totalWeight) : (stats.blitz_rating || stats.bullet_rating || stats.rapid_rating || 1200);
+    if (overallRatingEl) overallRatingEl.textContent = avgRating;
+    
+    // Обновляем статистику по форматам
+    const formatStatsGrid = document.getElementById('formatStatsGrid');
+    if (formatStatsGrid && stats.by_format && stats.by_format.length > 0) {
+      formatStatsGrid.innerHTML = '';
+      stats.by_format.forEach(fmt => {
+        const card = document.createElement('div');
+        card.className = 'format-stat-card';
+        
+        const formatName = formatNames[fmt.format] || fmt.format;
+        const formatIcon = formatIcons[fmt.format] || 'fa-chess';
+        
+        let rating = 1200;
+        if (fmt.format === 'bullet') rating = stats.bullet_rating || 1200;
+        else if (fmt.format === 'blitz') rating = stats.blitz_rating || 1200;
+        else if (fmt.format === 'rapid') rating = stats.rapid_rating || 1200;
+        else if (fmt.format === 'classical') rating = stats.rapid_rating || 1200;
+        
+        card.innerHTML = `
+          <div class="format-stat-header">
+            <div class="format-stat-icon">
+              <i class="fas ${formatIcon}"></i>
+            </div>
+            <div class="format-stat-title">${formatName}</div>
+          </div>
+          <div class="format-stat-rating">${rating}</div>
+          <div class="format-stat-label">Рейтинг</div>
+          <div class="format-stat-details">
+            <div class="format-stat-detail">
+              <span class="format-stat-detail-label">Партий:</span>
+              <span class="format-stat-detail-value">${fmt.games_played}</span>
+            </div>
+            <div class="format-stat-detail">
+              <span class="format-stat-detail-label">Побед:</span>
+              <span class="format-stat-detail-value" style="color: var(--success);">${fmt.wins}</span>
+            </div>
+            <div class="format-stat-detail">
+              <span class="format-stat-detail-label">Поражений:</span>
+              <span class="format-stat-detail-value" style="color: var(--danger);">${fmt.losses}</span>
+            </div>
+            <div class="format-stat-detail">
+              <span class="format-stat-detail-label">Ничьих:</span>
+              <span class="format-stat-detail-value" style="color: var(--muted-foreground);">${fmt.draws}</span>
+            </div>
+            <div class="format-stat-detail">
+              <span class="format-stat-detail-label">Винрейт:</span>
+              <span class="format-stat-detail-value" style="color: var(--success); font-weight: 600;">${fmt.win_rate}%</span>
+            </div>
+          </div>
+        `;
+        formatStatsGrid.appendChild(card);
+      });
+    } else if (formatStatsGrid) {
+      formatStatsGrid.innerHTML = `
+        <div class="format-stat-card" style="text-align: center; padding: 2rem; color: var(--muted-foreground); grid-column: 1 / -1;">
+          <i class="fas fa-chess-knight" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+          <div>Пока нет завершенных партий</div>
+        </div>
+      `;
+    }
+  } catch (e) {
+    console.error('Failed to load game stats:', e);
+    const formatStatsGrid = document.getElementById('formatStatsGrid');
+    if (formatStatsGrid) {
+      formatStatsGrid.innerHTML = `
+        <div class="format-stat-card" style="text-align: center; padding: 2rem; color: var(--danger); grid-column: 1 / -1;">
+          <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+          <div>Не удалось загрузить статистику</div>
+        </div>
+      `;
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    // Определяем username из URL (для страницы профиля)
+    const pathMatch = window.location.pathname.match(/^\/profile\/(.+)$/);
+    const profileUsername = pathMatch ? decodeURIComponent(pathMatch[1]) : null;
+    
+    if (profileUsername) {
+      // Загружаем профиль пользователя по username
+      const userRes = await fetch(`/api/users/${encodeURIComponent(profileUsername)}`);
+      if (!userRes.ok) {
+        document.body.innerHTML = '<div style="padding: 2rem; text-align: center;"><h1>Пользователь не найден</h1></div>';
+        return;
+      }
+      const profileUser = await userRes.json();
+      
+      // Загружаем статистику этого пользователя
+      await loadGameStats(profileUsername);
+      
+      // Обновляем заголовок страницы
+      document.title = `${profileUser.username} — PowerChess`;
+      
+      // Можно добавить отображение информации о пользователе
+      return;
+    }
+    
+    // Иначе загружаем свой профиль
     const meRes = await apiFetch('/api/auth/me');
     if (!meRes.ok) {
       renderHistoryAuthPrompt();
       return;
     }
     currentUser = await meRes.json();
+
+    // Загружаем статистику игр
+    await loadGameStats();
 
     const [allRes, mineRes] = await Promise.all([apiFetch('/api/courses/'), apiFetch('/api/courses/me')]);
     if (!allRes.ok) return;

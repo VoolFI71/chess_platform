@@ -1589,9 +1589,8 @@
                     <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
                         <i class="fas fa-bars" id="menuIcon"></i>
                     </button>
-                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn">
+                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
                         <i class="fas fa-sign-out-alt"></i>
-                        Выйти
                     </button>
                 </div>
             </div>
@@ -1618,9 +1617,8 @@
                         <div id="gamesUserInfoMobile">
                             <span></span>
                         </div>
-                        <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile">
+                        <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile" title="Выйти">
                             <i class="fas fa-sign-out-alt"></i>
-                            Выйти
                         </button>
                     </div>
                 </div>
@@ -2081,13 +2079,13 @@
                     if (url.startsWith('/api/payments/simulate/')) {
                         // Dev mode: simulate then go to cabinet
                         await apiFetch(url);
-                        window.location.href = '/cabinet';
+                        window.location.href = '/profile';
                     } else {
                         window.location.href = url;
                     }
                 } else {
                     // Free course path
-                    window.location.href = '/cabinet';
+                    window.location.href = '/profile';
                 }
             } catch (e) {
                 alert('Сетевая ошибка при переходе к оплате');

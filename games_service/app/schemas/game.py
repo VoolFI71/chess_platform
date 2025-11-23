@@ -91,8 +91,8 @@ class TimeoutRequest(BaseModel):
 class MakeMovePayload(BaseModel):
 	type: Literal["make_move"]
 	uci: str
-	white_clock_ms: int = Field(ge=0)
-	black_clock_ms: int = Field(ge=0)
+	white_clock_ms: int | None = Field(default=None, ge=0, description="Текущее время белых (после вычитания прошедшего времени). Если не указано, сервер вычисляет время.")
+	black_clock_ms: int | None = Field(default=None, ge=0, description="Текущее время черных (после вычитания прошедшего времени). Если не указано, сервер вычисляет время.")
 	promotion: str | None = Field(default=None, max_length=1)
 	client_move_id: str | None = Field(
 		default=None, description="Клиентский идентификатор для сопоставления ответов"

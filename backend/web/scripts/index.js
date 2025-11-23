@@ -166,7 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await authedFetch('/api/auth/me');
         if (res && res.ok) {
-          window.location.href = '/cabinet';
+          const user = await res.json();
+          const username = user?.username;
+          window.location.href = username ? `/profile/${encodeURIComponent(username)}` : '/profile';
         } else {
           if (typeof showLoginModal === 'function') showLoginModal();
         }
@@ -190,8 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const enroll = await authedFetch('/api/courses/1/enroll', { method: 'POST' });
         if (enroll && enroll.ok) {
-          alert('✅ Курс добавлен в ваш кабинет');
-          window.location.href = '/cabinet';
+          alert('✅ Курс добавлен на ваш аккаунт');
+          const user = await me.json();
+          const username = user?.username;
+          window.location.href = username ? `/profile/${encodeURIComponent(username)}` : '/profile';
         } else {
           const msg = await enroll.text();
           alert('Не удалось выдать доступ: ' + msg);
@@ -210,10 +214,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const myCourses = await res.json();
       const hasGrob = Array.isArray(myCourses) && myCourses.some(c => c.id === 1 || c.slug === 'grob-free');
       if (hasGrob && freeCourseButton) {
-        freeCourseButton.textContent = 'Уже в вашем кабинете';
+        freeCourseButton.textContent = 'Уже в вашем аккаунте';
         freeCourseButton.classList.remove('btn-success');
         freeCourseButton.classList.add('btn-outline');
-        freeCourseButton.onclick = (e) => { e.preventDefault(); window.location.href = '/cabinet'; };
+        freeCourseButton.onclick = async (e) => { 
+          e.preventDefault(); 
+          try {
+            const userRes = await authedFetch('/api/auth/me');
+            if (userRes && userRes.ok) {
+              const user = await userRes.json();
+              const username = user?.username;
+              window.location.href = username ? `/profile/${encodeURIComponent(username)}` : '/profile';
+            } else {
+              window.location.href = '/profile';
+            }
+          } catch {
+            window.location.href = '/profile';
+          }
+        };
       }
     } catch {}
   })();
