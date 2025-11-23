@@ -21,7 +21,7 @@ from ..schemas import (
 	WsGameFinishedPayload,
 	WsStatePayload,
 )
-from ..security import get_current_user_id, get_current_user_id_optional, get_current_user_id_optional
+from ..security import get_current_user_id, get_current_user_id_optional
 from ..services import (
 	GameService,
 	GameServiceError,
