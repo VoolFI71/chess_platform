@@ -2265,6 +2265,47 @@ html.dark .qr-code {
     to { transform: rotate(360deg); }
 }
 
+@media (max-width: 640px) {
+    #friendShareScreen {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .share-instruction {
+        font-size: 0.85rem;
+        line-height: 1.4;
+        margin-bottom: 0.75rem;
+    }
+
+    .link-container {
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .btn-copy {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .qr-container {
+        padding: 1.1rem;
+    }
+
+    .qr-code {
+        width: min(200px, 70vw);
+        height: min(200px, 70vw);
+        padding: 0.5rem;
+    }
+
+    .waiting-spinner {
+        margin-top: 1rem;
+        width: 48px;
+        height: 48px;
+        font-size: 1.9rem;
+    }
+}
+
 /* ===== WAITING ROOM ===== */
 .waiting-room {
     display: flex;
