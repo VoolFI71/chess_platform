@@ -71,12 +71,18 @@ async def get_user(
 def _get_games_client() -> tuple[str, dict[str, str]]:
 	"""Получает настройки для HTTP клиента games_service."""
 	settings = get_settings()
-	if not settings.games_service_url or not settings.games_internal_token:
+
+	# games_service всегда доступен по имени контейнера внутри сети docker compose.
+	# Чтобы не заставлять конфигурировать URL для локальной разработки,
+	# используем http://games:8000 в качестве значения по умолчанию.
+	base_url = (settings.games_service_url or "http://games:8000").rstrip("/")
+
+	if not settings.games_internal_token:
 		raise HTTPException(
 			status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
 			detail="Сервис игр недоступен"
 		)
-	base_url = settings.games_service_url.rstrip("/")
+
 	headers = {"X-Internal-Token": settings.games_internal_token}
 	return base_url, headers
 
