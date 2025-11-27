@@ -458,12 +458,6 @@
             </div>
 
             <div id="friendShareScreen" class="share-screen">
-                <div class="game-info-banner">
-                    <div class="game-info-icon">🎯</div>
-                    <div class="game-info-title" id="shareGameTitle">Пуля 1+0</div>
-                    <div class="game-info-details" id="shareGameType">Товарищеская партия</div>
-                </div>
-
                 <div class="share-instruction">
                     Чтобы пригласить друга, отправьте ему эту ссылку
                 </div>
@@ -477,15 +471,14 @@
                 </div>
 
                 <div class="qr-container">
-                    <div class="qr-title">Или позвольте вашему сопернику отсканировать этот QR-код</div>
+                    <div class="qr-title">Или позвольте отсканировать код противнику</div>
                     <div class="qr-code">
-                        <i class="fas fa-qrcode"></i>
+                        <img id="shareQrImage" alt="QR-код приглашения" src="" loading="lazy">
                     </div>
                 </div>
 
-                <div class="waiting-opponent">
-                    <div class="waiting-text">Ожидание второго игрока</div>
-                    <div class="waiting-dots">●●●</div>
+                <div class="waiting-spinner" aria-live="polite" aria-label="Ожидаем второго игрока">
+                    <i class="fas fa-rotate-right"></i>
                 </div>
             </div>
         </div>

@@ -1430,6 +1430,25 @@ const closeFriendModal = document.getElementById('closeFriendModal');
 const friendSetupScreen = document.getElementById('friendSetupScreen');
 const friendShareScreen = document.getElementById('friendShareScreen');
 
+const updateShareQrCode = (link) => {
+    const qrImage = document.getElementById('shareQrImage');
+    if (!qrImage) return;
+
+    if (!link) {
+        qrImage.removeAttribute('src');
+        qrImage.alt = 'QR-код приглашения';
+        return;
+    }
+
+    const encoded = encodeURIComponent(link);
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&format=svg&data=${encoded}`;
+    if (qrImage.dataset.currentSrc !== qrUrl) {
+        qrImage.src = qrUrl;
+        qrImage.dataset.currentSrc = qrUrl;
+    }
+    qrImage.alt = 'QR-код приглашения';
+};
+
 if (closeFriendModal) {
     closeFriendModal.addEventListener('click', () => {
         friendGameModal.classList.remove('active');
@@ -1594,16 +1613,11 @@ if (friendIncrementSlider && friendIncrementValue) {
                   creatorColor: creatorColor,
                   initialFen: 'startpos',
                   onSuccess: (game) => {
-                      // Update share screen info
-                      const shareGameTitle = document.getElementById('shareGameTitle');
-                      const shareGameType = document.getElementById('shareGameType');
-                      if (shareGameTitle) shareGameTitle.textContent = `Партия ${minutes}+${increment}`;
-                      if (shareGameType) shareGameType.textContent = isRated ? 'Рейтинговая партия' : 'Товарищеская партия';
-                      
                       // Generate share link
                       const shareLink = document.getElementById('shareLink');
                       if (shareLink && game.id) {
                           shareLink.value = `${window.location.origin}/match/${game.id}`;
+                          updateShareQrCode(shareLink.value);
                 }
                       
                       // Show share screen
