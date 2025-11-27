@@ -98,7 +98,7 @@ async def list_games(
 			if current_user_id is None:
 				raise HTTPException(
 					status_code=status.HTTP_401_UNAUTHORIZED,
-					detail="Authentication required for 'me'"
+					detail="Требуется аутентификация для 'me'"
 				)
 			resolved_user_id = current_user_id
 		elif user_id.isdigit():
@@ -109,11 +109,11 @@ async def list_games(
 			user_result = await db.execute(user_stmt, {"username": user_id})
 			user_row = user_result.first()
 			if not user_row:
-				raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+				raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
 			resolved_user_id = user_row[0]
 	
 	if resolved_user_id:
-		games = await service.list_games_for_user(resolved_user_id, limit=limit, offset=offset)
+		games = await service.list_games_for_user(resolved_user_id, limit=limit, offset=offset, statuses=statuses)
 	else:
 		games = await service.list_games(statuses=statuses, limit=limit)
 	return [build_game_summary(game) for game in games]

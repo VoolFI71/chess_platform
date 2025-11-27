@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Профиль — PowerChess</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Личный профиль PowerChess. Статистика игр, рейтинг, история партий.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="https://powerchess.org/profile">
+    
     <!-- Загрузка темы до отрисовки страницы, чтобы избежать мерцания -->
     <script>
       try {
@@ -22,7 +28,7 @@
     <link rel="stylesheet" href="/styles/cabinet.css">
     <!-- Scripts -->
     <script src="/scripts/auth.js"></script>
-    <script src="/scripts/cabinet.js"></script>
+    <script src="/scripts/profile.js"></script>
 </head>
 <body>
     <!-- HEADER -->
@@ -55,9 +61,9 @@
                 </a>
                 <nav class="nav">
                     <a href="/games" class="nav-link">Играть</a>
+                    <a href="/spaced-repetition" class="nav-link">Задачи</a>
                     <a href="/course" class="nav-link">Курсы</a>
                     <a href="/couch" class="nav-link">Тренеры</a>
-                    <a href="#reviews" class="nav-link">Отзывы</a>
                     <a href="#tournaments" class="nav-link">Турниры</a>
                 </nav>
                 <div class="header-actions">
@@ -91,10 +97,10 @@
             <div class="mobile-menu" id="mobileMenu">
                 <div>
                     <a href="/games" class="nav-link mobile-nav-link">Играть</a>
+                    <a href="/spaced-repetition" class="nav-link mobile-nav-link">Задачи</a>
                     <a href="/course" class="nav-link mobile-nav-link">Курсы</a>
                     <a href="/couch" class="nav-link mobile-nav-link">Тренеры</a>
                     <a href="/profile" class="nav-link mobile-nav-link active">Кабинет</a>
-                    <a href="#reviews" class="nav-link mobile-nav-link">Отзывы</a>
                     <a href="#tournaments" class="nav-link mobile-nav-link">Турниры</a>
                     <hr>
                     <div id="mobileAuthButtons">
@@ -140,8 +146,8 @@
                     <span>Мои курсы</span>
                 </div>
                 <div class="sidebar-item" data-section="games">
-                    <i class="fas fa-chess"></i>
-                    <span>Мои партии</span>
+                    <i class="fas fa-history"></i>
+                    <span>История партий</span>
                 </div>
                 <div class="sidebar-item" data-section="favorites">
                     <i class="fas fa-star"></i>
@@ -468,103 +474,13 @@
             <section class="content-section" id="games">
                 <div class="section-header">
                     <h1 class="section-title">
-                        <i class="fas fa-chess"></i>
-                        Мои партии
+                        <i class="fas fa-history"></i>
+                        История партий
                     </h1>
                 </div>
 
-                <div class="games-list">
-                    <div class="game-card">
-                        <div class="game-info">
-                            <div class="game-result win">
-                                <i class="fas fa-trophy"></i>
-                            </div>
-                            <div class="game-details">
-                                <div class="game-opponent">vs ChessKing777</div>
-                                <div class="game-meta">5+0 Blitz • Рейтинговая • Сегодня, 14:30</div>
-                            </div>
-                        </div>
-                        <div class="game-actions">
-                            <button class="btn-icon" title="Просмотреть">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn-icon" title="Анализ">
-                                <i class="fas fa-chart-line"></i>
-                            </button>
-                            <button class="btn-icon" title="Отметить">
-                                <i class="far fa-star"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="game-card">
-                        <div class="game-info">
-                            <div class="game-result loss">
-                                <i class="fas fa-times"></i>
-                            </div>
-                            <div class="game-details">
-                                <div class="game-opponent">vs StrategicMind</div>
-                                <div class="game-meta">10+5 Rapid • Товарищеская • Вчера, 19:15</div>
-                            </div>
-                        </div>
-                        <div class="game-actions">
-                            <button class="btn-icon" title="Просмотреть">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn-icon" title="Анализ">
-                                <i class="fas fa-chart-line"></i>
-                            </button>
-                            <button class="btn-icon" title="Отметить">
-                                <i class="far fa-star"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="game-card">
-                        <div class="game-info">
-                            <div class="game-result draw">
-                                =
-                            </div>
-                            <div class="game-details">
-                                <div class="game-opponent">vs TacticalGenius</div>
-                                <div class="game-meta">3+2 Blitz • Рейтинговая • 2 дня назад</div>
-                            </div>
-                        </div>
-                        <div class="game-actions">
-                            <button class="btn-icon" title="Просмотреть">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn-icon" title="Анализ">
-                                <i class="fas fa-chart-line"></i>
-                            </button>
-                            <button class="btn-icon" title="Отметить">
-                                <i class="far fa-star"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="game-card">
-                        <div class="game-info">
-                            <div class="game-result win">
-                                <i class="fas fa-trophy"></i>
-                            </div>
-                            <div class="game-details">
-                                <div class="game-opponent">vs RookMaster</div>
-                                <div class="game-meta">15+10 Rapid • Рейтинговая • 3 дня назад</div>
-                            </div>
-                        </div>
-                        <div class="game-actions">
-                            <button class="btn-icon" title="Просмотреть">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn-icon" title="Анализ">
-                                <i class="fas fa-chart-line"></i>
-                            </button>
-                            <button class="btn-icon" title="Отметить">
-                                <i class="far fa-star"></i>
-                            </button>
-                        </div>
-                    </div>
+                <div class="games-list" id="matchHistoryList" data-limit="50">
+                    <!-- История партий будет загружена динамически -->
                 </div>
             </section>
 
@@ -784,6 +700,13 @@
             // Add active class to clicked item and target section
             item.classList.add('active');
             document.getElementById(targetSection).classList.add('active');
+            
+            // Загружаем историю партий при переключении на вкладку "История партий"
+            if (targetSection === 'games' && typeof window.ensureMatchHistoryLoaded === 'function') {
+                const pathMatch = window.location.pathname.match(/^\/profile\/(.+)$/);
+                const profileUsername = pathMatch ? decodeURIComponent(pathMatch[1]) : null;
+                window.ensureMatchHistoryLoaded(false, profileUsername);
+            }
         });
     });
 

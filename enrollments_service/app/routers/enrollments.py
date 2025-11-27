@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/enrollments", tags=["enrollments"])
 
 async def _ensure_enrollment(db: AsyncSession, *, user_id: int, course_id: int) -> Tuple[Enrollment, bool]:
 	if course_id <= 0:
-		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid course id")
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Неверный ID курса")
 
 	stmt = select(Enrollment).where(Enrollment.user_id == user_id, Enrollment.course_id == course_id)
 	result = await db.execute(stmt)

@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PowerChess — Матч</title>
+  <title>Матч — PowerChess</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Играйте в шахматы онлайн на PowerChess. Живая партия с анализом ходов.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://powerchess.org/match">
+  
   <script>
     try {
       if (localStorage.getItem('theme') === 'dark') {
@@ -20,7 +26,6 @@
   <link rel="stylesheet" href="/styles/variables.css">
   <link rel="stylesheet" href="/styles/common.css">
   <link rel="stylesheet" href="/styles/header.css">
-  <link rel="stylesheet" href="/styles/games.css">
   <link rel="stylesheet" href="/styles/chess-board.css">
   <link rel="stylesheet" href="/styles/match.css">
 </head>
@@ -55,9 +60,9 @@
         </a>
         <nav class="nav">
           <a href="/games" class="nav-link active">Играть</a>
+          <a href="/spaced-repetition" class="nav-link">Задачи</a>
           <a href="/course" class="nav-link">Курсы</a>
           <a href="/couch" class="nav-link">Тренеры</a>
-          <a href="#reviews" class="nav-link">Отзывы</a>
           <a href="#tournaments" class="nav-link">Турниры</a>
         </nav>
         <div class="header-actions">
@@ -91,9 +96,9 @@
       <div class="mobile-menu" id="mobileMenu">
         <div>
           <a href="/games" class="nav-link mobile-nav-link">Играть</a>
+          <a href="/spaced-repetition" class="nav-link mobile-nav-link">Задачи</a>
           <a href="/course" class="nav-link mobile-nav-link">Курсы</a>
           <a href="/couch" class="nav-link mobile-nav-link">Тренеры</a>
-          <a href="#reviews" class="nav-link mobile-nav-link">Отзывы</a>
           <a href="#tournaments" class="nav-link mobile-nav-link">Турниры</a>
           <hr>
           <div id="mobileAuthButtons">
@@ -196,6 +201,14 @@
             <h3>Ходы</h3>
             <small>Кликните, чтобы увидеть позицию</small>
           </div>
+          <div class="moves-navigation">
+            <button class="nav-arrow-btn" id="prevMoveBtn" title="Предыдущий ход">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="nav-arrow-btn" id="nextMoveBtn" title="Следующий ход">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
           <ol class="moves-list" id="movesList"></ol>
         </section>
 
@@ -211,18 +224,29 @@
   <!-- Match Page Scripts -->
   <script src="/scripts/chess-move-utils.js" defer></script>
   <script src="/scripts/chess-pieces-svg.js" defer></script>
-  <script src="/scripts/match.state.js" defer></script>
-  <script src="/scripts/match.api.js" defer></script>
-  <script src="/scripts/match.js" defer></script>
+  <!-- Match Modules -->
+  <script src="/scripts/match/state.js" defer></script>
+  <script src="/scripts/match/api.js" defer></script>
+  <script src="/scripts/match/constants.js" defer></script>
+  <script src="/scripts/match/utils.js" defer></script>
+  <script src="/scripts/match/player-names.js" defer></script>
+  <script src="/scripts/match/clocks.js" defer></script>
+  <script src="/scripts/match/timers.js" defer></script>
+  <!-- Main Match Script -->
+  <script src="/scripts/match/match.js" defer></script>
   <script>
+    // Theme toggle handler - использует глобальную функцию из auth.js
     document.addEventListener('DOMContentLoaded', function() {
       const themeToggleBtn = document.getElementById('themeToggleBtn');
       if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', function(e) {
           e.preventDefault();
-          if (window.toggleTheme) {
+          e.stopPropagation();
+          // Используем глобальную функцию из auth.js
+          if (window.toggleTheme && typeof window.toggleTheme === 'function') {
             window.toggleTheme();
           } else {
+            // Fallback если auth.js еще не загружен
             const isDark = document.body.classList.contains('dark');
             document.body.classList.toggle('dark', !isDark);
             document.documentElement.classList.toggle('dark', !isDark);
@@ -233,6 +257,7 @@
         });
       }
       
+      // Mobile menu handlers - используют функции из match.js
       const mobileMenuBtn = document.getElementById('mobileMenuBtn');
       if (mobileMenuBtn) {
         mobileMenuBtn.addEventListener('click', function() {

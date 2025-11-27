@@ -1343,6 +1343,18 @@ document.querySelectorAll('.game-type-toggle').forEach(toggle => {
     });
 });
 
+// Color selection toggle
+document.querySelectorAll('#colorToggle, #friendColorToggle').forEach(toggle => {
+    const colorOptions = toggle.querySelectorAll('.color-option');
+    colorOptions.forEach(option => {
+        option.addEventListener('click', (e) => {
+            e.preventDefault();
+            colorOptions.forEach(o => o.classList.remove('active'));
+            option.classList.add('active');
+        });
+    });
+});
+
   // Mode card click - Open friend game modal with selected time
 document.querySelectorAll('.mode-card').forEach(card => {
       card.addEventListener('click', () => {
@@ -1501,12 +1513,24 @@ if (friendIncrementSlider && friendIncrementValue) {
         }
 
         const isRated = gameType.dataset.type === 'rated';
+        
+        // Получаем выбранный цвет
+        const colorOption = customGameForm.querySelector('.color-option.active');
+        let creatorColor = 'random';
+        if (colorOption) {
+            const selectedColor = colorOption.dataset.color;
+            if (selectedColor === 'random') {
+                creatorColor = Math.random() < 0.5 ? 'white' : 'black';
+            } else {
+                creatorColor = selectedColor;
+            }
+        }
 
               const game = await window.createGame({
                   minutes,
                   increment,
                   isRated,
-                  creatorColor: 'white',
+                  creatorColor: creatorColor,
                   initialFen: 'startpos',
                   onSuccess: (game) => {
                       if (typeof window.showToast === 'function') {
@@ -1550,12 +1574,24 @@ if (friendIncrementSlider && friendIncrementValue) {
         }
 
         const isRated = gameType.dataset.type === 'rated';
+        
+        // Получаем выбранный цвет
+        const colorOption = friendGameForm.querySelector('.color-option.active');
+        let creatorColor = 'random';
+        if (colorOption) {
+            const selectedColor = colorOption.dataset.color;
+            if (selectedColor === 'random') {
+                creatorColor = Math.random() < 0.5 ? 'white' : 'black';
+            } else {
+                creatorColor = selectedColor;
+            }
+        }
               
               const game = await window.createGame({
                   minutes,
                   increment,
                   isRated,
-                  creatorColor: 'white',
+                  creatorColor: creatorColor,
                   initialFen: 'startpos',
                   onSuccess: (game) => {
                       // Update share screen info

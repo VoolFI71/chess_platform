@@ -3,7 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PowerChess — Играть</title>
+    <title>Играть в шахматы онлайн - PowerChess | Быстрые партии, блиц, классика</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Играйте в шахматы онлайн на PowerChess. Быстрые партии, блиц, классические партии. Создавайте игры, приглашайте друзей, играйте с соперниками со всего мира.">
+    <meta name="keywords" content="играть в шахматы онлайн, онлайн шахматы, быстрые партии, блиц, классические шахматы, шахматная игра, играть с друзьями">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://powerchess.org/games">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://powerchess.org/games">
+    <meta property="og:title" content="Играть в шахматы онлайн - PowerChess">
+    <meta property="og:description" content="Играйте в шахматы онлайн. Быстрые партии, блиц, классические партии. Создавайте игры и приглашайте друзей.">
+    <meta property="og:image" content="https://powerchess.org/og-image.jpg">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Играть в шахматы онлайн - PowerChess">
+    <meta name="twitter:description" content="Играйте в шахматы онлайн. Быстрые партии, блиц, классические партии.">
+    <meta name="twitter:image" content="https://powerchess.org/og-image.jpg">
+    
     <!-- Загрузка темы до отрисовки страницы, чтобы избежать мерцания -->
     <script>
       try {
@@ -13,6 +33,20 @@
         }
       } catch {}
     </script>
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PowerChess - Онлайн шахматы",
+      "description": "Играйте в шахматы онлайн. Быстрые партии, блиц, классические партии.",
+      "url": "https://powerchess.org/games",
+      "applicationCategory": "Game",
+      "operatingSystem": "Web Browser"
+    }
+    </script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Common Styles -->
     <link rel="stylesheet" href="/styles/variables.css">
@@ -51,9 +85,9 @@
                 </a>
                 <nav class="nav">
                     <a href="/games" class="nav-link active">Играть</a>
+                    <a href="/spaced-repetition" class="nav-link">Задачи</a>
                     <a href="/course" class="nav-link">Курсы</a>
                     <a href="/couch" class="nav-link">Тренеры</a>
-                    <a href="#reviews" class="nav-link">Отзывы</a>
                     <a href="#tournaments" class="nav-link">Турниры</a>
                 </nav>
                 <div class="header-actions">
@@ -87,9 +121,9 @@
             <div class="mobile-menu" id="mobileMenu">
                 <div>
                     <a href="/games" class="nav-link mobile-nav-link">Играть</a>
+                    <a href="/spaced-repetition" class="nav-link mobile-nav-link">Задачи</a>
                     <a href="/course" class="nav-link mobile-nav-link">Курсы</a>
                     <a href="/couch" class="nav-link mobile-nav-link">Тренеры</a>
-                    <a href="#reviews" class="nav-link mobile-nav-link">Отзывы</a>
                     <a href="#tournaments" class="nav-link mobile-nav-link">Турниры</a>
                     <hr>
                     <div id="mobileAuthButtons">
@@ -341,6 +375,21 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label class="form-label">Играть за</label>
+                    <div class="game-type-toggle" id="colorToggle">
+                        <button type="button" class="color-option" data-color="white">
+                            <i class="fas fa-chess"></i> Белых
+                        </button>
+                        <button type="button" class="color-option" data-color="black">
+                            <i class="fas fa-chess"></i> Черных
+                        </button>
+                        <button type="button" class="color-option active" data-color="random">
+                            <i class="fas fa-random"></i> Случайно
+                        </button>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn-create">
                     <i class="fas fa-search"></i>
                     Создать запрос на игру
@@ -383,6 +432,21 @@
                         <div class="game-type-toggle">
                             <button type="button" class="type-option active" data-type="casual">Товарищеская</button>
                             <button type="button" class="type-option" data-type="rated">Рейтинговая</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Играть за</label>
+                        <div class="game-type-toggle" id="friendColorToggle">
+                            <button type="button" class="color-option" data-color="white">
+                                <i class="fas fa-chess"></i> Белых
+                            </button>
+                            <button type="button" class="color-option" data-color="black">
+                                <i class="fas fa-chess"></i> Черных
+                            </button>
+                            <button type="button" class="color-option active" data-color="random">
+                                <i class="fas fa-random"></i> Случайно
+                            </button>
                         </div>
                     </div>
 

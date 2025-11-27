@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /scripts/
+Disallow: /styles/
+Disallow: /match/
+Disallow: /profile
+Disallow: /login
+Disallow: /register
+
+# Sitemap
+Sitemap: https://powerchess.org/sitemap.xml
+

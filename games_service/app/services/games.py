@@ -29,6 +29,7 @@ from ..schemas import (
 	MakeMovePayload,
 	MoveOut,
 )
+from ..schemas.stats import GameFormatStats, UserGameStats
 from ..realtime.manager import game_ws_manager
 
 LOGGER = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ def _board_from_fen(fen: str) -> chess.Board:
 	try:
 		return chess.Board(fen)
 	except ValueError as exc:
-		raise GameServiceError("Invalid FEN supplied") from exc
+		raise GameServiceError("Неверный формат FEN") from exc
 
 
 def _initial_board(initial_fen: str | None) -> tuple[chess.Board, str]:
@@ -250,36 +251,67 @@ class GameService:
 		elapsed_ms: int,
 		increment_ms: int,
 	) -> tuple[int, int]:
-		"""Вычисляет время для обоих игроков при ходе."""
-		if payload.white_clock_ms is not None and payload.black_clock_ms is not None:
-			# Клиент отправил время для обоих игроков
-			white_clock = payload.white_clock_ms
-			black_clock = payload.black_clock_ms
-		elif payload.white_clock_ms is not None or payload.black_clock_ms is not None:
-			# Клиент отправил время только для одного игрока (старая версия)
-			white_clock = game.white_clock_ms
-			black_clock = game.black_clock_ms
-			if current_turn == SideToMove.WHITE.value:
-				if payload.white_clock_ms is not None:
-					white_clock = payload.white_clock_ms
+		"""Вычисляет время для обоих игроков при ходе.
+
+		Мы доверяем клиенту только время игрока, который делает ход.
+		Время оппонента не должно меняться (он не думал), поэтому
+		используем значение из БД, даже если клиент прислал другое.
+		"""
+		white_clock = game.white_clock_ms
+		black_clock = game.black_clock_ms
+
+		LOGGER.info(
+			"Clock calc start: game=%s turn=%s payload_white=%s payload_black=%s stored_white=%s stored_black=%s elapsed=%d increment=%d",
+			game.id,
+			current_turn,
+			payload.white_clock_ms,
+			payload.black_clock_ms,
+			white_clock,
+			black_clock,
+			elapsed_ms,
+			increment_ms,
+		)
+
+		if current_turn == SideToMove.WHITE.value:
+			if payload.white_clock_ms is not None:
+				white_clock = payload.white_clock_ms
 			else:
-				if payload.black_clock_ms is not None:
-					black_clock = payload.black_clock_ms
-		else:
-			# Вычисляем время на сервере (для обратной совместимости)
-			white_clock = game.white_clock_ms
-			black_clock = game.black_clock_ms
-			if current_turn == SideToMove.WHITE.value:
+				# Для старых клиентов/обратной совместимости
 				white_clock = max(0, white_clock - elapsed_ms)
+		else:
+			if payload.black_clock_ms is not None:
+				black_clock = payload.black_clock_ms
 			else:
 				black_clock = max(0, black_clock - elapsed_ms)
-		
+
 		# Добавляем инкремент игроку, который сделал ход
 		if current_turn == SideToMove.WHITE.value:
 			white_clock += increment_ms
+			if payload.black_clock_ms is not None and payload.black_clock_ms != game.black_clock_ms:
+				LOGGER.warning(
+					"Ignoring black clock from payload for game=%s: value=%s stored=%s",
+					game.id,
+					payload.black_clock_ms,
+					game.black_clock_ms,
+				)
 		else:
 			black_clock += increment_ms
-		
+			if payload.white_clock_ms is not None and payload.white_clock_ms != game.white_clock_ms:
+				LOGGER.warning(
+					"Ignoring white clock from payload for game=%s: value=%s stored=%s",
+					game.id,
+					payload.white_clock_ms,
+					game.white_clock_ms,
+				)
+
+		LOGGER.info(
+			"Clock calc result: game=%s turn=%s white=%s black=%s",
+			game.id,
+			current_turn,
+			white_clock,
+			black_clock,
+		)
+
 		return white_clock, black_clock
 
 	async def _compute_effective_clocks(self, game: Game, last_move: Move | None = None) -> tuple[int, int]:
@@ -346,7 +378,7 @@ class GameService:
 		return list(result.scalars().all())
 
 	async def list_games_for_user(
-		self, user_id: int, *, limit: int = 50, offset: int = 0
+		self, user_id: int, *, limit: int = 50, offset: int = 0, statuses: list[GameStatus] | None = None
 	) -> list[Game]:
 		stmt = (
 			select(Game)
@@ -355,6 +387,8 @@ class GameService:
 			.offset(offset)
 			.limit(limit)
 		)
+		if statuses:
+			stmt = stmt.where(Game.status.in_([s.value for s in statuses]))
 		result = await self.db.execute(stmt)
 		return list(result.scalars().all())
 
@@ -387,11 +421,11 @@ class GameService:
 	async def join_game(self, game_id: UUID, *, player_id: int) -> Game:
 		game = await self._lock_game(game_id)
 		if game.status != GameStatus.CREATED.value:
-			raise GameServiceError("Game is not open for joining", status.HTTP_409_CONFLICT)
+			raise GameServiceError("Партия не открыта для присоединения", status.HTTP_409_CONFLICT)
 		if player_id in {game.white_id, game.black_id}:
-			raise GameServiceError("You are already part of this game", status.HTTP_400_BAD_REQUEST)
+			raise GameServiceError("Вы уже участвуете в этой партии", status.HTTP_400_BAD_REQUEST)
 		if game.white_id is not None and game.black_id is not None:
-			raise GameServiceError("Game already has two players", status.HTTP_409_CONFLICT)
+			raise GameServiceError("В партии уже два игрока", status.HTTP_409_CONFLICT)
 
 		if game.white_id is None:
 			game.white_id = player_id
@@ -416,22 +450,22 @@ class GameService:
 		# Теперь блокируем и получаем актуальную версию
 		game = await self._lock_game(game_id)
 		if game.status == GameStatus.FINISHED.value:
-			raise GameServiceError("Game already finished", status.HTTP_409_CONFLICT)
+			raise GameServiceError("Партия уже завершена", status.HTTP_409_CONFLICT)
 		if not game.white_id or not game.black_id:
-			raise GameServiceError("Cannot start until second player joins")
+			raise GameServiceError("Нельзя начать, пока не присоединился второй игрок")
 
 		expected_player = game.white_id if game.next_turn == SideToMove.WHITE.value else game.black_id
 		if player_id != expected_player:
-			raise GameServiceError("Not your turn", status.HTTP_403_FORBIDDEN)
+			raise GameServiceError("Не ваш ход", status.HTTP_403_FORBIDDEN)
 
 		board = _board_from_fen(game.current_pos)
 		try:
 			move_obj = chess.Move.from_uci(payload.uci)
 		except ValueError as exc:
-			raise GameServiceError("Invalid UCI move") from exc
+			raise GameServiceError("Неверный формат UCI хода") from exc
 
 		if move_obj not in board.legal_moves:
-			raise GameServiceError("Illegal move")
+			raise GameServiceError("Недопустимый ход")
 
 		is_capture = board.is_capture(move_obj)
 		san = board.san(move_obj)
@@ -453,7 +487,7 @@ class GameService:
 					"effective_time=%dms",
 					game.id, player_id, effective_white
 				)
-				raise GameServiceError("White player ran out of time", status.HTTP_400_BAD_REQUEST)
+				raise GameServiceError("У белых закончилось время", status.HTTP_400_BAD_REQUEST)
 		else:
 			if effective_black <= 0:
 				LOGGER.info(
@@ -461,7 +495,7 @@ class GameService:
 					"effective_time=%dms",
 					game.id, player_id, effective_black
 				)
-				raise GameServiceError("Black player ran out of time", status.HTTP_400_BAD_REQUEST)
+				raise GameServiceError("У черных закончилось время", status.HTTP_400_BAD_REQUEST)
 		
 		# Время тикает на клиенте, клиент отправляет текущее время
 		# Используем время с клиента, если оно предоставлено, иначе вычисляем на сервере
@@ -561,9 +595,9 @@ class GameService:
 	async def resign(self, game_id: UUID, *, player_id: int) -> Game:
 		game = await self._lock_game(game_id)
 		if game.status == GameStatus.FINISHED.value:
-			raise GameServiceError("Game already finished", status.HTTP_409_CONFLICT)
+			raise GameServiceError("Партия уже завершена", status.HTTP_409_CONFLICT)
 		if player_id not in (game.white_id, game.black_id):
-			raise GameServiceError("You are not a participant", status.HTTP_403_FORBIDDEN)
+			raise GameServiceError("Вы не участвуете в этой партии", status.HTTP_403_FORBIDDEN)
 
 		winner = SideToMove.BLACK.value if player_id == game.white_id else SideToMove.WHITE.value
 		await self._finish_game(
@@ -579,14 +613,14 @@ class GameService:
 	async def timeout(self, game_id: UUID, *, loser_color: SideToMove, requested_by: int) -> Game:
 		game = await self._lock_game(game_id)
 		if game.status == GameStatus.FINISHED.value:
-			raise GameServiceError("Game already finished", status.HTTP_409_CONFLICT)
+			raise GameServiceError("Партия уже завершена", status.HTTP_409_CONFLICT)
 		if requested_by not in (game.white_id, game.black_id):
-			raise GameServiceError("You are not a participant", status.HTTP_403_FORBIDDEN)
+			raise GameServiceError("Вы не участвуете в этой партии", status.HTTP_403_FORBIDDEN)
 		effective_white, effective_black = await self._compute_effective_clocks(game)
 		if loser_color == SideToMove.WHITE and effective_white > 0:
-			raise GameServiceError("White clock has not expired")
+			raise GameServiceError("Время белых не истекло")
 		if loser_color == SideToMove.BLACK and effective_black > 0:
-			raise GameServiceError("Black clock has not expired")
+			raise GameServiceError("Время черных не истекло")
 
 		game.white_clock_ms = effective_white
 		game.black_clock_ms = effective_black
@@ -647,4 +681,119 @@ class GameService:
 		if not game:
 			raise GameServiceError("Game not found", status.HTTP_404_NOT_FOUND)
 		return game
+
+	async def get_user_game_stats(self, user_id: int) -> UserGameStats:
+		"""Получает статистику игр для пользователя."""
+		import json
+		
+		# Получаем все завершенные партии пользователя
+		stmt = select(Game).where(
+			or_(Game.white_id == user_id, Game.black_id == user_id),
+			Game.status == GameStatus.FINISHED.value
+		)
+		result = await self.db.execute(stmt)
+		games = result.scalars().all()
+		
+		# Функция для определения формата игры
+		def get_game_format(time_control: dict | None) -> str:
+			if not time_control or not isinstance(time_control, dict):
+				return "classical"
+			initial_ms = time_control.get("initial_ms", 0)
+			initial_minutes = initial_ms / 60000
+			
+			if initial_minutes < 3:
+				return "bullet"
+			elif initial_minutes < 10:
+				return "blitz"
+			elif initial_minutes < 30:
+				return "rapid"
+			else:
+				return "classical"
+		
+		# Подсчет статистики
+		format_stats: dict[str, dict[str, int]] = {
+			"blitz": {"games": 0, "wins": 0, "losses": 0, "draws": 0},
+			"bullet": {"games": 0, "wins": 0, "losses": 0, "draws": 0},
+			"rapid": {"games": 0, "wins": 0, "losses": 0, "draws": 0},
+			"classical": {"games": 0, "wins": 0, "losses": 0, "draws": 0},
+		}
+		
+		total_wins = 0
+		total_losses = 0
+		total_draws = 0
+		
+		for game in games:
+			# Парсим time_control если это JSONB/JSON
+			tc_dict = None
+			if game.time_control:
+				if isinstance(game.time_control, dict):
+					tc_dict = game.time_control
+				elif isinstance(game.time_control, str):
+					try:
+						tc_dict = json.loads(game.time_control)
+					except:
+						pass
+			
+			format_type = get_game_format(tc_dict)
+			format_stats[format_type]["games"] += 1
+			
+			if game.result == GameResult.DRAW.value:
+				format_stats[format_type]["draws"] += 1
+				total_draws += 1
+			elif game.result:
+				is_white = game.white_id == user_id
+				is_winner = (game.result == GameResult.WHITE_WIN.value and is_white) or (
+					game.result == GameResult.BLACK_WIN.value and not is_white
+				)
+				
+				if is_winner:
+					format_stats[format_type]["wins"] += 1
+					total_wins += 1
+				else:
+					format_stats[format_type]["losses"] += 1
+					total_losses += 1
+		
+		# Получаем рейтинги пользователя из таблицы users
+		# Используем raw SQL, чтобы не создавать зависимость от users_service
+		user_stmt = text("SELECT blitz_rating, bullet_rating, rapid_rating, puzzle_rating FROM users WHERE id = :user_id")
+		user_result = await self.db.execute(user_stmt, {"user_id": user_id})
+		user_row = user_result.first()
+		
+		if not user_row:
+			raise GameServiceError("User not found", status.HTTP_404_NOT_FOUND)
+		
+		blitz_rating = user_row[0] or 1200
+		bullet_rating = user_row[1] or 1200
+		rapid_rating = user_row[2] or 1200
+		puzzle_rating = user_row[3] or 1200
+		
+		total_games = total_wins + total_losses + total_draws
+		overall_win_rate = (total_wins / total_games * 100) if total_games > 0 else 0.0
+		
+		# Формируем список статистики по форматам
+		by_format = []
+		for fmt, stats in format_stats.items():
+			if stats["games"] > 0:
+				win_rate = (stats["wins"] / stats["games"] * 100) if stats["games"] > 0 else 0.0
+				by_format.append(GameFormatStats(
+					format=fmt,
+					games_played=stats["games"],
+					wins=stats["wins"],
+					losses=stats["losses"],
+					draws=stats["draws"],
+					win_rate=round(win_rate, 1)
+				))
+		
+		return UserGameStats(
+			total_games=total_games,
+			total_wins=total_wins,
+			total_losses=total_losses,
+			total_draws=total_draws,
+			overall_win_rate=round(overall_win_rate, 1),
+			blitz_rating=blitz_rating,
+			bullet_rating=bullet_rating,
+			rapid_rating=rapid_rating,
+			puzzle_rating=puzzle_rating,
+			by_format=by_format
+		)
 

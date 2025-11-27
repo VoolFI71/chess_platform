@@ -60,7 +60,7 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> U
 	stmt = select(User).where(User.email == email)
 	existing = await db.scalar(stmt)
 	if existing:
-		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email уже зарегистрирован")
 
 	username = await _ensure_unique_username(username, db)
 
@@ -96,7 +96,7 @@ async def refresh(data: RefreshInput, db: AsyncSession = Depends(get_db)) -> Tok
 
 	user = await db.get(User, token_record.user_id)
 	if not user or not user.is_active:
-		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден или неактивен")
 
 	token_record.revoked = True
 	token_record.revoked_at = datetime.now(timezone.utc)

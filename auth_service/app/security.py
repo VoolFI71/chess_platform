@@ -137,18 +137,18 @@ async def get_current_user(
 	try:
 		payload = decode_token(token)
 	except JWTError:
-		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Недействительный токен")
 
 	if payload.get("type") != "access":
-		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный тип токена")
 
 	user_id = payload.get("sub")
 	if not user_id:
-		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный формат токена")
 
 	user: Optional[User] = await db.get(User, int(user_id))
 	if not user or not user.is_active:
-		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден или неактивен")
 
 	return user
 

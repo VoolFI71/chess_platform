@@ -1,14 +1,20 @@
 from pathlib import Path
 
+import logging
 from fastapi import FastAPI
 
 from common import configure_observability
 
 from .config import get_settings
 from .database import get_db, sync_engine
-from .routers import games_router, games_ws_router
+from .routers import games_router, games_ws_router, internal_router
 from .watchdog import timeout_watchdog
 
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 
 settings = get_settings()
 
@@ -49,4 +55,5 @@ configure_observability(
 
 app.include_router(games_router)
 app.include_router(games_ws_router)
+app.include_router(internal_router)
 

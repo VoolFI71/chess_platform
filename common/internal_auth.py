@@ -18,7 +18,7 @@ def make_internal_token_verifier(
 			# token check disabled (e.g. dev mode)
 			return
 		if token != expected:
-			raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid internal token")
+			raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Недействительный внутренний токен")
 
 	return _verify
 

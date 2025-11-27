@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   const DEFAULT_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
   const PIECES = {
     K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
@@ -442,11 +442,10 @@
     const mobileUser = document.getElementById('mobileUserActions');
     const mobileAuth = document.getElementById('mobileAuthButtons');
 
-    // Hide user info pills (name) on match page
     if (info) info.style.display = 'none';
     if (infoMobile) infoMobile.style.display = 'none';
 
-      if (state.currentUser) {
+    if (state.currentUser) {
       loginBtns.forEach((btn) => { if (btn) btn.style.display = 'none'; });
       registerBtns.forEach((btn) => { if (btn) btn.style.display = 'none'; });
       logoutBtns.forEach((btn) => { if (btn) btn.style.display = 'inline-flex'; });
@@ -562,7 +561,6 @@
       boardEl.innerHTML = '<div class="board-empty">Партия не найдена</div>';
       return;
     }
-    
 
     const matrix = getOrientedMatrix();
     const displayedFen = getFenForIndex(getDisplayedMoveIndex());
@@ -618,24 +616,21 @@
         if (piece) {
           const pieceEl = document.createElement('span');
           pieceEl.className = 'piece';
-          // Используем SVG фигуры если доступны, иначе fallback на Unicode
           if (window.getPieceSVG) {
             pieceEl.innerHTML = window.getPieceSVG(piece);
           } else {
             pieceEl.textContent = PIECES[piece] || '';
           }
-          
-          // Добавляем класс для фигур текущего игрока (для hover эффектов)
+
           const pieceBelongsToPlayer = role && pieceBelongsToRole(piece, role);
           if (isPlayersTurn && pieceBelongsToPlayer) {
             pieceEl.classList.add('piece-own');
-            // Проверяем, есть ли ходы для этой фигуры
             const movesForPiece = state.legalMovesByFrom.get(squareName);
             if (movesForPiece && movesForPiece.length > 0) {
               pieceEl.classList.add('piece-movable');
             }
           }
-          
+
           square.appendChild(pieceEl);
         }
         if (rIdx === matrix.length - 1) {
@@ -652,8 +647,7 @@
         }
         square.dataset.square = squareName;
         square.addEventListener('click', () => handleSquareClick(squareName));
-        
-        // Добавляем hover эффект для клеток с фигурами текущего игрока
+
         if (isPlayersTurn && piece && role && pieceBelongsToRole(piece, role)) {
           const movesForPiece = state.legalMovesByFrom.get(squareName);
           if (movesForPiece && movesForPiece.length > 0) {
@@ -661,7 +655,7 @@
             square.title = 'Кликните, чтобы выбрать фигуру и увидеть возможные ходы';
           }
         }
-        
+
         boardEl.appendChild(square);
       });
     });
@@ -692,8 +686,6 @@
     if (!state.game) return null;
     let { white_clock_ms: white, black_clock_ms: black, status, next_turn, move_count } = state.game;
     if (!applyRunning) return { white, black };
-    // Время начинает тикать только после первого хода
-    // Если игра ACTIVE, но ходов еще нет (move_count == 0), время не тикает
     if (status === 'ACTIVE' && move_count > 0 && typeof state.lastStateTimestamp === 'number') {
       const elapsed = Date.now() - state.lastStateTimestamp;
       if (next_turn === 'w') white = Math.max(0, white - elapsed);
@@ -829,7 +821,7 @@
     if (preserveScroll !== null) {
       list.scrollTop = preserveScroll;
     } else {
-    list.scrollTop = list.scrollHeight;
+      list.scrollTop = list.scrollHeight;
     }
   }
 
@@ -886,18 +878,17 @@
   function updateLegalMoves() {
     setState({ legalMovesByFrom: new Map() }, 'updateLegalMoves:reset');
     resetSelection();
-    
+
     if (!state.game) {
       return;
     }
-    
-    // Показываем ходы для активной игры или если оба игрока присоединились (даже в CREATED)
+
     const bothPlayersJoined = haveBothPlayersJoined();
-    
+
     if (state.game.status !== 'ACTIVE' && !bothPlayersJoined) {
       return;
     }
-    
+
     const utils = window.ChessMoveUtils;
     if (!utils) {
       return;
@@ -910,9 +901,9 @@
     if (role !== expectedTurn) {
       return;
     }
-    
+
     const { movesByFrom } = utils.generateMoves(state.game.current_pos, role);
-    
+
     movesByFrom.forEach((uciSet, fromSquare) => {
       const entries = [];
       uciSet.forEach((uci) => {
@@ -958,9 +949,8 @@
       showToast('Вы просматриваете предыдущий ход. Выберите последний ход, чтобы продолжить партию.', 'info');
       return;
     }
-    // Проверяем, можно ли делать ходы (ACTIVE или оба игрока присоединились)
     const bothPlayersJoined = haveBothPlayersJoined();
-    
+
     if (state.game.status !== 'ACTIVE' && !bothPlayersJoined) {
       if (state.game.status === 'CREATED') {
         showToast('Дождитесь присоединения соперника, чтобы начать игру', 'info');
@@ -992,7 +982,7 @@
     }
 
     const moves = state.legalMovesByFrom.get(square);
-    
+
     if (!moves || !moves.length) {
       resetSelection();
       renderBoard();
@@ -1000,7 +990,7 @@
     }
 
     const piece = getPieceAtSquare(state.game.current_pos, square);
-    
+
     if (!piece || !pieceBelongsToRole(piece, role)) {
       resetSelection();
       renderBoard();
@@ -1094,19 +1084,14 @@
   }
 
   function maybeAutoJoin() {
-    // If currentUser is not set yet, wait a bit and try again
-    // This handles the case when fetchCurrentUser() hasn't completed yet
     if (!state.currentUser && !state.loginPromptShown) {
-      // Check if we have a token - if yes, user might be loading
       const token = getAccessToken();
       if (token) {
-        // User is likely authenticated but not loaded yet, wait and retry
         setTimeout(() => {
           if (shouldAutoJoin()) {
             setState({ autoJoinAttempted: true }, 'maybeAutoJoin:autoAttempt');
             joinGame(true);
           } else if (!state.currentUser && !state.loginPromptShown) {
-            // Still no user after delay, show prompt
             setState({ loginPromptShown: true }, 'maybeAutoJoin:prompt');
             showToast('Войдите, чтобы занять место соперника', 'error');
           }
@@ -1114,7 +1099,7 @@
         return;
       }
     }
-    
+
     if (shouldAutoJoin()) {
       setState({ autoJoinAttempted: true }, 'maybeAutoJoin:autoAttempt');
       joinGame(true);
@@ -1164,13 +1149,9 @@
     indicator.className = `ws-indicator ${status === 'online' ? 'ws-online' : 'ws-offline'}`;
   }
 
-  function applyGameDetail(detail, isRealtimeUpdate = false) {
+  function applyGameDetail(detail, { isRealtimeMove = false } = {}) {
     const previousGame = state.game;
     const previousRole = getCurrentUserRole();
-    const previousNextTurn = state.game?.next_turn;
-    const previousStatus = state.game?.status;
-    
-    // Обновляем состояние игры
     setState(
       {
         game: detail,
@@ -1182,51 +1163,34 @@
     if (typeof state.analysisCursor === 'number' && state.analysisCursor > moveCount) {
       setState({ analysisCursor: null }, 'applyGameDetail:clampAnalysis');
     }
-    
-    // Устанавливаем время последнего обновления
-    // ВАЖНО: Время в БД - это время на момент последнего хода (после вычитания прошедшего времени и добавления инкремента)
-    // После хода время в БД уже актуально для обоих игроков:
-    // - Для игрока, который сделал ход: время уже обновлено (вычтено прошедшее время и добавлен инкремент)
-    // - Для противника: время не изменилось (оно не тикало, так как не его ход)
-    // После хода next_turn меняется, и время начинает тикать у следующего игрока
-    // Для HTTP загрузки (обновление страницы) используем время последнего хода
-    // Для WebSocket обновлений (после хода) используем текущее время, так как время в БД уже актуально
+
     let lastStateTimestamp = Date.now();
-    if (isRealtimeUpdate && detail.status === 'ACTIVE' && detail.moves && detail.moves.length > 0) {
-      // Для WebSocket обновлений после хода: время в БД уже актуально для обоих игроков
-      // Используем текущее время, чтобы время начало тикать у следующего игрока с момента обновления
-      // НЕ вычитаем прошедшее время, так как время в БД уже актуально
-      lastStateTimestamp = Date.now();
-    } else if (detail.moves && detail.moves.length > 0) {
-      // Для HTTP загрузки: используем время последнего хода для правильного вычисления прошедшего времени
+    if (detail.moves && detail.moves.length > 0) {
       const lastMove = detail.moves[detail.moves.length - 1];
-      if (lastMove.created_at) {
+      if (isRealtimeMove) {
+        lastStateTimestamp = Date.now();
+      } else if (lastMove.created_at) {
         lastStateTimestamp = new Date(lastMove.created_at).getTime();
       }
     } else if (detail.started_at) {
-      // Если ходов нет, но игра началась, используем время начала игры
       lastStateTimestamp = new Date(detail.started_at).getTime();
     } else if (detail.created_at) {
-      // Если игра еще не началась, используем время создания игры
       lastStateTimestamp = new Date(detail.created_at).getTime();
     }
     setState({ lastStateTimestamp }, 'applyGameDetail:timestamp');
-    
+
     setState({ pendingMove: false }, 'applyGameDetail:pending');
     if (state.timeoutAutoRequested && detail.status !== 'ACTIVE') {
       setState({ timeoutAutoRequested: false }, 'applyGameDetail:clearAutoTimeout');
     }
-    
+
     const newRole = getCurrentUserRole();
-    const newNextTurn = detail?.next_turn;
-    const newStatus = detail?.status;
-    
     if (newRole !== previousRole) {
       userSetOrientation = false;
     }
-    
+
     syncAutoCancelDeadline(detail);
-    updateLegalMoves(); // Обновляем легальные ходы при изменении состояния игры
+    updateLegalMoves();
     computeOrientationFromRole();
     updateUI();
     maybeAutoJoin();
@@ -1332,8 +1296,7 @@
     }
   }
 
-  // Флаг для включения/выключения подробного логирования WebSocket
-  const WS_DEBUG = false; // Установите в true для включения подробного логирования
+  const WS_DEBUG = false;
 
   function wsLog(level, message, data = null) {
     if (!WS_DEBUG && level !== 'error') return;
@@ -1409,13 +1372,13 @@
       wsLog('warn', 'Received empty or null WebSocket payload');
       return;
     }
-    wsLog('debug', `Handling WebSocket payload: ${payload.type}`, { 
+    wsLog('debug', `Handling WebSocket payload: ${payload.type}`, {
       type: payload.type,
       gameStatus: payload.game?.status,
       moveCount: payload.game?.move_count,
       nextTurn: payload.game?.next_turn
     });
-    
+
     if (payload.type === 'game_cancelled') {
       wsLog('info', 'Game cancelled via WebSocket');
       setState({ pendingMove: false }, 'handleWsPayload:cancelled');
@@ -1427,58 +1390,40 @@
       return;
     }
     if (payload.type === 'move_rejected' || payload.type === 'error') {
-      wsLog('warn', 'Move rejected or error received', { 
-        type: payload.type, 
+      wsLog('warn', 'Move rejected or error received', {
+        type: payload.type,
         message: payload.message,
         client_move_id: payload.client_move_id
       });
       setState({ pendingMove: false }, 'handleWsPayload:rejected');
-      // Оптимизация: обновляем UI один раз
       requestAnimationFrame(() => {
-      updateLegalMoves();
-      renderBoard();
+        updateLegalMoves();
+        renderBoard();
       });
       showToast(payload.message || 'Ход отклонён', 'error');
       return;
     }
     if (payload.type === 'state' || payload.type === 'game_finished' || payload.type === 'move_made') {
-      if (payload.type === 'move_made') {
-        wsLog('info', 'Move made received', {
-          move: payload.move?.uci,
-          moveIndex: payload.move?.move_index,
-          client_move_id: payload.client_move_id
-        });
-      }
       const previousStatus = state.game?.status;
       const previousWhiteId = state.game?.white_id;
       const previousBlackId = state.game?.black_id;
-      
-      // Обновления через WebSocket - это обновления в реальном времени
-      // Сервер уже обновил время в БД, поэтому используем текущее время
-      applyGameDetail(payload.game, true);
-      
-      // Если игра только что стала активной, показываем уведомление
+      const isRealtimeMove = payload.type === 'move_made';
+      applyGameDetail(payload.game, { isRealtimeMove });
       if (previousStatus === 'CREATED' && payload.game.status === 'ACTIVE') {
         showToast('Игра началась! Теперь вы можете делать ходы', 'success');
       }
-      // Если присоединился второй игрок, обновляем ходы
       const bothJoined = payload.game.white_id && payload.game.black_id;
       const wasWaiting = !previousWhiteId || !previousBlackId;
-      
+
       if (wasWaiting && bothJoined) {
-        // Принудительно обновляем ходы после присоединения второго игрока
-        // Важно: это должно произойти ДО того, как пользователь попытается сделать ход
         updateLegalMoves();
         renderBoard();
-        // Показываем уведомление первому игроку
         showToast('Соперник присоединился! Теперь можно начинать игру', 'success');
       }
-      // Если это был ход (move_made), убеждаемся что все обновлено
       if (payload.type === 'move_made') {
-        // Оптимизация: обновляем UI один раз через requestAnimationFrame
         requestAnimationFrame(() => {
-        updateLegalMoves();
-        renderBoard();
+          updateLegalMoves();
+          renderBoard();
           updateClockDisplays();
         });
       }
@@ -1579,25 +1524,18 @@
 
   function computeClocksAfterMove() {
     if (!state.game) return null;
-    // Get base clocks - server already subtracted time, we only need to add increment
     const base = getDisplayedClocks(false);
     if (!base) return null;
     const increment = state.game.time_control?.increment_ms || 0;
-    
-    // Get current clock values
+
     let { white_clock_ms: white, black_clock_ms: black, next_turn } = state.game;
-    
-    // next_turn указывает на того, кто должен ходить СЛЕДУЮЩИМ
-    // Значит, если next_turn === 'w', то только что ходили чёрные (black)
-    // и инкремент нужно добавить чёрным
+
     if (next_turn === 'w') {
-      // Только что ходили чёрные - добавляем инкремент чёрным
       return {
         white: Math.max(0, white),
         black: Math.max(0, black) + increment,
       };
     }
-    // Только что ходили белые - добавляем инкремент белым
     return {
       white: Math.max(0, white) + increment,
       black: Math.max(0, black),
@@ -1618,14 +1556,13 @@
       showToast('Ходы могут делать только участники партии', 'error');
       return false;
     }
-    // Разрешаем ходы если игра ACTIVE или оба игрока присоединились (даже в CREATED)
     const bothPlayersJoined = haveBothPlayersJoined();
-    
+
     if (state.game.status !== 'ACTIVE' && !bothPlayersJoined) {
       showToast('Партия не активна. Дождитесь присоединения соперника', 'error');
       return false;
     }
-    
+
     if (!bothPlayersJoined) {
       showToast('Дождитесь присоединения соперника', 'error');
       return false;
@@ -1652,34 +1589,21 @@
         return false;
       }
     }
-    // Вычисляем текущее время на клиенте (время тикает на клиенте)
-    // Оптимизация: вычисляем время один раз, время противника берем напрямую из state.game
     const clocks = getDisplayedClocks(true);
     if (!clocks) {
       showToast('Не удалось вычислить время', 'error');
       return false;
     }
-    // Время противника берем напрямую из БД (оно не тикало, так как не его ход)
-    // Оптимизация: не вызываем getDisplayedClocks(false), берем напрямую из state.game
     const payload = {
       type: 'make_move',
       uci: normalizedUci,
       promotion: normalizedPromotion,
-      // Отправляем время для игрока, который делает ход (после вычитания прошедшего времени на клиенте)
-      // Время противника остается неизменным (берем из БД, оно не тикало)
       white_clock_ms: state.game.next_turn === 'w' ? clocks.white : state.game.white_clock_ms,
       black_clock_ms: state.game.next_turn === 'b' ? clocks.black : state.game.black_clock_ms,
       client_move_id: `web-${Date.now()}`,
     };
-    wsLog('debug', 'Sending move via WebSocket', { 
-      uci: normalizedUci, 
-      promotion: normalizedPromotion,
-      white_clock_ms: payload.white_clock_ms,
-      black_clock_ms: payload.black_clock_ms,
-      client_move_id: payload.client_move_id
-    });
-    wsLog('debug', 'Sending move via WebSocket', { 
-      uci: normalizedUci, 
+    wsLog('debug', 'Sending move via WebSocket', {
+      uci: normalizedUci,
       promotion: normalizedPromotion,
       white_clock_ms: payload.white_clock_ms,
       black_clock_ms: payload.black_clock_ms,
@@ -1711,8 +1635,8 @@
       promotion = rawUci.slice(4);
     }
     if (attemptMove(baseUci, promotion)) {
-    if (uciInput) uciInput.value = '';
-    if (promotionInput) promotionInput.value = '';
+      if (uciInput) uciInput.value = '';
+      if (promotionInput) promotionInput.value = '';
     }
   }
 
@@ -1732,36 +1656,30 @@
   }
 
   function loadTheme() {
-    // Используем глобальную функцию из auth.js, если доступна
     if (window.loadTheme && typeof window.loadTheme === 'function') {
       window.loadTheme();
-      // Обновляем локальное состояние после загрузки
       isDarkTheme = document.body.classList.contains('dark');
     } else {
-      // Fallback для случаев, когда auth.js не загружен
-    const saved = localStorage.getItem('theme');
-    isDarkTheme = saved === 'dark';
-    document.body.classList.toggle('dark', isDarkTheme);
+      const saved = localStorage.getItem('theme');
+      isDarkTheme = saved === 'dark';
+      document.body.classList.toggle('dark', isDarkTheme);
       document.documentElement.classList.toggle('dark', isDarkTheme);
-    const icon = document.getElementById('themeIcon');
-    if (icon) icon.className = isDarkTheme ? 'fas fa-moon' : 'fas fa-sun';
+      const icon = document.getElementById('themeIcon');
+      if (icon) icon.className = isDarkTheme ? 'fas fa-moon' : 'fas fa-sun';
     }
   }
 
   function toggleTheme() {
-    // Используем глобальную функцию из auth.js, если доступна
     if (window.toggleTheme && typeof window.toggleTheme === 'function') {
       window.toggleTheme();
-      // Обновляем локальное состояние после переключения
       isDarkTheme = document.body.classList.contains('dark');
     } else {
-      // Fallback для случаев, когда auth.js не загружен
-    isDarkTheme = !isDarkTheme;
-    document.body.classList.toggle('dark', isDarkTheme);
+      isDarkTheme = !isDarkTheme;
+      document.body.classList.toggle('dark', isDarkTheme);
       document.documentElement.classList.toggle('dark', isDarkTheme);
-    const icon = document.getElementById('themeIcon');
-    if (icon) icon.className = isDarkTheme ? 'fas fa-moon' : 'fas fa-sun';
-    localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
+      const icon = document.getElementById('themeIcon');
+      if (icon) icon.className = isDarkTheme ? 'fas fa-moon' : 'fas fa-sun';
+      localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
     }
   }
 
@@ -1832,16 +1750,13 @@
       return;
     }
 
-    // Fetch user first and wait for it to complete before loading match
-    // This ensures currentUser is set before maybeAutoJoin() is called
     await fetchCurrentUser();
     await loadMatch();
   }
 
-  // Экспортируем функции для мобильного меню
-  // toggleTheme не перезаписываем, используем из auth.js
   window.toggleMobileMenu = toggleMobileMenu;
   window.closeMobileMenu = closeMobileMenu;
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+

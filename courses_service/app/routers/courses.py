@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/courses", tags=["courses"])
 def _get_enrollments_client() -> tuple[str, dict[str, str]]:
 	settings = get_settings()
 	if not settings.enrollments_service_url or not settings.enrollments_internal_token:
-		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Enrollments service unavailable")
+		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 	base_url = settings.enrollments_service_url.rstrip("/")
 	headers = {"X-Internal-Token": settings.enrollments_internal_token}
 	return base_url, headers
@@ -32,18 +32,18 @@ def _fetch_user_enrollment_course_ids(user_id: int) -> List[int]:
 	try:
 		res = httpx.get(url, headers=headers, timeout=5.0)
 	except httpx.RequestError:
-		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Enrollments service unreachable")
+		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 
 	if res.status_code != status.HTTP_200_OK:
 		raise HTTPException(
 			status.HTTP_502_BAD_GATEWAY,
-			detail=f"Enrollments service error ({res.status_code})",
+			detail=f"Ошибка сервиса зачислений ({res.status_code})",
 		)
 
 	try:
 		data = res.json()
 	except ValueError:
-		raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Invalid response from enrollments service")
+		raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Неверный ответ от сервиса зачислений")
 
 	ids: List[int] = []
 	for item in data:
@@ -60,14 +60,14 @@ def _ensure_enrollment(user_id: int, course_id: int) -> None:
 	try:
 		res = httpx.post(url, json=payload, headers=headers, timeout=5.0)
 	except httpx.RequestError:
-		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Enrollments service unreachable")
+		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 
 	if res.status_code not in (status.HTTP_200_OK, status.HTTP_201_CREATED):
 		try:
 			detail = res.json().get("detail")
 		except Exception:
 			detail = res.text
-		raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=detail or "Enrollments service error")
+		raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=detail or "Ошибка сервиса зачислений")
 
 
 @router.get("/", response_model=List[CourseOut])
@@ -98,7 +98,7 @@ async def _create_course_record(db: AsyncSession, data: CourseCreate) -> Course:
 	stmt = select(Course).where(Course.slug == data.slug)
 	exists = await db.execute(stmt)
 	if exists.scalars().first():
-		raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Slug already exists")
+		raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Slug уже существует")
 
 	course = Course(
 		id=data.id,
@@ -127,7 +127,7 @@ async def enroll_course(
 ) -> CourseOut:
 	course = await db.get(Course, course_id)
 	if not course or not course.is_active:
-		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Course not found")
+		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Курс не найден")
 
 	_ensure_enrollment(user_id=current_user_id, course_id=course_id)
 	return course

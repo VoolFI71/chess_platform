@@ -36,7 +36,7 @@ __all__ = [
     "bearer_scheme",
     "decode_access_token",
     "make_get_current_user",
-	"make_get_current_user_id",
+    "make_get_current_user_id",
 	"make_get_current_user_optional",
 	"make_get_current_user_id_optional",
 	"optional_bearer_scheme",

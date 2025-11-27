@@ -41,18 +41,18 @@ def decode_access_token(
 	try:
 		payload = jwt.decode(token, jwt_secret, algorithms=[jwt_algorithm])
 	except JWTError:
-		raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+		raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Недействительный токен")
 
 	if payload.get("type") != "access":
-		raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+		raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Неверный тип токена")
 
 	exp = payload.get("exp")
 	if exp and datetime.fromtimestamp(exp, tz=timezone.utc) < datetime.now(timezone.utc):
-		raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+		raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Токен истек")
 
 	sub = payload.get("sub")
 	if not sub:
-		raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+		raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Неверный формат токена")
 
 	return CurrentUser(id=int(sub), token=token)
 

@@ -34,7 +34,7 @@ class Move(Base):
 	uci: Mapped[str] = mapped_column(String(12), nullable=False)
 	san: Mapped[str | None] = mapped_column(String(32), nullable=True)
 	fen_after: Mapped[str] = mapped_column(Text, nullable=False)
-	player_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+	player_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 	clocks_after: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 	is_capture: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 	promotion: Mapped[str | None] = mapped_column(String(1), nullable=True)
@@ -46,6 +46,5 @@ class Move(Base):
 
 	__table_args__ = (
 		Index("uq_moves_game_move_index", "game_id", "move_index", unique=True),
-		Index("ix_moves_game_created_at", "game_id", "created_at"),
 	)
 

@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/pgn-files", tags=["pgn-files"])
 def _get_enrollments_client() -> tuple[str, dict[str, str]]:
 	settings = get_settings()
 	if not settings.enrollments_service_url or not settings.enrollments_internal_token:
-		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Enrollments service unavailable")
+		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 	base_url = settings.enrollments_service_url.rstrip("/")
 	headers = {"X-Internal-Token": settings.enrollments_internal_token}
 	return base_url, headers
@@ -32,18 +32,18 @@ def _fetch_user_enrolled_course_ids(user_id: int) -> List[int]:
 	try:
 		res = httpx.get(url, headers=headers, timeout=5.0)
 	except httpx.RequestError:
-		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Enrollments service unreachable")
+		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 
 	if res.status_code != status.HTTP_200_OK:
 		raise HTTPException(
 			status.HTTP_502_BAD_GATEWAY,
-			detail=f"Enrollments service error ({res.status_code})",
+			detail=f"Ошибка сервиса зачислений ({res.status_code})",
 		)
 
 	try:
 		data = res.json()
 	except ValueError:
-		raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Invalid response from enrollments service")
+		raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Неверный ответ от сервиса зачислений")
 
 	course_ids: List[int] = []
 	for item in data:

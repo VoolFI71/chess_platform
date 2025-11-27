@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/courses/{course_id}/lessons", tags=["lessons"])
 def _get_enrollments_client() -> tuple[str, dict[str, str]]:
 	settings = get_settings()
 	if not settings.enrollments_service_url or not settings.enrollments_internal_token:
-		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Enrollments service unavailable")
+		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 	base_url = settings.enrollments_service_url.rstrip("/")
 	headers = {"X-Internal-Token": settings.enrollments_internal_token}
 	return base_url, headers
@@ -32,18 +32,18 @@ def _user_enrolled(course_id: int, user_id: int) -> bool:
 	try:
 		res = httpx.get(url, headers=headers, timeout=5.0)
 	except httpx.RequestError:
-		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Enrollments service unreachable")
+		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 
 	if res.status_code != status.HTTP_200_OK:
 		raise HTTPException(
 			status.HTTP_502_BAD_GATEWAY,
-			detail=f"Enrollments service error ({res.status_code})",
+			detail=f"Ошибка сервиса зачислений ({res.status_code})",
 		)
 
 	try:
 		data = res.json()
 	except ValueError:
-		raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Invalid response from enrollments service")
+		raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Неверный ответ от сервиса зачислений")
 
 	return any(isinstance(item.get("course_id"), int) and item["course_id"] == course_id for item in data)
 
@@ -56,10 +56,10 @@ async def list_lessons(
 ) -> List[LessonOut]:
 	course = await db.get(Course, course_id)
 	if not course or not course.is_active:
-		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Course not found")
+		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Курс не найден")
 
 	if course.price_cents and course.price_cents > 0 and not _user_enrolled(course_id, user_id):
-		raise HTTPException(status.HTTP_403_FORBIDDEN, detail="No access to this course")
+		raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Нет доступа к этому курсу")
 
 	stmt = (
 		select(Lesson)
@@ -105,11 +105,11 @@ async def update_lesson(
 ) -> LessonOut:
 	course = await db.get(Course, course_id)
 	if not course or not course.is_active:
-		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Course not found")
+		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Курс не найден")
 
 	lesson = await db.get(Lesson, lesson_id)
 	if not lesson or lesson.course_id != course_id:
-		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Lesson not found")
+		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Урок не найден")
 
 	if payload.title is not None:
 		lesson.title = payload.title

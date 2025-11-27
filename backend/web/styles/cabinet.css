@@ -502,6 +502,7 @@ body.dark .format-stat-card {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
+    margin-top: 2.5rem;
     margin-bottom: 2rem;
 }
 
@@ -977,6 +978,215 @@ body.dark .game-card:hover {
     background: rgba(124, 58, 237, 0.1);
 }
 
+/* ===== HISTORY (История партий) ===== */
+.history-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.dark .history-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.history-card:hover {
+    border-color: var(--primary);
+    background: var(--card-hover);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+    transform: translateY(-2px);
+}
+
+body.dark .history-card:hover {
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+}
+
+.history-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.history-result {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.history-result.win {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.history-result.loss {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.history-result.draw {
+    background: rgba(156, 163, 175, 0.15);
+    color: #9ca3af;
+    border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+.history-date {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.history-players {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    flex-wrap: wrap;
+}
+
+.color-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.color-pill.white {
+    background: rgba(255, 255, 255, 0.15);
+    color: #f8f9fa;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.color-pill.black {
+    background: rgba(0, 0, 0, 0.15);
+    color: #1a1a1a;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+body.dark .color-pill.white {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e5e7eb;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.dark .color-pill.black {
+    background: rgba(255, 255, 255, 0.15);
+    color: #d1d5db;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.opponent-name {
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.history-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--background-secondary);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+}
+
+.history-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.history-meta i {
+    color: var(--primary);
+    font-size: 0.875rem;
+}
+
+.history-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.history-actions .btn {
+    flex: 1;
+    min-width: 140px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+}
+
+.history-actions .btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.history-actions .btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(124, 58, 237, 0.3);
+}
+
+.history-actions .btn-outline {
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid var(--border);
+}
+
+.history-actions .btn-outline:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(124, 58, 237, 0.05);
+}
+
+.history-empty {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--muted-foreground);
+    font-size: 1rem;
+}
+
+.history-empty i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--primary);
+    opacity: 0.5;
+}
+
+.history-empty.error {
+    color: var(--danger);
+}
+
+.history-empty.error i {
+    color: var(--danger);
+}
+
 /* ===== CHESS BOARD VIEWER ===== */
 .board-viewer {
     background: var(--card);
@@ -1243,6 +1453,65 @@ tr:hover td {
         justify-content: flex-end;
     }
 
+    .history-card {
+        padding: 1.25rem;
+    }
+
+    .history-card-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .history-result {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.75rem;
+    }
+
+    .history-date {
+        font-size: 0.8rem;
+    }
+
+    .history-players {
+        font-size: 0.9rem;
+        gap: 0.5rem;
+    }
+
+    .color-pill {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.6rem;
+    }
+
+    .history-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.625rem;
+        font-size: 0.8rem;
+    }
+
+    .history-meta span {
+        gap: 0.4rem;
+    }
+
+    .history-actions {
+        flex-direction: column;
+    }
+
+    .history-actions .btn {
+        width: 100%;
+        min-width: auto;
+        padding: 0.75rem 1rem;
+    }
+
+    .history-empty {
+        padding: 2rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .history-empty i {
+        font-size: 2rem;
+    }
+
     .courses-grid,
     .openings-grid {
         grid-template-columns: 1fr;
@@ -1292,5 +1561,59 @@ tr:hover td {
 
     .section-title {
         font-size: 1.5rem;
+    }
+
+    .history-card {
+        padding: 1rem;
+    }
+
+    .history-card-top {
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .history-result {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.6rem;
+        gap: 0.35rem;
+    }
+
+    .history-date {
+        font-size: 0.75rem;
+    }
+
+    .history-players {
+        font-size: 0.85rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .color-pill {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.5rem;
+    }
+
+    .history-meta {
+        padding: 0.5rem;
+        font-size: 0.75rem;
+        gap: 0.4rem;
+    }
+
+    .history-meta i {
+        font-size: 0.75rem;
+    }
+
+    .history-actions .btn {
+        padding: 0.625rem 0.875rem;
+        font-size: 0.8rem;
+    }
+
+    .history-empty {
+        padding: 1.5rem 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    .history-empty i {
+        font-size: 1.75rem;
+        margin-bottom: 0.75rem;
     }
 }

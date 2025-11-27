@@ -19,7 +19,20 @@ html.dark .spaced-header {
     background: #2d2d2d !important;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
     border-bottom: 1px solid #404040;
-    color: #f8fafc;
+    color: #f8fafc !important;
+}
+
+/* Убеждаемся, что все текстовые элементы в хедере используют правильные цвета */
+.header,
+.spaced-header {
+    color: var(--foreground);
+}
+
+body.dark .header,
+body.dark .spaced-header,
+html.dark .header,
+html.dark .spaced-header {
+    color: var(--foreground) !important;
 }
 
 .header .container,
@@ -188,9 +201,10 @@ html.dark .gradient-text {
 }
 
 /* Logout button in header - icon only */
-.header-actions .logout-btn {
+.header-actions .logout-btn,
+.header-actions .btn.btn-outline.logout-btn {
     padding: 0.6rem;
-    border: 2px solid #ef4444;
+    border: 2px solid #ef4444 !important;
     border-radius: 8px;
     font-weight: 600;
     font-size: 1rem;
@@ -200,12 +214,15 @@ html.dark .gradient-text {
     align-items: center;
     justify-content: center;
     font-family: inherit;
-    background: transparent;
-    color: #ef4444;
+    background: transparent !important;
+    color: #ef4444 !important;
     /* Icon-only button - square shape */
     width: 40px;
     height: 40px;
     min-width: 40px;
+    /* Override common.css btn styles */
+    gap: 0;
+    padding: 0.6rem;
 }
 
 .header-actions .logout-btn:hover {
@@ -221,20 +238,31 @@ html.dark .gradient-text {
     width: 40px;
     height: 40px;
     border-radius: 8px;
-    border: 2px solid var(--border);
+    border: none;
     background: transparent;
-    color: var(--muted);
+    color: var(--primary);
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1rem;
 }
 
-.theme-toggle:hover {
-    border-color: var(--primary);
-    color: var(--primary);
+/* Желтый цвет для солнца в светлой теме */
+.theme-toggle i.fa-sun,
+.theme-toggle #themeIcon.fa-sun {
+    color: #fbbf24;
 }
+
+/* Синий цвет для луны в темной теме */
+body.dark .theme-toggle i.fa-moon,
+html.dark .theme-toggle i.fa-moon,
+body.dark .theme-toggle #themeIcon.fa-moon,
+html.dark .theme-toggle #themeIcon.fa-moon {
+    color: #60a5fa;
+}
+
 
 .mobile-menu-btn {
     display: none;

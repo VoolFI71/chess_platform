@@ -1,3 +1,4 @@
+from mimetypes import guess_type
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -45,6 +46,34 @@ def _resolve_web_path(request_path: str) -> Path | None:
     return None
 
 
+def _detect_media_type(path: Path) -> str | None:
+    media_type, _ = guess_type(path.name)
+    if not media_type:
+        ext = path.suffix.lower()
+        if ext in {".js", ".mjs"}:
+            media_type = "application/javascript"
+        elif ext == ".css":
+            media_type = "text/css"
+        elif ext in {".html", ".htm"}:
+            media_type = "text/html"
+        elif ext == ".json":
+            media_type = "application/json"
+    if media_type and (
+        media_type.startswith("text/")
+        or media_type in {"application/javascript", "application/json"}
+    ):
+        return f"{media_type}; charset=utf-8"
+    return media_type
+
+
+def _serve_file(path: Path):
+    media_type = _detect_media_type(path)
+    response = FileResponse(str(path))
+    if media_type:
+        response.headers["Content-Type"] = media_type
+    return response
+
+
 @app.get("/course/{course_id}")
 def serve_course_by_id(course_id: int):
     # Always serve course.html for pretty URL, frontend reads courseId from path
@@ -52,7 +81,7 @@ def serve_course_by_id(course_id: int):
     if not course_file.is_file():
         return JSONResponse({"detail": "Not Found"}, status_code=404)
     # Inject no special headers; course.js will parse window.location.pathname
-    return FileResponse(str(course_file))
+    return _serve_file(course_file)
 
 
 @app.get("/games")
@@ -61,7 +90,7 @@ def serve_games_page():
     games_file = WEB_DIR / "games.html"
     if not games_file.is_file():
         return JSONResponse({"detail": "Not Found"}, status_code=404)
-    return FileResponse(str(games_file))
+    return _serve_file(games_file)
 
 
 @app.get("/match/{match_id}")
@@ -69,7 +98,7 @@ def serve_match_page(match_id: str):
     match_file = WEB_DIR / "match.html"
     if not match_file.is_file():
         return JSONResponse({"detail": "Not Found"}, status_code=404)
-    return FileResponse(str(match_file))
+    return _serve_file(match_file)
 
 
 @app.get("/profile")
@@ -78,7 +107,7 @@ def serve_profile_page():
     profile_file = WEB_DIR / "profile.html"
     if not profile_file.is_file():
         return JSONResponse({"detail": "Not Found"}, status_code=404)
-    return FileResponse(str(profile_file))
+    return _serve_file(profile_file)
 
 
 @app.get("/profile/{username}")
@@ -87,7 +116,7 @@ def serve_profile_page_with_username(username: str):
     profile_file = WEB_DIR / "profile.html"
     if not profile_file.is_file():
         return JSONResponse({"detail": "Not Found"}, status_code=404)
-    return FileResponse(str(profile_file))
+    return _serve_file(profile_file)
 
 
 @app.get("/{full_path:path}")
@@ -95,4 +124,4 @@ def serve_frontend(full_path: str):
     resolved = _resolve_web_path(full_path)
     if resolved is None:
         return JSONResponse({"detail": "Not Found"}, status_code=404)
-    return FileResponse(str(resolved))
+    return _serve_file(resolved)

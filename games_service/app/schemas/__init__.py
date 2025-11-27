@@ -14,6 +14,7 @@ from .game import (
 	WsMoveMadePayload,
 	WsStatePayload,
 )
+from .stats import GameFormatStats, UserGameStats
 
 __all__ = [
 	"CreateGameRequest",
@@ -30,5 +31,7 @@ __all__ = [
 	"WsGameFinishedPayload",
 	"WsMoveMadePayload",
 	"WsStatePayload",
+	"GameFormatStats",
+	"UserGameStats",
 ]
 
