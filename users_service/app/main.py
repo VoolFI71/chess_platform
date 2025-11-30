@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from pathlib import Path
@@ -6,14 +7,15 @@ from alembic import command
 from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
 
-from common import configure_observability
+from common import configure_observability, setup_logging
 
 from .config import get_settings
 from .database import get_db, sync_engine
-from .routers import friendships_router, users_router
+from .routers import friendships_router, internal_users_router, users_router
 from .routers.users import close_games_client
 
 
+setup_logging()
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
@@ -38,24 +40,35 @@ def _wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> No
 				"Database not ready yet (retrying in %.1fs): %s", retry_interval, exc
 			)
 			time.sleep(retry_interval)
+	logger.error("Database is not reachable after %.1fs", timeout)
 	raise RuntimeError("Database is not reachable") from last_error
 
 
 def apply_migrations() -> None:
+	logger.info("Applying database migrations...")
 	_wait_for_database()
 	alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
 	alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
 	command.upgrade(alembic_cfg, "head")
+	logger.info("Database migrations applied successfully")
 
 
 @app.on_event("startup")
-def run_startup_tasks() -> None:
-	apply_migrations()
+async def run_startup_tasks() -> None:
+	logger.info("Users service startup initiated")
+	try:
+		await asyncio.to_thread(apply_migrations)
+		logger.info("Users service startup completed")
+	except (SystemExit, Exception) as exc:
+		logger.exception("Error during startup tasks: %s", exc)
+		logger.error("Server will continue despite migration errors")
 
 
 @app.on_event("shutdown")
 async def shutdown_http_clients() -> None:
+	logger.info("Users service shutdown initiated")
 	await close_games_client()
+	logger.info("Users service shutdown completed")
 
 
 configure_observability(
@@ -67,5 +80,6 @@ configure_observability(
 
 app.include_router(users_router)
 app.include_router(friendships_router)
+app.include_router(internal_users_router)
 
 

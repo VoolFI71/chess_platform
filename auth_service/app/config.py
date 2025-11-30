@@ -6,6 +6,8 @@ class Settings(BaseServiceSettings):
 	access_token_expire_minutes: int = 15
 	refresh_token_expire_days: int = 30
 	auth_internal_token: str | None = None
+	users_service_url: str | None = None
+	users_internal_token: str | None = None
 	kafka_broker_url: str | None = None
 
 

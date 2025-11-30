@@ -2,11 +2,9 @@ from datetime import datetime, timezone
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..models import User
 from ..schemas import LoginInput, RefreshInput, Token, UserCreate, UserOut
 from ..security import (
 	RefreshTokenError,
@@ -17,6 +15,7 @@ from ..security import (
 	validate_refresh_token,
 	verify_password,
 )
+from ..services.users_api import create_user, fetch_user_by_id, fetch_user_by_login
 
 USERNAME_ALLOWED_RE = re.compile(r"[^A-Za-z0-9_.-]+")
 
@@ -38,52 +37,30 @@ def _sanitize_username(raw: str | None, email: str) -> str:
 	return base
 
 
-async def _ensure_unique_username(base: str, db: AsyncSession) -> str:
-	candidate = base
-	suffix = 1
-	while True:
-		stmt = select(User.id).where(func.lower(User.username) == candidate.lower())
-		exists = await db.scalar(stmt)
-		if not exists:
-			return candidate
-		suffix += 1
-		suffix_str = f"-{suffix}"
-		max_len = 32 - len(suffix_str)
-		candidate = f"{base[:max_len]}{suffix_str}"
-
-
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> UserOut:
+async def register(user_in: UserCreate) -> UserOut:
 	email = user_in.email.lower()
-	username = _sanitize_username(user_in.username if hasattr(user_in, "username") else None, email)
-
-	stmt = select(User).where(User.email == email)
-	existing = await db.scalar(stmt)
-	if existing:
-		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email уже зарегистрирован")
-
-	username = await _ensure_unique_username(username, db)
-
-	user = User(email=email, username=username, hashed_password=get_password_hash(user_in.password))
-	db.add(user)
-	await db.commit()
-	await db.refresh(user)
-	return user
+	username = _sanitize_username(getattr(user_in, "username", None), email)
+	hashed_password = get_password_hash(user_in.password)
+	return await create_user(username=username, email=email, hashed_password=hashed_password)
 
 
 @router.post("/login", response_model=Token)
 async def login(data: LoginInput, db: AsyncSession = Depends(get_db)) -> Token:
-	login_value = data.login.lower().strip()
-	# Пытаемся найти пользователя по email или username
-	stmt = select(User).where(
-		(User.email == login_value) | (User.username == login_value)
-	)
-	user = await db.scalar(stmt)
-	if not user or not verify_password(data.password, user.hashed_password):
+	login_value = data.login.strip().lower()
+	user_data = await fetch_user_by_login(login_value)
+
+	if not user_data or not verify_password(data.password, user_data["hashed_password"]):
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный логин или пароль")
 
-	access = create_access_token(user.id)
-	refresh = await create_refresh_token(db, user.id)
+	if not user_data.get("is_active", True):
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден или неактивен"
+		)
+
+	user_id = int(user_data["id"])
+	access = create_access_token(user_id)
+	refresh = await create_refresh_token(db, user_id)
 	return Token(access_token=access, refresh_token=refresh)
 
 
@@ -94,9 +71,11 @@ async def refresh(data: RefreshInput, db: AsyncSession = Depends(get_db)) -> Tok
 	except RefreshTokenError as exc:
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=exc.detail)
 
-	user = await db.get(User, token_record.user_id)
-	if not user or not user.is_active:
-		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден или неактивен")
+	user = await fetch_user_by_id(token_record.user_id)
+	if not user.is_active:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден или неактивен"
+		)
 
 	token_record.revoked = True
 	token_record.revoked_at = datetime.now(timezone.utc)
@@ -107,7 +86,7 @@ async def refresh(data: RefreshInput, db: AsyncSession = Depends(get_db)) -> Tok
 
 
 @router.get("/me", response_model=UserOut)
-async def me(current_user: User = Depends(get_current_user)) -> UserOut:
+async def me(current_user: UserOut = Depends(get_current_user)) -> UserOut:
 	return current_user
 
 

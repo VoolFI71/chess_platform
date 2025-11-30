@@ -1,17 +1,21 @@
+import asyncio
+import logging
+import time
 from pathlib import Path
 
-import time
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
 
-from common import configure_observability
+from common import configure_observability, setup_logging
 
 from .config import get_settings
 from .database import get_db, sync_engine
 from .routers import notifications_router, notifications_ws_router
 
 
+setup_logging()
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
@@ -27,25 +31,36 @@ def _wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> No
             with sync_engine.begin() as conn:
                 conn.exec_driver_sql("SELECT 1")
             if last_error:
-                print(f"Database connection restored after: {last_error}")
+                logger.info("Database connection restored after: %s", last_error)
             return
         except Exception as exc:  # noqa: BLE001 - log and retry
             last_error = exc
-            print(f"Database not ready yet (retrying in {retry_interval:.1f}s): {exc}")
+            logger.warning(
+                "Database not ready yet (retrying in %.1fs): %s", retry_interval, exc
+            )
             time.sleep(retry_interval)
+    logger.error("Database is not reachable after %.1fs", timeout)
     raise RuntimeError("Database is not reachable") from last_error
 
 
 def apply_migrations() -> None:
+    logger.info("Applying database migrations...")
     _wait_for_database()
     alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
     alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
     command.upgrade(alembic_cfg, "head")
+    logger.info("Database migrations applied successfully")
 
 
 @app.on_event("startup")
-def run_startup_tasks() -> None:
-    apply_migrations()
+async def run_startup_tasks() -> None:
+    logger.info("Notifications service startup initiated")
+    try:
+        await asyncio.to_thread(apply_migrations)
+        logger.info("Notifications service startup completed")
+    except (SystemExit, Exception) as exc:
+        logger.exception("Error during startup tasks: %s", exc)
+        logger.error("Server will continue despite migration errors")
 
 
 configure_observability(

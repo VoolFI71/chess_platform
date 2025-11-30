@@ -1,12 +1,13 @@
-from pathlib import Path
-
+import asyncio
 import logging
 import time
+from pathlib import Path
+
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
 
-from common import configure_observability
+from common import configure_observability, setup_logging
 
 from .config import get_settings
 from .database import get_db, sync_engine
@@ -14,11 +15,8 @@ from .routers import games_router, games_ws_router, internal_router
 from .watchdog import timeout_watchdog
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-)
-
+setup_logging()
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
@@ -34,33 +32,44 @@ def _wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> No
             with sync_engine.begin() as conn:
                 conn.exec_driver_sql("SELECT 1")
             if last_error:
-                logging.info("Database connection restored after: %s", last_error)
+                logger.info("Database connection restored after: %s", last_error)
             return
         except Exception as exc:  # noqa: BLE001 - log and retry
             last_error = exc
-            logging.warning(
+            logger.warning(
                 "Database not ready yet (retrying in %.1fs): %s", retry_interval, exc
             )
             time.sleep(retry_interval)
+    logger.error("Database is not reachable after %.1fs", timeout)
     raise RuntimeError("Database is not reachable") from last_error
 
 
 def apply_migrations() -> None:
+    logger.info("Applying database migrations...")
     _wait_for_database()
     alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
     alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
     command.upgrade(alembic_cfg, "head")
+    logger.info("Database migrations applied successfully")
 
 
 @app.on_event("startup")
 async def run_startup_tasks() -> None:
-    apply_migrations()
+    logger.info("Games service startup initiated")
+    try:
+        await asyncio.to_thread(apply_migrations)
+    except (SystemExit, Exception) as exc:
+        logger.exception("Error during startup tasks: %s", exc)
+        logger.error("Server will continue despite migration errors")
     timeout_watchdog.start()
+    logger.info("Games service startup completed")
 
 
 @app.on_event("shutdown")
 async def stop_watchdog() -> None:
+    logger.info("Games service shutdown initiated")
     await timeout_watchdog.stop()
+    logger.info("Games service shutdown completed")
 
 
 configure_observability(

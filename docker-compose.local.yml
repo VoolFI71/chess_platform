@@ -36,6 +36,7 @@ services:
       dockerfile: auth_service/Dockerfile
     depends_on:
       - db
+      - users
     env_file:
       - .env
     environment:
@@ -52,6 +53,9 @@ services:
       - .env
     environment:
       METRICS_ENABLED: "true"
+      AUTH_INTERNAL_TOKEN: ${AUTH_INTERNAL_TOKEN}
+      USERS_INTERNAL_TOKEN: ${USERS_INTERNAL_TOKEN}
+      USERS_SERVICE_URL: http://users:8000
     restart: unless-stopped
 
   enrollments:

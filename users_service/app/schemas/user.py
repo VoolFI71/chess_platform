@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 
 class UserPublic(BaseModel):
@@ -23,4 +23,24 @@ class UserPublic(BaseModel):
 	model_config = {"from_attributes": True}
 
 
+class InternalUserCreate(BaseModel):
+	username: str = Field(..., min_length=3, max_length=32)
+	email: EmailStr
+	hashed_password: str = Field(..., min_length=1, max_length=512)
 
+
+class InternalUser(BaseModel):
+	id: int
+	username: str
+	email: EmailStr
+	is_active: bool
+	blitz_rating: int
+	bullet_rating: int
+	rapid_rating: int
+	puzzle_rating: int
+	games_played: int
+	created_at: datetime
+	updated_at: datetime
+	hashed_password: str | None = None
+
+	model_config = {"from_attributes": True, "extra": "ignore"}

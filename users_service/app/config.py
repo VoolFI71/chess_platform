@@ -7,6 +7,7 @@ class Settings(BaseServiceSettings):
 	games_internal_token: str | None = None
 	notifications_service_url: str | None = None
 	notifications_internal_token: str | None = None
+	auth_internal_token: str | None = None
 
 
 get_settings = make_get_settings(Settings)

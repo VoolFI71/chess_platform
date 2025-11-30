@@ -1,6 +1,5 @@
 import hashlib
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 from uuid import UUID, uuid4
 
 from fastapi import Depends, HTTPException, status
@@ -13,8 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from common import make_internal_token_verifier
 
 from .config import get_settings
-from .database import get_db
-from .models import RefreshToken, User
+from .models import RefreshToken
+from .schemas import UserOut
+from .services.users_api import fetch_user_by_id
 
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
@@ -131,8 +131,7 @@ async def validate_refresh_token(db: AsyncSession, token: str) -> RefreshToken:
 
 async def get_current_user(
 	credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-	db: AsyncSession = Depends(get_db),
-) -> User:
+) -> UserOut:
 	token = credentials.credentials
 	try:
 		payload = decode_token(token)
@@ -146,8 +145,8 @@ async def get_current_user(
 	if not user_id:
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный формат токена")
 
-	user: Optional[User] = await db.get(User, int(user_id))
-	if not user or not user.is_active:
+	user = await fetch_user_by_id(int(user_id))
+	if not user.is_active:
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Пользователь не найден или неактивен")
 
 	return user

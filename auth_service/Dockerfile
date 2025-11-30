@@ -18,8 +18,6 @@ COPY auth_service/alembic.ini ./alembic.ini
 COPY auth_service/alembic ./alembic
 COPY auth_service/app ./app
 COPY common ./common
-# provide shared users_service models for imports like users_service.app.models.user
-COPY users_service ./users_service
 
 ENV PYTHONPATH=/app/app:/app
 

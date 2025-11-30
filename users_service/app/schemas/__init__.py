@@ -1,4 +1,4 @@
-from .user import UserPublic
+from .user import UserPublic, InternalUser, InternalUserCreate
 from .stats import UserGameStats, GameFormatStats
 from .friendship import (
 	FriendshipRequestCreate,
@@ -17,6 +17,8 @@ __all__ = [
 	"FriendshipOut",
 	"FriendshipWithUser",
 	"FriendshipListResponse",
+	"InternalUser",
+	"InternalUserCreate",
 ]
 
 

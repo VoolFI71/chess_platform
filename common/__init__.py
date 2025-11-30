@@ -19,6 +19,7 @@ from .security import (
 )
 from .config import BaseServiceSettings, make_get_settings
 from .notifications import send_notification
+from .logging_utils import setup_logging
 
 __all__ = [
     "configure_observability",
@@ -32,6 +33,7 @@ __all__ = [
     "create_database_engines",
     "make_get_db",
     "resolve_async_url",
+    "setup_logging",
     # Security
     "CurrentUser",
     "bearer_scheme",
