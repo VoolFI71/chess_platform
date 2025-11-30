@@ -9,6 +9,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
 
 COPY payments_service/requirements.txt ./requirements.txt
+ENV PIP_DEFAULT_TIMEOUT=100 \
+	PIP_RETRIES=10
+
 RUN pip install -r requirements.txt
 
 COPY payments_service/app ./app

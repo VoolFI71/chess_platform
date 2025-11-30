@@ -13,7 +13,7 @@ COPY backend/requirements.txt ./backend/requirements.txt
 ENV PIP_DEFAULT_TIMEOUT=100 \
 	PIP_RETRIES=10
 
-RUN pip install --no-cache-dir -r backend/requirements.txt
+RUN pip install -r backend/requirements.txt
 
 COPY backend ./backend
 COPY common ./common

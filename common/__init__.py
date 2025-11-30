@@ -18,6 +18,7 @@ from .security import (
     optional_bearer_scheme,
 )
 from .config import BaseServiceSettings, make_get_settings
+from .notifications import send_notification
 
 __all__ = [
     "configure_observability",
@@ -43,5 +44,7 @@ __all__ = [
     # Config
     "BaseServiceSettings",
     "make_get_settings",
+    # Notifications
+    "send_notification",
 ]
 

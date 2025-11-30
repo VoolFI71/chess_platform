@@ -18,7 +18,11 @@
     return `${API_BASE}/${path.replace(/^\/+/, '')}`;
   };
 
+  // Используем функции из auth.js, если доступны, с fallback на локальные
   const getAccessToken = () => {
+    if (window.getAccessToken && typeof window.getAccessToken === 'function') {
+      return window.getAccessToken();
+    }
     try {
       return localStorage.getItem('access_token') || '';
     } catch {
@@ -35,6 +39,10 @@
   };
 
   const setTokens = (access, refresh) => {
+    if (window.setTokens && typeof window.setTokens === 'function') {
+      window.setTokens(access, refresh);
+      return;
+    }
     try {
       if (access) localStorage.setItem('access_token', access);
       if (refresh) localStorage.setItem('refresh_token', refresh);
@@ -44,6 +52,10 @@
   };
 
   const clearTokens = () => {
+    if (window.clearTokens && typeof window.clearTokens === 'function') {
+      window.clearTokens();
+      return;
+    }
     try {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');

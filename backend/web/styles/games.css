@@ -52,7 +52,7 @@ html.dark::before {
 }
 
 .games-main {
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 3rem 1.5rem 4rem;
   position: relative;
@@ -1130,7 +1130,7 @@ html.dark .tabs {
 .tabs-container {
     display: flex;
     gap: 0;
-    max-width: 1200px;
+    max-width: 1440px;
     margin: 0 auto;
 }
 
@@ -1181,6 +1181,19 @@ html.dark .tab.active {
     border-bottom-color: rgba(96, 165, 250, 0.9);
 }
 
+/* ===== HEADER CONTAINER ===== */
+.header .container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .header .container {
+        padding: 0 3rem;
+    }
+}
+
 /* ===== MAIN CONTENT ===== */
 .main-content {
     padding: 3rem 0;
@@ -1188,7 +1201,7 @@ html.dark .tab.active {
 }
 
 .main-content .container {
-    max-width: 1200px;
+    max-width: 1440px;
     margin: 0 auto;
     padding: 0 1.5rem;
 }

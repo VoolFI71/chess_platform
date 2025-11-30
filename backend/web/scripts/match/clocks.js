@@ -9,7 +9,19 @@
     if (!state.game) return null;
     let { white_clock_ms: white, black_clock_ms: black, status, next_turn, move_count } = state.game;
     if (!applyRunning) return { white, black };
-    if (!(status === 'ACTIVE' && move_count > 0)) {
+    
+    // ВАЖНО: Время не должно тикать до первого хода
+    const shouldTick = status === 'ACTIVE' && move_count > 0;
+    if (!shouldTick) {
+      if (window.__DEBUG_CLOCKS__) {
+        console.log('[clock] getDisplayedClocks: NOT TICKING', {
+          status,
+          move_count,
+          shouldTick: false,
+          white,
+          black,
+        });
+      }
       return { white, black };
     }
 
@@ -22,11 +34,21 @@
       black = Math.max(0, black - elapsed);
     }
     if (window.__DEBUG_CLOCKS__) {
-      console.log('[clock] getDisplayedClocks', {
+      const now = Date.now();
+      console.log('[clock] getDisplayedClocks: TICKING', {
         mode: applyRunning ? 'running' : 'static',
+        status,
+        move_count,
         next_turn,
-        white,
-        black,
+        clockAnchorTime: anchor,
+        now,
+        elapsed_ms: elapsed,
+        white_before: white_clock_ms,
+        black_before: black_clock_ms,
+        white_after: white,
+        black_after: black,
+        white_delta: white_clock_ms - white,
+        black_delta: black_clock_ms - black,
       });
     }
     return { white, black };

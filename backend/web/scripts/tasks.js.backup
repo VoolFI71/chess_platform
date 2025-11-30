@@ -1,0 +1,1439 @@
+const API_ENDPOINTS = {
+    stats: '/api/puzzles/stats/me',
+    randomPuzzle: '/api/puzzles/random',
+    attempts: '/api/puzzles/attempts/',
+};
+
+const MODES = [
+    {
+        id: 'survival',
+        name: 'Выживание',
+        description: 'Случайные задачи без рейтинга. Идеально для длинных марафонов и свободной практики.',
+        icon: 'fa-heartbeat',
+        gradient: 'linear-gradient(135deg, #10b981, #059669)',
+    },
+    {
+        id: 'rated',
+        name: 'На рейтинг',
+        description: 'Подбор задач по вашему puzzle rating. Ошибки и успехи влияют на статистику и серии.',
+        icon: 'fa-trophy',
+        gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+    },
+];
+
+let selectedMode = MODES[0];
+let currentUser = null;
+let puzzleStats = null;
+let currentPuzzle = null;
+let board = [];
+let isPuzzleLoading = false;
+let puzzleStartTime = null;
+let isSubmittingAttempt = false;
+
+// Состояние для интерактивной доски
+let currentFEN = null;
+let userMoves = [];
+let selectedSquare = null;
+let availableTargets = new Set();
+let isPuzzleSolved = false;
+let isPuzzleFailed = false;
+let currentMoveIndex = 0; // Индекс текущего хода игрока в последовательности
+
+// Флаги и таймеры для оптимизации
+let renderBoardScheduled = false;
+let activeTimers = new Set(); // Для отслеживания и отмены активных таймеров
+let boardClickHandler = null; // Обработчик делегирования событий
+
+// Состояние для статистики и управления
+let sessionStats = {
+    solved: 0,
+    total: 0,
+    streak: 0,
+    bestStreak: 0
+};
+let movesHistory = [];
+let currentHistoryIndex = -1;
+let timeInterval = null;
+let lastMoveSquares = []; // Клетки последнего хода для подсветки
+
+const PIECES = {
+    K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
+    k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
+};
+
+function getCurrentPuzzleRating() {
+    if (puzzleStats && typeof puzzleStats.puzzle_rating === 'number') {
+        return puzzleStats.puzzle_rating;
+    }
+    if (currentUser && typeof currentUser.puzzle_rating === 'number') {
+        return currentUser.puzzle_rating;
+    }
+    return 1200;
+}
+
+function getModeMeta(mode) {
+    if (mode.id === 'survival') {
+        const best = puzzleStats?.survival_best_streak ?? puzzleStats?.best_streak ?? 0;
+        return {
+            icon: 'fa-fire',
+            text: `Максимальная серия: ${best}`,
+        };
+    }
+    if (mode.id === 'rated') {
+        const rating = getCurrentPuzzleRating();
+        return {
+            icon: 'fa-star',
+            text: `Рейтинг задач: ${rating}`,
+        };
+    }
+    return { icon: '', text: '' };
+}
+
+// Безопасная функция для экранирования HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function renderModes() {
+    const grid = document.getElementById('modeGrid');
+    if (!grid) return;
+    
+    // Очищаем контейнер
+    grid.innerHTML = '';
+    
+    MODES.forEach((mode) => {
+        const meta = getModeMeta(mode);
+        const isActive = mode.id === selectedMode.id;
+        
+        // Создаем элементы безопасным способом
+        const card = document.createElement('div');
+        card.className = `mode-card ${isActive ? 'active' : ''}`;
+        card.dataset.mode = mode.id;
+        if (isActive) {
+            card.style.background = mode.gradient;
+        }
+        card.addEventListener('click', () => selectMode(mode.id));
+        
+        const header = document.createElement('div');
+        header.className = 'mode-header';
+        
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'mode-icon';
+        const icon = document.createElement('i');
+        icon.className = `fas ${mode.icon}`;
+        iconDiv.appendChild(icon);
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'mode-name';
+        nameSpan.textContent = mode.name;
+        
+        header.appendChild(iconDiv);
+        header.appendChild(nameSpan);
+        
+        const desc = document.createElement('p');
+        desc.className = 'mode-description';
+        desc.textContent = mode.description;
+        
+        card.appendChild(header);
+        card.appendChild(desc);
+        
+        if (meta.text) {
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'mode-meta';
+            
+            const metaIcon = document.createElement('i');
+            metaIcon.className = `fas ${meta.icon} mode-meta-icon`;
+            
+            const metaText = document.createElement('span');
+            metaText.textContent = meta.text;
+            
+            metaDiv.appendChild(metaIcon);
+            metaDiv.appendChild(metaText);
+            card.appendChild(metaDiv);
+        }
+        
+        grid.appendChild(card);
+    });
+}
+
+function parseFEN(fen) {
+    if (!fen) return [];
+    const placement = fen.split(' ')[0];
+    const rows = placement.split('/');
+    return rows.map((row) => {
+        const squares = [];
+        for (const char of row) {
+            if (char >= '1' && char <= '8') {
+                squares.push(...Array(parseInt(char, 10)).fill(''));
+            } else {
+                squares.push(char);
+            }
+        }
+        return squares;
+    });
+}
+
+function getSquareName(rowIdx, colIdx) {
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks = ['8', '7', '6', '5', '4', '3', '2', '1'];
+    return files[colIdx] + ranks[rowIdx];
+}
+
+function getPieceColor(piece) {
+    if (!piece) return null;
+    return piece === piece.toUpperCase() ? 'w' : 'b';
+}
+
+// Оптимизированная функция рендеринга доски с предотвращением множественных вызовов
+function renderBoard() {
+    if (renderBoardScheduled) return;
+    
+    renderBoardScheduled = true;
+    requestAnimationFrame(() => {
+        renderBoardScheduled = false;
+        _renderBoard();
+    });
+}
+
+function _renderBoard() {
+    const grid = document.getElementById('boardGrid');
+    if (!grid || !board.length || !currentFEN) return;
+
+    // Определяем, чей ход (из FEN)
+    const fenParts = currentFEN.split(' ');
+    const activeColor = fenParts[1] || 'w'; // 'w' или 'b'
+    
+    // Определяем ориентацию доски: если игра за черных, доска перевернута
+    const boardOrientation = activeColor === 'b' ? 'black' : 'white';
+    const isFlipped = boardOrientation === 'black';
+
+    // Определяем файлы и ранги для отображения (всегда с точки зрения активного игрока)
+    // Для черных: нижний ряд - a-h слева направо, левый столбец - 1-8 снизу вверх
+    // Для белых: нижний ряд - a-h слева направо, левый столбец - 1-8 снизу вверх
+    const displayFiles = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const displayRanks = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    grid.innerHTML = '';
+
+    // Получаем легальные ходы для текущей позиции (нужно для делегирования событий)
+    let legalMoves = new Set();
+    let movesByFrom = new Map();
+    
+    if (window.ChessMoveUtils && !isPuzzleSolved && !isPuzzleFailed) {
+        const moveUtils = window.ChessMoveUtils;
+        // Конвертируем формат цвета: 'w'/'b' -> 'white'/'black'
+        const colorForMoveGen = activeColor === 'w' ? 'white' : 'black';
+        const { moves, movesByFrom: movesMap } = moveUtils.generateMoves(currentFEN, colorForMoveGen);
+        legalMoves = moves;
+        movesByFrom = movesMap;
+    }
+    
+    // Устанавливаем делегирование событий на контейнер доски (один раз, при первом рендере)
+    if (!boardClickHandler) {
+        boardClickHandler = (e) => {
+            if (isPuzzleSolved || isPuzzleFailed || !currentFEN) return;
+            const square = e.target.closest('.square');
+            if (!square) return;
+            const squareName = square.dataset.square;
+            if (squareName && square.classList.contains('clickable')) {
+                handleSquareClick(squareName);
+            }
+        };
+        grid.addEventListener('click', boardClickHandler);
+    }
+
+    // Создаем перевернутую матрицу доски, если нужно
+    // При перевороте для черных: только строки переворачиваются, столбцы остаются
+    // displayBoard[0][0] для черных = board[7][0] для белых (a1 позиция)
+    const displayBoard = isFlipped ? [...board].reverse() : board;
+
+    displayBoard.forEach((row, rowIdx) => {
+        row.forEach((piece, colIdx) => {
+            // Вычисляем реальные индексы в исходной доске
+            // При перевороте только строки переворачиваются
+            const realRowIdx = isFlipped ? 7 - rowIdx : rowIdx;
+            const realColIdx = colIdx; // Столбцы не переворачиваются
+            
+            const isLight = (realRowIdx + realColIdx) % 2 === 0;
+            const squareName = getSquareName(realRowIdx, realColIdx);
+            const square = document.createElement('div');
+            square.className = `square ${isLight ? 'light' : 'dark'}`;
+            square.dataset.square = squareName;
+
+            // Подсветка выбранной клетки
+            if (selectedSquare === squareName) {
+                square.classList.add('selected-user');
+            }
+
+            // Подсветка доступных целей
+            if (availableTargets.has(squareName)) {
+                square.classList.add('legal-target');
+                const indicator = document.createElement('div');
+                indicator.className = 'legal-move-indicator';
+                square.appendChild(indicator);
+            }
+
+            // Подсветка неверного хода (красным)
+            if (square.classList.contains('invalid-move')) {
+                square.style.backgroundColor = 'rgba(220, 38, 38, 0.3)';
+                square.style.boxShadow = 'inset 0 0 0 3px rgba(220, 38, 38, 0.8)';
+            }
+
+            if (piece) {
+                const pieceEl = document.createElement('span');
+                pieceEl.className = 'piece';
+                if (window.getPieceSVG) {
+                    pieceEl.innerHTML = window.getPieceSVG(piece);
+                } else {
+                    pieceEl.textContent = PIECES[piece] || '';
+                }
+                square.appendChild(pieceEl);
+            }
+
+            // Отображаем координаты в зависимости от ориентации доски
+            // Для перевернутой доски (черные): нижняя строка = rowIdx 0 (a1-h1 внизу)
+            // Для обычной доски (белые): нижняя строка = rowIdx 7 (a1-h1 внизу)
+            const isBottomRow = isFlipped ? rowIdx === 0 : rowIdx === displayBoard.length - 1;
+            const isLeftCol = colIdx === 0;
+            
+            if (isBottomRow) {
+                const fileCoord = document.createElement('span');
+                fileCoord.className = 'coordinate file-coord';
+                // Файлы всегда a-h слева направо внизу
+                fileCoord.textContent = displayFiles[colIdx];
+                square.appendChild(fileCoord);
+            }
+
+            if (isLeftCol) {
+                const rankCoord = document.createElement('span');
+                rankCoord.className = 'coordinate rank-coord';
+                // Для перевернутой доски: rowIdx 0 = ранг 1 (внизу), rowIdx 7 = ранг 8 (вверху)
+                // Для обычной доски: rowIdx 7 = ранг 1 (внизу), rowIdx 0 = ранг 8 (вверху)
+                const rankIndex = isFlipped ? rowIdx : 7 - rowIdx;
+                rankCoord.textContent = displayRanks[rankIndex];
+                square.appendChild(rankCoord);
+            }
+
+            // Устанавливаем курсор для кликабельных клеток (обработчик событий уже на контейнере)
+            if (!isPuzzleSolved && !isPuzzleFailed) {
+                // Используем реальные индексы для определения цвета фигуры
+                const realPiece = board[realRowIdx][realColIdx];
+                const pieceColor = getPieceColor(realPiece);
+                const isUserPiece = pieceColor === activeColor;
+                
+                // Проверяем, есть ли доступные ходы для этой фигуры
+                const hasMoves = movesByFrom.has(squareName.toLowerCase());
+                
+                // Устанавливаем курсор для:
+                // 1. Фигур игрока с доступными ходами (чтобы выбрать фигуру)
+                // 2. Клеток, когда уже выбрана фигура (чтобы сделать ход)
+                if ((isUserPiece && hasMoves) || selectedSquare) {
+                    square.style.cursor = 'pointer';
+                    square.classList.add('clickable');
+                } else {
+                    square.style.cursor = '';
+                    square.classList.remove('clickable');
+                }
+            }
+
+            grid.appendChild(square);
+        });
+    });
+    
+}
+
+// Вспомогательная функция для создания безопасных таймеров
+function createTimer(callback, delay) {
+    const timerId = setTimeout(() => {
+        activeTimers.delete(timerId);
+        callback();
+    }, delay);
+    
+    activeTimers.add(timerId);
+    return timerId;
+}
+
+// Функция для отмены всех активных таймеров
+function clearAllTimers() {
+    activeTimers.forEach(timerId => clearTimeout(timerId));
+    activeTimers.clear();
+}
+
+function setPuzzleStatus(message, isError = false) {
+    const statusEl = document.getElementById('puzzleStatus');
+    if (!statusEl) return;
+    statusEl.textContent = message;
+    statusEl.style.color = isError ? '#dc2626' : 'var(--muted-foreground)';
+}
+
+function updatePuzzleHeader(puzzle) {
+    const headerCard = document.getElementById('puzzleHeaderCard');
+    const modeLabel = document.getElementById('currentModeLabel');
+    const ratingLabel = document.getElementById('currentPuzzleRating');
+    const movesLabel = document.getElementById('currentPuzzleMoves');
+    
+    if (headerCard) {
+        headerCard.style.display = puzzle ? 'block' : 'none';
+    }
+
+    if (modeLabel) {
+        modeLabel.innerHTML = `
+            <i class="fas fa-layer-group"></i>
+            Режим: ${selectedMode.name}
+        `;
+    }
+
+    if (ratingLabel) {
+        const value = puzzle && typeof puzzle.rating === 'number' ? puzzle.rating : '—';
+        ratingLabel.innerHTML = `
+            <i class="fas fa-chess"></i>
+            Рейтинг: ${value}
+        `;
+    }
+
+    if (movesLabel) {
+        let movesCount = '—';
+        if (puzzle && puzzle.moves && Array.isArray(puzzle.moves)) {
+            // Количество ходов игрока (четные индексы: 0, 2, 4...)
+            const playerMovesCount = Math.ceil(puzzle.moves.length / 2);
+            movesCount = playerMovesCount;
+        }
+        movesLabel.innerHTML = `
+            <i class="fas fa-arrows-alt"></i>
+            Ходов: ${movesCount}
+        `;
+    }
+
+    // Обновляем дополнительную информацию о задаче
+    updatePuzzleInfo(puzzle);
+}
+
+function updatePuzzleInfo(puzzle) {
+    const infoCard = document.getElementById('puzzleInfoCard');
+    const themesValue = document.getElementById('puzzleThemesValue');
+    const openingValue = document.getElementById('puzzleOpeningValue');
+    const popularityValue = document.getElementById('puzzlePopularityValue');
+    const playsValue = document.getElementById('puzzlePlaysValue');
+    const nextPuzzleBtn = document.getElementById('nextPuzzleBtn');
+
+    if (!infoCard) return;
+
+    if (!puzzle) {
+        infoCard.style.display = 'none';
+        return;
+    }
+
+    infoCard.style.display = 'block';
+
+    // Темы задачи
+    if (themesValue) {
+        if (puzzle.themes && Array.isArray(puzzle.themes) && puzzle.themes.length > 0) {
+            themesValue.innerHTML = puzzle.themes.map(theme => 
+                `<span class="info-tag">${escapeHtml(theme)}</span>`
+            ).join('');
+        } else {
+            themesValue.textContent = '—';
+        }
+    }
+
+    // Дебют
+    if (openingValue) {
+        if (puzzle.opening_tags && Array.isArray(puzzle.opening_tags) && puzzle.opening_tags.length > 0) {
+            openingValue.innerHTML = puzzle.opening_tags.map(tag => 
+                `<span class="info-tag">${escapeHtml(tag)}</span>`
+            ).join('');
+        } else {
+            openingValue.textContent = '—';
+        }
+    }
+
+    // Популярность
+    if (popularityValue) {
+        if (typeof puzzle.popularity === 'number') {
+            popularityValue.textContent = puzzle.popularity;
+        } else {
+            popularityValue.textContent = '—';
+        }
+    }
+
+    // Количество решений (реальное количество решений пользователями)
+    if (playsValue) {
+        if (typeof puzzle.solved_count === 'number') {
+            playsValue.textContent = puzzle.solved_count.toLocaleString();
+        } else if (typeof puzzle.nb_plays === 'number') {
+            // Fallback на nb_plays, если solved_count еще не доступен
+            playsValue.textContent = puzzle.nb_plays.toLocaleString();
+        } else {
+            playsValue.textContent = '—';
+        }
+    }
+
+    // Показываем кнопку "Следующая задача" когда задача решена или провалена
+    if (nextPuzzleBtn) {
+        nextPuzzleBtn.style.display = (isPuzzleSolved || isPuzzleFailed) ? 'flex' : 'none';
+    }
+}
+
+function buildPuzzleRequestUrl() {
+    if (selectedMode.id !== 'rated') {
+        return API_ENDPOINTS.randomPuzzle;
+    }
+    const rating = getCurrentPuzzleRating();
+    const spread = 150;
+    const params = new URLSearchParams();
+    params.set('rating_min', Math.max(400, rating - spread));
+    params.set('rating_max', Math.min(3500, rating + spread));
+    return `${API_ENDPOINTS.randomPuzzle}?${params.toString()}`;
+}
+
+async function authorizedFetch(path, options = {}) {
+    if (typeof window.apiFetch === 'function') {
+        return window.apiFetch(path, options);
+    }
+    return fetch(path, options);
+}
+
+async function loadPuzzleForCurrentMode() {
+    if (isPuzzleLoading) return;
+
+    const section = document.getElementById('puzzleSection');
+    if (section) section.style.display = 'block';
+
+    isPuzzleLoading = true;
+    setPuzzleStatus('Загружаем задачу...', false);
+
+    // Отменяем все активные таймеры при загрузке новой задачи
+    clearAllTimers();
+    stopTimeTracking();
+    
+    // Сбрасываем состояние доски
+    userMoves = [];
+    selectedSquare = null;
+    availableTargets = new Set();
+    isPuzzleSolved = false;
+    isPuzzleFailed = false;
+    currentMoveIndex = 0;
+    movesHistory = [];
+    currentHistoryIndex = -1;
+    
+    // Сбрасываем флаг отложенного рендеринга
+    renderBoardScheduled = false;
+    
+    // Обновляем прогресс-бар
+    updateProgress();
+    updateMovesHistory();
+
+    try {
+        const url = buildPuzzleRequestUrl();
+        const res = await authorizedFetch(url);
+        if (!res.ok) {
+            throw new Error('Не удалось получить задачу. Попробуйте позже.');
+        }
+        const puzzle = await res.json();
+        currentPuzzle = puzzle;
+        currentFEN = puzzle.fen || '';
+        board = parseFEN(currentFEN);
+        renderBoard();
+        updatePuzzleHeader(puzzle);
+        setPuzzleStatus('Удачи! Найдите лучший ход в получившейся позиции.', false);
+        
+        // Засекаем время начала решения
+        puzzleStartTime = Date.now();
+        startTimeTracking();
+        
+        // Обновляем статистику и прогресс
+        updateProgress();
+        updateStats();
+    } catch (err) {
+        console.error('Puzzle load failed', err);
+        setPuzzleStatus(err.message || 'Не удалось загрузить задачу.', true);
+    } finally {
+        isPuzzleLoading = false;
+    }
+}
+
+async function loadPuzzleStats() {
+    try {
+        const res = await authorizedFetch(API_ENDPOINTS.stats);
+        if (!res.ok) throw new Error('no stats');
+        puzzleStats = await res.json();
+    } catch {
+        puzzleStats = null;
+    } finally {
+        renderModes();
+    }
+}
+
+async function bootstrapTasksPage() {
+    try {
+        if (typeof window.authMe === 'function') {
+            currentUser = await window.authMe();
+        }
+    } catch {
+        currentUser = null;
+    }
+    await loadPuzzleStats();
+}
+
+function selectMode(id) {
+    const next = MODES.find((m) => m.id === id);
+    if (!next) return;
+    selectedMode = next;
+    renderModes();
+    
+    // Скрываем выбор режима после выбора
+    const modeGrid = document.getElementById('modeGrid');
+    if (modeGrid) {
+        modeGrid.style.display = 'none';
+    }
+    
+    // Скрываем заголовок выбора режима
+    const tasksHeader = document.querySelector('.tasks-header');
+    if (tasksHeader) {
+        tasksHeader.style.display = 'none';
+    }
+    
+    loadPuzzleForCurrentMode();
+}
+
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    const icon = document.getElementById('menuIcon');
+    if (!menu) return;
+    const active = menu.classList.toggle('active');
+    if (icon) icon.className = active ? 'fas fa-times' : 'fas fa-bars';
+}
+
+function closeMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    const icon = document.getElementById('menuIcon');
+    if (menu) menu.classList.remove('active');
+    if (icon) icon.className = 'fas fa-bars';
+}
+
+async function submitAttempt(success) {
+    if (!currentPuzzle || isSubmittingAttempt) return;
+    
+    isSubmittingAttempt = true;
+    
+    try {
+        // Вычисляем время, потраченное на решение
+        const timeSpentMs = puzzleStartTime ? Math.max(100, Date.now() - puzzleStartTime) : null;
+        
+        // Отправляем ходы пользователя (или пустой массив для неудачной попытки)
+        const movesPlayed = success && userMoves.length > 0
+            ? userMoves
+            : [];
+        
+        const payload = {
+            puzzle_id: currentPuzzle.puzzle_id,
+            mode: selectedMode.id,
+            success: success,
+            time_spent_ms: timeSpentMs,
+            mistake_count: success ? 0 : 1,
+            moves_played: movesPlayed,
+        };
+        
+        const res = await authorizedFetch(API_ENDPOINTS.attempts, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+        
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Не удалось отправить результат.');
+        }
+        
+        // Обновляем статистику после отправки попытки
+        await loadPuzzleStats();
+        
+        // Если задача решена верно, автоматически загружаем новую задачу
+        if (success) {
+            // Задержка для показа анимации успеха и сообщения
+            await new Promise(resolve => {
+                createTimer(resolve, 2000); // 2 секунды для показа анимации
+            });
+            setPuzzleStatus('Загружаем следующую задачу...', false);
+            await loadPuzzleForCurrentMode();
+        }
+        // Если задача решена неверно, загрузка следующей задачи уже происходит в handlePuzzleFailed()
+    } catch (err) {
+        console.error('Failed to submit attempt', err);
+        setPuzzleStatus(err.message || 'Не удалось отправить результат.', true);
+    } finally {
+        isSubmittingAttempt = false;
+    }
+}
+
+function handleSquareClick(squareName) {
+    if (isPuzzleSolved || isPuzzleFailed || !currentFEN || !window.ChessMoveUtils) return;
+
+    const moveUtils = window.ChessMoveUtils;
+    const fenParts = currentFEN.split(' ');
+    const activeColor = fenParts[1] || 'w';
+    
+    // Нормализуем имя клетки
+    const normalizedSquareName = squareName.toLowerCase();
+    
+    // Конвертируем формат цвета: 'w'/'b' -> 'white'/'black'
+    const colorForMoveGen = activeColor === 'w' ? 'white' : 'black';
+    const { movesByFrom } = moveUtils.generateMoves(currentFEN, colorForMoveGen) || { movesByFrom: new Map() };
+    
+    // Если выбрана клетка с фигурой пользователя
+    if (selectedSquare && selectedSquare.toLowerCase() === normalizedSquareName) {
+        // Снимаем выделение
+        selectedSquare = null;
+        availableTargets = new Set();
+        renderBoard();
+        return;
+    }
+
+    // Если уже выбрана фигура, пытаемся сделать ход
+    if (selectedSquare) {
+        const moves = movesByFrom.get(selectedSquare.toLowerCase());
+        if (moves && moves.size > 0) {
+            // moves - это Set строк UCI, ищем ход на эту клетку
+            const uciMoves = Array.from(moves);
+            const targetMove = uciMoves.find(uci => {
+                // UCI формат: "e2e4" - последние 2 символа это целевая клетка
+                const target = uci.slice(2, 4).toLowerCase();
+                return target === normalizedSquareName;
+            });
+            
+            if (targetMove) {
+                // Сразу применяем ход к доске (без проверки правильности)
+                // Затем проверяем правильность в executeMove
+                executeMove(selectedSquare, normalizedSquareName, targetMove);
+            } else {
+                // Нет легального хода на эту клетку - просто сбрасываем выделение
+                selectedSquare = null;
+                availableTargets = new Set();
+                renderBoard();
+            }
+        } else {
+            // Нет доступных ходов
+            selectedSquare = null;
+            availableTargets = new Set();
+            renderBoard();
+        }
+        return;
+    }
+
+    // Выбираем фигуру
+    const moves = movesByFrom.get(normalizedSquareName);
+    if (moves && moves.size > 0) {
+        selectedSquare = normalizedSquareName;
+        // Извлекаем целевые клетки из UCI ходов (последние 2 символа)
+        const targets = Array.from(moves).map(uci => uci.slice(2, 4).toLowerCase());
+        availableTargets = new Set(targets);
+        renderBoard();
+    } else {
+        // Нет доступных ходов для этой фигуры
+        // Можно кликнуть на другую фигуру или пустую клетку - ничего не происходит
+    }
+}
+
+function highlightInvalidMove(squareName) {
+    const grid = document.getElementById('boardGrid');
+    if (!grid) return;
+    
+    const square = grid.querySelector(`[data-square="${squareName}"]`);
+    if (square) {
+        square.classList.add('invalid-move');
+        square.style.backgroundColor = 'rgba(220, 38, 38, 0.4)';
+        square.style.boxShadow = 'inset 0 0 0 3px rgba(220, 38, 38, 0.9)';
+        
+        // Убираем подсветку через 1 секунду
+        createTimer(() => {
+            if (square && square.parentNode) { // Проверяем, что элемент еще существует
+                square.classList.remove('invalid-move');
+                square.style.backgroundColor = '';
+                square.style.boxShadow = '';
+            }
+        }, 1000);
+    }
+}
+
+// Функция для применения хода к FEN позиции
+function applyMoveToFen(fen, uci) {
+    if (!fen || !uci || !window.ChessMoveUtils) return null;
+    
+    const moveUtils = window.ChessMoveUtils;
+    const { board, activeColor, castlingRights, enPassant } = moveUtils.parseFen(fen);
+    
+    // Парсим UCI ход
+    const from = uci.slice(0, 2).toLowerCase();
+    const to = uci.slice(2, 4).toLowerCase();
+    const promotion = uci.length > 4 ? uci.slice(4, 5).toLowerCase() : null;
+    
+    const fromCoords = moveUtils.parseFen ? null : (() => {
+        const fileIdx = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].indexOf(from[0]);
+        const rankIdx = 8 - parseInt(from[1], 10);
+        return { file: fileIdx, rank: rankIdx };
+    })();
+    
+    // Простая реализация применения хода
+    // Используем библиотеку или создаем упрощенную версию
+    try {
+        // Временно используем упрощенный подход - обновляем FEN вручную
+        // Для полной реализации нужна библиотека chess.js или вызов бэкенда
+        const fenParts = fen.split(' ');
+        const newActiveColor = activeColor === 'white' ? 'b' : 'w';
+        
+        // Применяем ход к доске (упрощенная версия)
+        // В реальности нужно использовать библиотеку chess.js
+        // Здесь мы используем упрощенный подход через обновление позиции
+        
+        // Для полноценной работы лучше использовать библиотеку chess.js
+        // Но пока используем упрощенный подход - обновляем только активный цвет
+        return `${fenParts[0]} ${newActiveColor} ${fenParts[2] || '-'} ${fenParts[3] || '-'} ${fenParts[4] || '0'} ${fenParts[5] || '1'}`;
+    } catch (e) {
+        console.error('Error applying move to FEN:', e);
+        return null;
+    }
+}
+
+// Функция для применения хода к доске
+function applyMoveToBoard(uci, animate = true) {
+    if (!currentFEN || !window.ChessMoveUtils) return false;
+    
+    // Проверяем, легален ли ход
+    const fenParts = currentFEN.split(' ');
+    const activeColor = fenParts[1] || 'w';
+    const color = activeColor === 'w' ? 'white' : 'black';
+    
+    if (!window.ChessMoveUtils.isMoveAllowed(currentFEN, color, uci)) {
+        return false;
+    }
+    
+    // Парсим UCI ход
+    const from = uci.slice(0, 2).toLowerCase();
+    const to = uci.slice(2, 4).toLowerCase();
+    const promotion = uci.length > 4 ? uci.slice(4, 5).toLowerCase() : null;
+    
+    // Сохраняем клетки последнего хода для подсветки
+    lastMoveSquares = [from, to];
+    
+    // Анимация перемещения фигуры
+    if (animate) {
+        animatePieceMove(from, to);
+    }
+    
+    // Конвертируем клетки в координаты
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const fromFile = files.indexOf(from[0]);
+    const fromRank = 8 - parseInt(from[1], 10);
+    const toFile = files.indexOf(to[0]);
+    const toRank = 8 - parseInt(to[1], 10);
+    
+    if (fromFile === -1 || fromRank < 0 || fromRank > 7 || toFile === -1 || toRank < 0 || toRank > 7) {
+        return false;
+    }
+    
+    // Применяем ход к доске
+    const piece = board[fromRank][fromFile];
+    if (!piece) return false;
+    
+    // Определяем фигуру для превращения пешки
+    let pieceToMove = piece;
+    if (promotion && piece.toLowerCase() === 'p') {
+        pieceToMove = activeColor === 'w' ? promotion.toUpperCase() : promotion.toLowerCase();
+    }
+    
+    // Перемещаем фигуру
+    board[fromRank][fromFile] = '';
+    board[toRank][toFile] = pieceToMove;
+    
+    // Обработка взятия на проходе (упрощенная версия - просто удаляем пешку)
+    // Обработка рокировки (упрощенная версия)
+    if (piece.toLowerCase() === 'k' && Math.abs(fromFile - toFile) === 2) {
+        // Рокировка
+        if (toFile === 6) { // Короткая рокировка
+            const rookFromFile = 7;
+            const rookToFile = 5;
+            const rook = board[fromRank][rookFromFile];
+            board[fromRank][rookFromFile] = '';
+            board[fromRank][rookToFile] = rook;
+        } else if (toFile === 2) { // Длинная рокировка
+            const rookFromFile = 0;
+            const rookToFile = 3;
+            const rook = board[fromRank][rookFromFile];
+            board[fromRank][rookFromFile] = '';
+            board[fromRank][rookToFile] = rook;
+        }
+    }
+    
+    // Обновляем FEN
+    const newActiveColor = activeColor === 'w' ? 'b' : 'w';
+    const placement = board.map(row => {
+        let fenRow = '';
+        let emptyCount = 0;
+        for (const square of row) {
+            if (square === '') {
+                emptyCount++;
+            } else {
+                if (emptyCount > 0) {
+                    fenRow += emptyCount;
+                    emptyCount = 0;
+                }
+                fenRow += square;
+            }
+        }
+        if (emptyCount > 0) {
+            fenRow += emptyCount;
+        }
+        return fenRow;
+    }).join('/');
+    
+    // Обновляем FEN (упрощенная версия - не обновляем castling, en passant, move counters)
+    currentFEN = `${placement} ${newActiveColor} ${fenParts[2] || '-'} ${fenParts[3] || '-'} ${fenParts[4] || '0'} ${fenParts[5] || '1'}`;
+    
+    return true;
+}
+
+function executeMove(from, to, uci) {
+    if (!currentPuzzle || !currentFEN) return;
+
+    const correctMoves = currentPuzzle.moves || [];
+    
+    // Сначала применяем ход к доске (без проверки правильности)
+    const moveApplied = applyMoveToBoard(uci, true);
+    if (!moveApplied) {
+        // Ход не может быть применен (нелегальный) - просто сбрасываем выделение
+        selectedSquare = null;
+        availableTargets = new Set();
+        renderBoard();
+        return;
+    }
+    
+    // Обновляем доску сразу после применения хода
+    renderBoard();
+    
+    // Теперь проверяем, правильный ли ход
+    const expectedMove = correctMoves[currentMoveIndex * 2]; // Ходы игрока на четных индексах (0, 2, 4...)
+    
+    if (!expectedMove) {
+        // Все ходы игрока сделаны - проверяем, решена ли задача
+        if (currentMoveIndex * 2 >= correctMoves.length) {
+            handlePuzzleSolved();
+        } else {
+            handlePuzzleFailed(to);
+        }
+        return;
+    }
+    
+    // Проверяем, правильный ли ход
+    if (uci.toLowerCase() === expectedMove.toLowerCase()) {
+        // Правильный ход игрока
+        userMoves.push(uci);
+        
+        // Добавляем ход в историю
+        movesHistory.push({
+            move: uci,
+            fen: currentFEN,
+            isPlayer: true,
+            isCorrect: true
+        });
+        currentHistoryIndex = movesHistory.length - 1;
+        updateMovesHistory();
+        updateProgress();
+        
+        // Проверяем, есть ли ответный ход соперника
+        const opponentMoveIndex = currentMoveIndex * 2 + 1;
+        if (opponentMoveIndex < correctMoves.length) {
+            // Есть ответный ход соперника - применяем его автоматически
+            const opponentMove = correctMoves[opponentMoveIndex];
+            createTimer(() => {
+                applyOpponentMove(opponentMove);
+            }, 500); // Небольшая задержка для визуализации
+        } else {
+            // Все ходы сделаны - задача решена
+            handlePuzzleSolved();
+        }
+    } else {
+        // Неверный ход - завершаем задачу и загружаем новую
+        // Подсвечиваем только целевую клетку
+        handlePuzzleFailed(to);
+    }
+}
+
+function applyOpponentMove(uci) {
+    if (!currentFEN || !uci) return;
+    
+    // Применяем ход соперника
+    if (applyMoveToBoard(uci, true)) {
+        // Добавляем ход соперника в историю
+        movesHistory.push({
+            move: uci,
+            fen: currentFEN,
+            isPlayer: false
+        });
+        currentHistoryIndex = movesHistory.length - 1;
+        updateMovesHistory();
+        
+        // Увеличиваем индекс хода игрока
+        currentMoveIndex++;
+        
+        // Обновляем доску и прогресс с задержкой для анимации
+        setTimeout(() => {
+            renderBoard();
+            updateProgress();
+        }, 100);
+        
+        // Сбрасываем выделение
+        selectedSquare = null;
+        availableTargets = new Set();
+        
+        // Проверяем, нужно ли еще делать ходы
+        const correctMoves = currentPuzzle.moves || [];
+        const nextPlayerMoveIndex = currentMoveIndex * 2;
+        
+        if (nextPlayerMoveIndex >= correctMoves.length) {
+            // Все ходы сделаны - задача решена
+            handlePuzzleSolved();
+        } else {
+            // Ждем следующего хода игрока
+            setPuzzleStatus('Противник сделал ход. Ваш ход!', false);
+        }
+    }
+}
+
+function handlePuzzleSolved() {
+    isPuzzleSolved = true;
+    selectedSquare = null;
+    availableTargets = new Set();
+    stopTimeTracking();
+    setPuzzleStatus('Отлично! Задача решена правильно!', false);
+    
+    // Обновляем статистику
+    sessionStats.solved++;
+    sessionStats.total++;
+    sessionStats.streak++;
+    if (sessionStats.streak > sessionStats.bestStreak) {
+        sessionStats.bestStreak = sessionStats.streak;
+    }
+    updateStats();
+    updateProgress();
+    
+    // Анимация успешного решения
+    showSuccessAnimation();
+    
+    // Показываем правильные ходы в истории
+    showCorrectMovesInHistory();
+    
+    // Показываем кнопку следующей задачи
+    const nextPuzzleBtn = document.getElementById('nextPuzzleBtn');
+    if (nextPuzzleBtn) {
+        nextPuzzleBtn.style.display = 'flex';
+    }
+    
+    // Автоматически отправляем успешную попытку
+    // Загрузка следующей задачи происходит автоматически в submitAttempt()
+    submitAttempt(true);
+}
+
+function handlePuzzleFailed(targetSquare) {
+    isPuzzleFailed = true;
+    selectedSquare = null;
+    availableTargets = new Set();
+    stopTimeTracking();
+    
+    // Обновляем статистику
+    sessionStats.total++;
+    sessionStats.streak = 0; // Сбрасываем серию
+    updateStats();
+    
+    // Подсвечиваем только целевую клетку красным на короткое время
+    if (targetSquare) {
+        const grid = document.getElementById('boardGrid');
+        if (grid) {
+            const square = grid.querySelector(`[data-square="${targetSquare.toLowerCase()}"]`);
+            if (square) {
+                square.classList.add('invalid-move');
+                createTimer(() => {
+                    if (square) {
+                        square.classList.remove('invalid-move');
+                    }
+                }, 800);
+            }
+        }
+    }
+    
+    // Для обоих режимов автоматически загружаем следующую задачу
+    if (selectedMode.id === 'survival') {
+        setPuzzleStatus('Неверный ход! Серия сброшена. Загружаем следующую задачу...', true);
+    } else {
+        setPuzzleStatus('Неверный ход! Загружаем следующую задачу...', true);
+    }
+    
+    // Автоматически отправляем неудачную попытку и загружаем следующую задачу
+    submitAttempt(false).then(() => {
+        // После отправки загружаем новую задачу
+        createTimer(() => {
+            loadPuzzleForCurrentMode();
+        }, 1000);
+    });
+}
+
+function showRestartButton() {
+    // Кнопка "Начать сначала" больше не используется - удалена
+}
+
+function hideRestartButton() {
+    // Функция оставлена для совместимости, но ничего не делает
+}
+
+// Инициализация контролов доски
+function initBoardControls() {
+    const prevMoveBtn = document.getElementById('prevMoveBtn');
+    const nextMoveBtn = document.getElementById('nextMoveBtn');
+    const nextPuzzleBtn = document.getElementById('nextPuzzleBtn');
+    if (nextPuzzleBtn) {
+        nextPuzzleBtn.addEventListener('click', () => {
+            loadPuzzleForCurrentMode();
+        });
+    }
+
+    if (prevMoveBtn) {
+        prevMoveBtn.addEventListener('click', () => {
+            navigateHistory(-1);
+        });
+    }
+
+    if (nextMoveBtn) {
+        nextMoveBtn.addEventListener('click', () => {
+            navigateHistory(1);
+        });
+    }
+}
+
+function showSolution() {
+    if (!currentPuzzle || !currentPuzzle.moves) return;
+    
+    const moves = currentPuzzle.moves;
+    let message = 'Решение задачи:\n';
+    for (let i = 0; i < moves.length; i += 2) {
+        const moveNum = Math.floor(i / 2) + 1;
+        const playerMove = moves[i];
+        const opponentMove = moves[i + 1] || '';
+        message += `${moveNum}. ${playerMove}${opponentMove ? ' ' + opponentMove : ''}\n`;
+    }
+    alert(message);
+}
+
+function navigateHistory(direction) {
+    if (movesHistory.length === 0) return;
+    
+    currentHistoryIndex += direction;
+    currentHistoryIndex = Math.max(-1, Math.min(movesHistory.length - 1, currentHistoryIndex));
+    
+    if (currentHistoryIndex === -1) {
+        // Вернуться к начальной позиции
+        if (currentPuzzle && currentPuzzle.fen) {
+            currentFEN = currentPuzzle.fen;
+            board = parseFEN(currentFEN);
+            renderBoard();
+        }
+    } else {
+        const historyItem = movesHistory[currentHistoryIndex];
+        currentFEN = historyItem.fen;
+        board = parseFEN(currentFEN);
+        renderBoard();
+    }
+    
+    updateHistoryNavigation();
+}
+
+function updateHistoryNavigation() {
+    const prevBtn = document.getElementById('prevMoveBtn');
+    const nextBtn = document.getElementById('nextMoveBtn');
+    
+    if (prevBtn) {
+        prevBtn.disabled = currentHistoryIndex <= -1;
+    }
+    if (nextBtn) {
+        nextBtn.disabled = currentHistoryIndex >= movesHistory.length - 1;
+    }
+}
+
+// Обновление статистики
+function updateStats() {
+    const ratingValue = document.getElementById('currentRatingValue');
+    const streakValue = document.getElementById('streakValue');
+    const solvedCount = document.getElementById('solvedCount');
+    const totalCount = document.getElementById('totalCount');
+    const successPercent = document.getElementById('successPercent');
+    
+    if (ratingValue) {
+        const rating = getCurrentPuzzleRating();
+        ratingValue.textContent = rating;
+    }
+    
+    if (streakValue) {
+        streakValue.textContent = sessionStats.streak;
+    }
+    
+    if (solvedCount) {
+        solvedCount.textContent = sessionStats.solved;
+    }
+    
+    if (totalCount) {
+        totalCount.textContent = sessionStats.total;
+    }
+    
+    if (successPercent) {
+        const percent = sessionStats.total > 0 
+            ? Math.round((sessionStats.solved / sessionStats.total) * 100) 
+            : 0;
+        successPercent.textContent = `${percent}%`;
+    }
+}
+
+// Обновление времени решения
+function updateTime() {
+    const timeValue = document.getElementById('currentTimeValue');
+    if (!timeValue || !puzzleStartTime) return;
+    
+    const elapsed = Math.floor((Date.now() - puzzleStartTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    timeValue.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function startTimeTracking() {
+    puzzleStartTime = Date.now();
+    if (timeInterval) clearInterval(timeInterval);
+    timeInterval = setInterval(updateTime, 1000);
+}
+
+function stopTimeTracking() {
+    if (timeInterval) {
+        clearInterval(timeInterval);
+        timeInterval = null;
+    }
+}
+
+// Обновление прогресс-бара
+function updateProgress() {
+    const progressCard = document.getElementById('puzzleProgressCard');
+    const progressFill = document.getElementById('puzzleProgressFill');
+    const progressText = document.getElementById('puzzleProgressText');
+    
+    if (!currentPuzzle || !currentPuzzle.moves) return;
+    
+    if (progressCard) {
+        progressCard.style.display = 'block';
+    }
+    
+    const totalMoves = Math.ceil(currentPuzzle.moves.length / 2);
+    const completedMoves = currentMoveIndex;
+    const percent = totalMoves > 0 ? (completedMoves / totalMoves) * 100 : 0;
+    
+    if (progressFill) {
+        progressFill.style.width = `${percent}%`;
+    }
+    
+    if (progressText) {
+        progressText.textContent = `${completedMoves} / ${totalMoves}`;
+    }
+}
+
+// Обновление истории ходов
+function updateMovesHistory() {
+    const historyEl = document.getElementById('movesHistory');
+    const navEl = document.getElementById('movesNavigation');
+    
+    if (!historyEl) return;
+    
+    if (movesHistory.length === 0) {
+        historyEl.innerHTML = '<div class="moves-empty">Ходы появятся здесь</div>';
+        if (navEl) navEl.style.display = 'none';
+        return;
+    }
+    
+    if (navEl) navEl.style.display = 'flex';
+    
+    historyEl.innerHTML = '';
+    
+    // Отображаем сделанные ходы
+    movesHistory.forEach((item, index) => {
+        const moveEl = document.createElement('div');
+        moveEl.className = `move-item ${index === currentHistoryIndex ? 'active' : ''}`;
+        moveEl.dataset.moveNum = `${index + 1}.`;
+        moveEl.textContent = item.move;
+        moveEl.title = item.isPlayer ? 'Ваш ход' : 'Ход противника';
+        if (item.isCorrect !== undefined) {
+            if (item.isCorrect) {
+                moveEl.classList.add('move-correct');
+            } else {
+                moveEl.classList.add('move-incorrect');
+            }
+        }
+        moveEl.addEventListener('click', () => {
+            currentHistoryIndex = index;
+            currentFEN = item.fen;
+            board = parseFEN(currentFEN);
+            renderBoard();
+            updateHistoryNavigation();
+            updateMovesHistory(); // Обновляем активный элемент
+        });
+        historyEl.appendChild(moveEl);
+    });
+    
+    // Если задача решена, показываем правильные ходы
+    if (isPuzzleSolved && currentPuzzle && currentPuzzle.moves) {
+        showCorrectMovesInHistory();
+    }
+}
+
+// Показываем правильные ходы после решения задачи
+function showCorrectMovesInHistory() {
+    if (!currentPuzzle || !currentPuzzle.moves) return;
+    
+    const historyEl = document.getElementById('movesHistory');
+    if (!historyEl) return;
+    
+    const correctMoves = currentPuzzle.moves;
+    const separator = document.createElement('div');
+    separator.className = 'moves-separator';
+    separator.innerHTML = '<div class="separator-line"></div><span class="separator-text">Правильное решение</span><div class="separator-line"></div>';
+    historyEl.appendChild(separator);
+    
+    // Показываем правильные ходы парами (игрок - противник)
+    for (let i = 0; i < correctMoves.length; i += 2) {
+        const moveNum = Math.floor(i / 2) + 1;
+        const playerMove = correctMoves[i];
+        const opponentMove = correctMoves[i + 1] || '';
+        
+        const movePair = document.createElement('div');
+        movePair.className = 'move-item move-correct';
+        movePair.dataset.moveNum = `${moveNum}.`;
+        movePair.textContent = playerMove + (opponentMove ? ' ' + opponentMove : '');
+        movePair.title = 'Правильное решение';
+        movePair.style.opacity = '0.7';
+        historyEl.appendChild(movePair);
+    }
+}
+
+// Анимация перемещения фигуры
+function animatePieceMove(from, to) {
+    const grid = document.getElementById('boardGrid');
+    if (!grid) return;
+    
+    const fromSquare = grid.querySelector(`[data-square="${from}"]`);
+    const toSquare = grid.querySelector(`[data-square="${to}"]`);
+    
+    if (!fromSquare || !toSquare) return;
+    
+    const piece = fromSquare.querySelector('.piece');
+    if (!piece) return;
+    
+    // Добавляем класс для анимации
+    piece.classList.add('piece-moving');
+    
+    // Удаляем класс после анимации
+    setTimeout(() => {
+        piece.classList.remove('piece-moving');
+    }, 300);
+}
+
+// Подсветка правильного хода
+function highlightCorrectMove(uci) {
+    const grid = document.getElementById('boardGrid');
+    if (!grid) return;
+    
+    const from = uci.slice(0, 2).toLowerCase();
+    const to = uci.slice(2, 4).toLowerCase();
+    
+    const fromSquare = grid.querySelector(`[data-square="${from}"]`);
+    const toSquare = grid.querySelector(`[data-square="${to}"]`);
+    
+    if (fromSquare) {
+        fromSquare.classList.add('correct-move');
+        setTimeout(() => {
+            fromSquare.classList.remove('correct-move');
+        }, 600);
+    }
+    
+    if (toSquare) {
+        toSquare.classList.add('correct-move');
+        setTimeout(() => {
+            toSquare.classList.remove('correct-move');
+        }, 600);
+    }
+}
+
+// Анимация успешного решения
+function showSuccessAnimation() {
+    const boardContainer = document.getElementById('boardContainer');
+    if (!boardContainer) return;
+    
+    // Создаем контейнер для анимации
+    const animationContainer = document.createElement('div');
+    animationContainer.className = 'puzzle-solved-animation';
+    document.body.appendChild(animationContainer);
+    
+    // Создаем конфетти
+    for (let i = 0; i < 30; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = `${Math.random() * 100}%`;
+        confetti.style.top = `${-10 + Math.random() * 20}%`;
+        confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+        confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+        animationContainer.appendChild(confetti);
+    }
+    
+    // Создаем звезды
+    const starSymbols = ['⭐', '✨', '🌟', '💫'];
+    for (let i = 0; i < 8; i++) {
+        const star = document.createElement('div');
+        star.className = 'star-burst';
+        star.textContent = starSymbols[Math.floor(Math.random() * starSymbols.length)];
+        star.style.left = `${20 + Math.random() * 60}%`;
+        star.style.top = `${20 + Math.random() * 60}%`;
+        star.style.animationDelay = `${Math.random() * 0.3}s`;
+        animationContainer.appendChild(star);
+    }
+    
+    // Удаляем контейнер после анимации
+    setTimeout(() => {
+        if (document.body.contains(animationContainer)) {
+            document.body.removeChild(animationContainer);
+        }
+    }, 2000);
+}
+
+// Обновление подсветки последнего хода
+function updateLastMoveHighlight() {
+    const grid = document.getElementById('boardGrid');
+    if (!grid) return;
+    
+    // Убираем предыдущую подсветку
+    grid.querySelectorAll('.last-move').forEach(square => {
+        square.classList.remove('last-move');
+    });
+    
+    // Добавляем подсветку последнего хода
+    if (lastMoveSquares.length === 2) {
+        lastMoveSquares.forEach(squareName => {
+            const square = grid.querySelector(`[data-square="${squareName}"]`);
+            if (square) {
+                square.classList.add('last-move');
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    bootstrapTasksPage();
+    initBoardControls();
+    updateStats();
+});
+
+

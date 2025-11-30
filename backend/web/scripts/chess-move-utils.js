@@ -272,11 +272,173 @@
     return { moves, movesByFrom };
   }
 
-  function isMoveAllowed(fen, color, uci) {
+  function findKing(board, color) {
+    const king = color === 'white' ? 'K' : 'k';
+    for (let rank = 0; rank < 8; rank += 1) {
+      for (let file = 0; file < 8; file += 1) {
+        if (board[rank][file] === king) {
+          return { file, rank };
+        }
+      }
+    }
+    return null;
+  }
+
+  function isSquareAttacked(board, file, rank, byColor) {
+    // Проверяем атаки всех фигур противника
+    const oppositeColor = byColor === 'white' ? 'black' : 'white';
+    
+    // Проверяем атаки пешками
+    const pawnDirection = oppositeColor === 'white' ? -1 : 1;
+    for (const df of [-1, 1]) {
+      const attackFile = file + df;
+      const attackRank = rank - pawnDirection;
+      if (inBounds(attackFile, attackRank)) {
+        const piece = board[attackRank][attackFile];
+        if (piece && piece.toLowerCase() === 'p' && pieceColor(piece) === oppositeColor) {
+          return true;
+        }
+      }
+    }
+    
+    // Проверяем атаки конями
+    for (const [df, dr] of KNIGHT_DELTAS) {
+      const attackFile = file + df;
+      const attackRank = rank + dr;
+      if (inBounds(attackFile, attackRank)) {
+        const piece = board[attackRank][attackFile];
+        if (piece && piece.toLowerCase() === 'n' && pieceColor(piece) === oppositeColor) {
+          return true;
+        }
+      }
+    }
+    
+    // Проверяем атаки слоном/ферзём по диагоналям
+    for (const [df, dr] of BISHOP_DELTAS) {
+      let attackFile = file + df;
+      let attackRank = rank + dr;
+      while (inBounds(attackFile, attackRank)) {
+        const piece = board[attackRank][attackFile];
+        if (piece) {
+          const lower = piece.toLowerCase();
+          if ((lower === 'b' || lower === 'q') && pieceColor(piece) === oppositeColor) {
+            return true;
+          }
+          break;
+        }
+        attackFile += df;
+        attackRank += dr;
+      }
+    }
+    
+    // Проверяем атаки ладьёй/ферзём по прямым линиям
+    for (const [df, dr] of ROOK_DELTAS) {
+      let attackFile = file + df;
+      let attackRank = rank + dr;
+      while (inBounds(attackFile, attackRank)) {
+        const piece = board[attackRank][attackFile];
+        if (piece) {
+          const lower = piece.toLowerCase();
+          if ((lower === 'r' || lower === 'q') && pieceColor(piece) === oppositeColor) {
+            return true;
+          }
+          break;
+        }
+        attackFile += df;
+        attackRank += dr;
+      }
+    }
+    
+    // Проверяем атаки королём (на соседних клетках)
+    for (const [df, dr] of KING_DELTAS) {
+      const attackFile = file + df;
+      const attackRank = rank + dr;
+      if (inBounds(attackFile, attackRank)) {
+        const piece = board[attackRank][attackFile];
+        if (piece && piece.toLowerCase() === 'k' && pieceColor(piece) === oppositeColor) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  function isInCheck(board, color) {
+    const king = findKing(board, color);
+    if (!king) return false;
+    return isSquareAttacked(board, king.file, king.rank, color);
+  }
+
+  function applyMoveToBoard(board, uci, color) {
+    const from = uci.slice(0, 2).toLowerCase();
+    const to = uci.slice(2, 4).toLowerCase();
+    const promotion = uci.length > 4 ? uci.slice(4, 5).toLowerCase() : null;
+    
+    const fromCoords = squareToCoords(from);
+    const toCoords = squareToCoords(to);
+    if (!fromCoords || !toCoords) return null;
+    
+    // Создаём копию доски
+    const newBoard = board.map(row => [...row]);
+    
+    const piece = newBoard[fromCoords.rank][fromCoords.file];
+    if (!piece) return null;
+    
+    // Применяем ход
+    let pieceToMove = piece;
+    if (promotion && piece.toLowerCase() === 'p') {
+      pieceToMove = color === 'white' ? promotion.toUpperCase() : promotion.toLowerCase();
+    }
+    
+    newBoard[fromCoords.rank][fromCoords.file] = EMPTY;
+    newBoard[toCoords.rank][toCoords.file] = pieceToMove;
+    
+    // Обработка рокировки
+    if (piece.toLowerCase() === 'k' && Math.abs(fromCoords.file - toCoords.file) === 2) {
+      if (toCoords.file === 6) {
+        // Короткая рокировка
+        const rookFromFile = 7;
+        const rookToFile = 5;
+        const rook = newBoard[fromCoords.rank][rookFromFile];
+        newBoard[fromCoords.rank][rookFromFile] = EMPTY;
+        newBoard[fromCoords.rank][rookToFile] = rook;
+      } else if (toCoords.file === 2) {
+        // Длинная рокировка
+        const rookFromFile = 0;
+        const rookToFile = 3;
+        const rook = newBoard[fromCoords.rank][rookFromFile];
+        newBoard[fromCoords.rank][rookFromFile] = EMPTY;
+        newBoard[fromCoords.rank][rookToFile] = rook;
+      }
+    }
+    
+    // Обработка взятия на проходе
+    // (упрощённая версия, полная реализация требует больше логики)
+    
+    return newBoard;
+  }
+
+  function isMoveLegal(fen, color, uci) {
     if (!fen || !uci) return false;
     const normalized = uci.toLowerCase();
+    
+    // Сначала проверяем, что ход вообще возможен
     const { moves } = generateMoves(fen, color);
-    return moves.has(normalized);
+    if (!moves.has(normalized)) return false;
+    
+    // Применяем ход к доске и проверяем, не оставляет ли он короля под шахом
+    const { board } = parseFen(fen);
+    const newBoard = applyMoveToBoard(board, normalized, color);
+    if (!newBoard) return false;
+    
+    // Проверяем, не находится ли король под шахом после хода
+    return !isInCheck(newBoard, color);
+  }
+
+  function isMoveAllowed(fen, color, uci) {
+    // Используем isMoveLegal для проверки, что ход не оставляет короля под шахом
+    return isMoveLegal(fen, color, uci);
   }
 
   function getMovesForSquare(fen, color, square) {

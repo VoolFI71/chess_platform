@@ -36,9 +36,9 @@
         <priority>0.8</priority>
     </url>
     
-    <!-- Задачи (Spaced Repetition) -->
+    <!-- Задачи -->
     <url>
-        <loc>https://powerchess.org/spaced-repetition</loc>
+        <loc>https://powerchess.org/tasks</loc>
         <lastmod>2025-01-23</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>

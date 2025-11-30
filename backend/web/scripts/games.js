@@ -8,7 +8,6 @@
     selectedGame: null,
     moves: [],
     ws: null,
-    wsStatusEl: null,
     lastStateTimestamp: null,
     clockTimer: null,
     currentUser: null,
@@ -17,34 +16,22 @@
   };
   const playerUsernames = new Map();
   const pendingUsernameRequests = new Map();
-  let isDarkTheme = false;
-
-  // --- Base URL helper: force :8080 for local host like other pages ------
-  const API_BASE = (() => {
-    const { protocol, hostname } = window.location;
-    const isLocalHost = hostname === '127.0.0.1' || hostname === 'localhost';
-    if (isLocalHost) {
-      // Явно используем порт 8080 для всех запросов в dev
-      return `${protocol}//${hostname}:8080`;
-    }
-    // В проде используем текущий origin (относительные пути)
-    return '';
-  })();
-
-  const buildUrl = (path) => {
-    if (!path) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    return API_BASE + path;
-  };
 
   // -------------------- Auth helpers --------------------
+  // Используем функции из auth.js через window, если доступны
+  // Сохраняем оригинальную функцию из auth.js перед переопределением
+  const originalGetAccessToken = window.getAccessToken;
   const getAccessToken = () => {
+    if (originalGetAccessToken && typeof originalGetAccessToken === 'function') {
+      return originalGetAccessToken();
+    }
     try {
       return localStorage.getItem('access_token') || '';
     } catch {
       return '';
     }
   };
+  
   const getRefreshToken = () => {
     try {
       return localStorage.getItem('refresh_token') || '';
@@ -52,13 +39,27 @@
       return '';
     }
   };
+  
+  // Сохраняем оригинальные функции из auth.js перед переопределением
+  const originalSetTokens = window.setTokens;
+  const originalClearTokens = window.clearTokens;
+  
   const setTokens = (access, refresh) => {
+    if (originalSetTokens && typeof originalSetTokens === 'function') {
+      originalSetTokens(access, refresh);
+      return;
+    }
     try {
       if (access) localStorage.setItem('access_token', access);
       if (refresh) localStorage.setItem('refresh_token', refresh);
     } catch {}
   };
+  
   const clearTokens = () => {
+    if (originalClearTokens && typeof originalClearTokens === 'function') {
+      originalClearTokens();
+      return;
+    }
     try {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
@@ -83,6 +84,19 @@
       return false;
     }
     return true;
+  };
+  
+  // Build URL helper - используем относительные пути для продакшена
+  const buildUrl = (path) => {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    // Для localhost используем порт 8080, для продакшена - относительные пути
+    const { protocol, hostname } = window.location;
+    const isLocalHost = hostname === '127.0.0.1' || hostname === 'localhost';
+    if (isLocalHost && !path.startsWith('/')) {
+      return `${protocol}//${hostname}:8080${path.startsWith('/') ? '' : '/'}${path}`;
+    }
+    return path;
   };
 
   // Unified function to create a game
@@ -155,6 +169,12 @@
   };
 
   async function authedFetch(path, options = {}) {
+    // Используем window.apiFetch из auth.js, если доступен
+    if (window.apiFetch && typeof window.apiFetch === 'function') {
+      return window.apiFetch(buildUrl(path), options);
+    }
+    
+    // Fallback реализация
     const headers = new Headers(options.headers || {});
     const token = getAccessToken();
     if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -224,19 +244,30 @@
     FINISHED: 'status-finished',
   }[status] || '');
 
+  // Используем функции из player-names модуля, если доступны
   const normalizeUserId = (value) => {
+    if (window.MatchUtils && window.MatchUtils.normalizeUserId) {
+      return window.MatchUtils.normalizeUserId(value);
+    }
     if (value === null || value === undefined) return null;
     const numeric = Number(value);
     return Number.isNaN(numeric) ? value : numeric;
   };
 
   const usernameFromCache = (id) => {
+    if (window.MatchPlayerNamesUtils && window.MatchPlayerNamesUtils.usernameFromCache) {
+      return window.MatchPlayerNamesUtils.usernameFromCache(id);
+    }
     const key = normalizeUserId(id);
     if (key === null) return null;
     return playerUsernames.has(key) ? playerUsernames.get(key) : null;
   };
 
   const storeUsername = (id, username) => {
+    if (window.MatchPlayerNamesUtils && window.MatchPlayerNamesUtils.storeUsername) {
+      window.MatchPlayerNamesUtils.storeUsername(id, username);
+      return;
+    }
     const key = normalizeUserId(id);
     if (key === null) return;
     if (typeof username === 'string') {
@@ -248,6 +279,10 @@
   };
 
   async function fetchUsername(id) {
+    if (window.MatchPlayerNamesUtils && window.MatchPlayerNamesUtils.fetchUsername) {
+      return window.MatchPlayerNamesUtils.fetchUsername(id);
+    }
+    
     const key = normalizeUserId(id);
     if (key === null) return null;
     if (playerUsernames.has(key)) return playerUsernames.get(key);
@@ -801,64 +836,11 @@
     navigator.clipboard.writeText(url).then(() => showToast('Ссылка скопирована')).catch(() => showToast('Не удалось скопировать ссылку', 'error'));
   }
 
-  async function handleMoveSubmit(event) {
-    event.preventDefault();
-    if (!state.selectedGame || !state.ws || state.ws.readyState !== WebSocket.OPEN) {
-      showToast('Вебсокет не подключен', 'error');
-      return;
-    }
-    const role = getCurrentUserRole();
-    if (!role) {
-      showToast('Ходы могут делать только участники партии', 'error');
-      return;
-    }
-    if (state.selectedGame.status !== 'ACTIVE') {
-      showToast('Партия неактивна', 'error');
-      return;
-    }
-    const uci = (document.getElementById('uciInput').value || '').trim();
-    const promotion = (document.getElementById('promotionInput').value || '').trim();
-    if (uci.length < 4) {
-      showToast('Введите ход в формате UCI', 'error');
-      return;
-    }
-    // Вычисляем текущее время на клиенте (время тикает на клиенте)
-    // Отправляем время для обоих игроков:
-    // - Для игрока, который делает ход: время после вычитания прошедшего времени
-    // - Для противника: время из БД (оно не тикало, так как не его ход)
-    const clocks = getDisplayedClocks(true);
-    if (!clocks) {
-      showToast('Не удалось вычислить время', 'error');
-      return;
-    }
-    // Время противника берем из БД (оно не тикало, так как не его ход)
-    const opponentClocks = getDisplayedClocks(false);
-    if (!opponentClocks) {
-      showToast('Не удалось вычислить время', 'error');
-      return;
-    }
-    const payload = {
-      type: 'make_move',
-      uci,
-      promotion: promotion || null,
-      // Отправляем время для обоих игроков
-      // Для игрока, который делает ход: время после вычитания прошедшего времени
-      // Для противника: время из БД (оно не тикало)
-      white_clock_ms: state.selectedGame.next_turn === 'w' ? clocks.white : opponentClocks.white,
-      black_clock_ms: state.selectedGame.next_turn === 'b' ? clocks.black : opponentClocks.black,
-      client_move_id: `web-${Date.now()}`,
-    };
-    state.ws.send(JSON.stringify(payload));
-    document.getElementById('uciInput').value = '';
-    document.getElementById('promotionInput').value = '';
-  }
 
   async function handleCreateGame(event) {
     event.preventDefault();
-    if (!state.currentUser) {
-      showToast('Войдите, чтобы создавать партии', 'error');
-      return;
-    }
+    if (!requireAuth()) return;
+    
     const variant = document.getElementById('variant').value;
     const fen = variant === 'custom' ? document.getElementById('customFen').value.trim() : null;
     const minutes = Number(document.getElementById('initialMinutes').value || 5);
@@ -867,40 +849,36 @@
     const colorInput = document.querySelector('input[name="creatorColor"]:checked');
     const creatorColor = colorInput ? colorInput.value : 'white';
 
-    const payload = {
-      initial_fen: fen || null,
-      creator_color: creatorColor,
-      time_control: {
-        initial_ms: Math.max(1, minutes) * 60000,
-        increment_ms: Math.max(0, increment) * 1000,
-        type: variant === 'custom' ? 'CUSTOM' : 'STANDARD',
-      },
-      metadata: {
-        variant,
-        rated,
-      },
-    };
+    const submitBtn = document.getElementById('createGameBtn');
+    if (submitBtn) submitBtn.disabled = true;
 
     try {
-      document.getElementById('createGameBtn').disabled = true;
-      const res = await authedFetch('/api/games/', {
-        method: 'POST',
-        body: JSON.stringify(payload),
+      const game = await createGame({
+        minutes,
+        increment,
+        isRated: rated,
+        creatorColor,
+        initialFen: fen || 'startpos',
+        onSuccess: (game) => {
+          if (game && game.id) {
+            window.location.href = `/match/${game.id}`;
+          } else {
+            showToast('Партия создана');
+            loadGames(false);
+            document.getElementById('createGameForm')?.reset();
+          }
+        },
+        onError: (err, message) => {
+          showToast(message, 'error');
+        }
       });
-      if (!res.ok) throw new Error(await res.text());
-      const game = await res.json();
-      if (game && game.id) {
-        window.location.href = `/match/${game.id}`;
-        return;
+      
+      if (!game && submitBtn) {
+        submitBtn.disabled = false;
       }
-      showToast('Партия создана');
-      await loadGames(false);
-      document.getElementById('createGameForm').reset();
     } catch (err) {
       console.error(err);
-      showToast('Не удалось создать партию: ' + (err.message || ''), 'error');
-    } finally {
-      document.getElementById('createGameBtn').disabled = false;
+      if (submitBtn) submitBtn.disabled = false;
     }
   }
 
@@ -1035,7 +1013,6 @@
   // -------------------- Event wiring ------------------
   function bindEvents() {
     document.getElementById('createGameForm')?.addEventListener('submit', handleCreateGame);
-    document.getElementById('moveForm')?.addEventListener('submit', handleMoveSubmit);
     document.getElementById('copyGameIdBtn')?.addEventListener('click', copyShareLink);
     document.getElementById('refreshWaitingBtn')?.addEventListener('click', () => loadGames(true));
     document.getElementById('refreshLiveBtn')?.addEventListener('click', () => loadGames(true));
@@ -1054,12 +1031,9 @@
       themeToggle.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        // Directly call window.toggleTheme from auth.js if available
+        // Используем window.toggleTheme из auth.js
         if (window.toggleTheme && typeof window.toggleTheme === 'function') {
           window.toggleTheme();
-        } else {
-          // Fallback to local implementation
-          toggleThemeLocal();
         }
       });
     }
@@ -1075,26 +1049,27 @@
   }
 
   function loadTheme() {
-    // Всегда используем единый ключ 'theme' для загрузки
+    // Используем window.loadTheme из auth.js, если доступен
+    if (window.loadTheme && typeof window.loadTheme === 'function') {
+      window.loadTheme();
+      return;
+    }
+    // Fallback
     const saved = localStorage.getItem('theme');
-    isDarkTheme = saved === 'dark';
-    document.body.classList.toggle('dark', isDarkTheme);
-    document.documentElement.classList.toggle('dark', isDarkTheme);
+    const isDark = saved === 'dark';
+    document.body.classList.toggle('dark', isDark);
+    document.documentElement.classList.toggle('dark', isDark);
     const icon = document.getElementById('themeIcon');
-    if (icon) icon.className = isDarkTheme ? 'fas fa-moon' : 'fas fa-sun';
-  }
-
-  function toggleThemeLocal() {
-    // Локальная реализация для случаев, когда auth.js не загружен
-    isDarkTheme = !isDarkTheme;
-    document.body.classList.toggle('dark', isDarkTheme);
-    document.documentElement.classList.toggle('dark', isDarkTheme);
-    const icon = document.getElementById('themeIcon');
-    if (icon) icon.className = isDarkTheme ? 'fas fa-moon' : 'fas fa-sun';
-    localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
+    if (icon) icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
   }
 
   function toggleMobileMenu() {
+    // Используем window.toggleMobileMenu из auth.js, если доступен
+    if (window.toggleMobileMenu && typeof window.toggleMobileMenu === 'function') {
+      window.toggleMobileMenu();
+      return;
+    }
+    // Fallback
     const menu = document.getElementById('mobileMenu');
     const icon = document.getElementById('menuIcon');
     if (!menu || !icon) return;
@@ -1110,17 +1085,13 @@
     icon.className = 'fas fa-bars';
   }
 
-  function handleHeaderScroll() {
-    const header = document.getElementById('header');
-    if (!header) return;
-    if (window.scrollY > 50) header.classList.add('scrolled');
-    else header.classList.remove('scrolled');
+  // Экспортируем функции для мобильного меню только если они не определены в auth.js
+  if (!window.toggleMobileMenu) {
+    window.toggleMobileMenu = toggleMobileMenu;
   }
-
-  // Экспортируем функции для мобильного меню
-  // НЕ перезаписываем window.toggleTheme, чтобы не конфликтовать с auth.js
-  window.toggleMobileMenu = toggleMobileMenu;
-  window.closeMobileMenu = closeMobileMenu;
+  if (!window.closeMobileMenu) {
+    window.closeMobileMenu = closeMobileMenu;
+  }
 
   // Load waiting room games
   async function loadWaitingRoomGames() {
@@ -1303,12 +1274,9 @@
 
   // -------------------- Init --------------------------
   document.addEventListener('DOMContentLoaded', async () => {
-    state.wsStatusEl = document.getElementById('wsStatus');
     bindEvents();
     setActiveTab('quick');
     loadTheme();
-    handleHeaderScroll();
-    window.addEventListener('scroll', handleHeaderScroll, { passive: true });
     window.addEventListener('resize', () => {
       if (window.innerWidth >= 1024) closeMobileMenu();
     });

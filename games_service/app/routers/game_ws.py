@@ -28,6 +28,8 @@ from ..services import (
 	extract_move_data,
 )
 
+LOGGER = logging.getLogger(__name__)
+
 router = APIRouter()
 
 RECENT_MOVES_LIMIT = 60
@@ -148,6 +150,19 @@ async def game_socket(
 					cached_moves = cached_moves[-RECENT_MOVES_LIMIT:]
 				# Используем кэшированные ходы
 				game_detail = build_game_detail(game, moves=cached_moves)
+
+				# Логируем что отправляется через WebSocket
+				# move_data - это MoveOut объект (Pydantic модель), обращаемся к атрибутам напрямую
+				LOGGER.info(
+					"[WS BROADCAST move_made] game_id=%s client_move_id=%s "
+					"move_id=%s move_created_at=%s move_index=%d "
+					"game_white_clock=%dms game_black_clock=%dms game_next_turn=%s",
+					game_id, payload.client_move_id,
+					move_data.id, move_data.created_at.isoformat() if move_data.created_at else None,
+					move_data.move_index,
+					game_detail.white_clock_ms, game_detail.black_clock_ms,
+					game_detail.next_turn,
+				)
 
 				await game_ws_manager.broadcast(
 					game_id,

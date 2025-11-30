@@ -17,5 +17,10 @@
 **/dist
 **/build
 **/.DS_Store
-
+# Исключаем все CSV файлы из Docker build context
+*.csv
+**/*.csv
+# Исключаем директорию data/ из build context
+data/
+**/data/
 

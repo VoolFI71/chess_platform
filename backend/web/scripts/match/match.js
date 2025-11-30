@@ -1,16 +1,65 @@
 (() => {
-  const DEFAULT_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-  const PIECES = {
-    K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
-    k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
-  };
-  const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-  const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
-  const TERMINATION_REASON_LABELS = {
-    CHECKMATE: 'мат',
-    RESIGNATION: 'сдача',
-    TIMEOUT: 'по времени',
-  };
+  // Используем константы из MatchConstants
+  const MatchConstants = window.MatchConstants;
+  if (!MatchConstants) {
+    throw new Error('MatchConstants module is not loaded. Ensure match.constants.js is included before match.js');
+  }
+  const {
+    DEFAULT_FEN,
+    PIECES,
+    FILES,
+    RANKS,
+    TERMINATION_REASON_LABELS,
+    AUTO_CANCEL_TIMEOUT_MS,
+    WS_BASE_DELAY_MS,
+    WS_MAX_DELAY_MS,
+    WS_MAX_RETRY_ATTEMPTS,
+    AUTH_CLOSE_CODES,
+  } = MatchConstants;
+
+  // Используем утилиты из MatchUtils
+  const MatchUtils = window.MatchUtils;
+  if (!MatchUtils) {
+    throw new Error('MatchUtils module is not loaded. Ensure match.utils.js is included before match.js');
+  }
+  const {
+    translateStatus,
+    statusClass,
+    describeTimeControl,
+    formatClock,
+    normalizeUserId,
+    formatCountdown,
+    getRoleLabel: utilsGetRoleLabel,
+    titleName: utilsTitleName,
+    describeWinner: utilsDescribeWinner,
+  } = MatchUtils;
+
+  // Используем функции таймеров из MatchTimers
+  const MatchTimers = window.MatchTimers;
+  if (!MatchTimers) {
+    throw new Error('MatchTimers module is not loaded. Ensure match.timers.js is included before match.js');
+  }
+  const {
+    clearAutoCancelTimer: timersClearAutoCancelTimer,
+    updateAutoCancelTimerDisplay: timersUpdateAutoCancelTimerDisplay,
+    setAutoCancelDeadline: timersSetAutoCancelDeadline,
+    syncAutoCancelDeadline: timersSyncAutoCancelDeadline,
+    clearWsReconnectTimer: timersClearWsReconnectTimer,
+    resetWsRetryState: timersResetWsRetryState,
+    scheduleWsReconnect: timersScheduleWsReconnect,
+  } = MatchTimers;
+
+  // Используем функции работы с именами из MatchPlayerNamesUtils
+  const MatchPlayerNamesUtils = window.MatchPlayerNamesUtils;
+  if (!MatchPlayerNamesUtils) {
+    throw new Error('MatchPlayerNamesUtils module is not loaded. Ensure match.player-names.js is included before match.js');
+  }
+  const {
+    usernameFromCache,
+    storeUsername,
+    fetchUsername: playerNamesFetchUsername,
+    ensurePlayerUsernames: playerNamesEnsurePlayerUsernames,
+  } = MatchPlayerNamesUtils;
 
   const matchStateModule = window.MatchState;
   if (!matchStateModule) {
@@ -45,17 +94,7 @@
     return role === 'white' ? state.game.white_id : state.game.black_id;
   };
 
-  const getRoleLabel = (role) => {
-    if (!role) return '—';
-    return role === 'white' ? 'Белые' : 'Чёрные';
-  };
-
-  const playerUsernames = new Map();
-  const AUTO_CANCEL_TIMEOUT_MS = 30_000;
-  const WS_BASE_DELAY_MS = 1_000;
-  const WS_MAX_DELAY_MS = 30_000;
-  const WS_MAX_RETRY_ATTEMPTS = 6;
-  const AUTH_CLOSE_CODES = new Set([4401, 4403, 4402]);
+  const getRoleLabel = utilsGetRoleLabel;
 
 
   function showToast(message, type = 'info') {
@@ -68,169 +107,29 @@
     }, 4000);
   }
 
-  const translateStatus = (status, nextTurn) => {
-    if (status === 'CREATED' || status === 'ACTIVE') {
-      if (nextTurn === 'w') return 'Ход белых';
-      if (nextTurn === 'b') return 'Ход чёрных';
-    }
-    return (
-      {
-        PAUSED: 'Пауза',
-        FINISHED: 'Завершена',
-      }[status] || status || '—'
-    );
-  };
-
-  const statusClass = (status) => ({
-    CREATED: 'status-created',
-    ACTIVE: 'status-active',
-    PAUSED: 'status-paused',
-    FINISHED: 'status-finished',
-  }[status] || '');
-
-  const describeTimeControl = (tc) => {
-    if (!tc) return 'Без контроля';
-    const minutes = Math.round((tc.initial_ms || 0) / 60000);
-    const inc = Math.round((tc.increment_ms || 0) / 1000);
-    return `${minutes} мин + ${inc} сек`;
-  };
-
-  const formatClock = (ms) => {
-    if (ms === null || ms === undefined) return '—';
-    const clamped = Math.max(0, Math.floor(ms / 1000));
-    const minutes = Math.floor(clamped / 60).toString().padStart(2, '0');
-    const seconds = (clamped % 60).toString().padStart(2, '0');
-    return `${minutes}:${seconds}`;
-  };
-
-  const normalizeUserId = (value) => {
-    if (value === null || value === undefined) return null;
-    const numeric = Number(value);
-    return Number.isNaN(numeric) ? value : numeric;
-  };
-
-  const usernameFromCache = (id) => {
-    const key = normalizeUserId(id);
-    if (key === null) return null;
-    return playerUsernames.has(key) ? playerUsernames.get(key) : null;
-  };
-
-  const storeUsername = (id, username) => {
-    const key = normalizeUserId(id);
-    if (key === null) return;
-    if (typeof username === 'string') {
-      const trimmed = username.trim();
-      playerUsernames.set(key, trimmed.length ? trimmed : null);
-      return;
-    }
-    playerUsernames.set(key, null);
-  };
-
-  const formatCountdown = (totalSeconds) => {
-    const seconds = Math.max(0, totalSeconds);
-    const minutes = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, '0');
-    const secs = (seconds % 60).toString().padStart(2, '0');
-    return `${minutes}:${secs}`;
-  };
-
+  // Обёртки для функций таймеров с вызовом updateClockDisplays
   function clearAutoCancelTimer() {
-    if (state.autoCancelTimerId) {
-      clearInterval(state.autoCancelTimerId);
-    }
-    setState({ autoCancelTimerId: null, autoCancelDeadline: null }, 'clearAutoCancelTimer');
-    updateClockDisplays(false);
+    timersClearAutoCancelTimer(updateClockDisplays);
   }
 
   function updateAutoCancelTimerDisplay() {
-    if (!state.autoCancelDeadline) {
-      updateClockDisplays(false);
-      return;
-    }
-    const remainingMs = state.autoCancelDeadline - Date.now();
-    if (remainingMs <= 0) {
-      clearAutoCancelTimer();
-      return;
-    }
-    updateClockDisplays(false);
+    timersUpdateAutoCancelTimerDisplay(updateClockDisplays);
   }
 
   function setAutoCancelDeadline(deadlineMs) {
-    if (deadlineMs === null || deadlineMs === undefined || Number.isNaN(deadlineMs)) {
-      clearAutoCancelTimer();
-      return;
-    }
-    if (deadlineMs <= Date.now()) {
-      clearAutoCancelTimer();
-      return;
-    }
-    const prev = state.autoCancelDeadline;
-    setState({ autoCancelDeadline: deadlineMs }, 'setAutoCancelDeadline:deadline');
-    if (prev && Math.abs(prev - deadlineMs) < 500) {
-      updateAutoCancelTimerDisplay();
-      return;
-    }
-    if (state.autoCancelTimerId) {
-      clearInterval(state.autoCancelTimerId);
-      setState({ autoCancelTimerId: null }, 'setAutoCancelDeadline:clearTimer');
-    }
-    updateAutoCancelTimerDisplay();
-    const timerId = setInterval(() => {
-      if (!state.autoCancelDeadline) {
-        clearAutoCancelTimer();
-        return;
-      }
-      updateAutoCancelTimerDisplay();
-    }, 1000);
-    setState({ autoCancelTimerId: timerId }, 'setAutoCancelDeadline:setTimer');
+    timersSetAutoCancelDeadline(deadlineMs, updateClockDisplays);
   }
 
-  const getAutoCancelCountdownSeconds = () => {
-    if (!state.autoCancelDeadline || !state.game) return null;
-    const waitingForFirstMove =
-      state.game.status === 'CREATED' && state.game.move_count === 0 && haveBothPlayersJoined();
-    if (!waitingForFirstMove) return null;
-    const remainingMs = state.autoCancelDeadline - Date.now();
-    if (remainingMs <= 0) return 0;
-    return Math.max(0, Math.ceil(remainingMs / 1000));
-  };
-
   function clearWsReconnectTimer() {
-    if (state.wsReconnectTimerId) {
-      clearTimeout(state.wsReconnectTimerId);
-      setState({ wsReconnectTimerId: null }, 'clearWsReconnectTimer');
-    }
+    timersClearWsReconnectTimer();
   }
 
   function resetWsRetryState() {
-    clearWsReconnectTimer();
-    setState({ wsRetryCount: 0 }, 'resetWsRetryState');
+    timersResetWsRetryState();
   }
 
   function scheduleWsReconnect() {
-    if (!state.matchId) return;
-    const attempt = state.wsRetryCount || 0;
-    if (attempt >= WS_MAX_RETRY_ATTEMPTS) {
-      showToast('Не удалось восстановить соединение с сервером', 'error');
-      return;
-    }
-    const delay = Math.min(WS_MAX_DELAY_MS, WS_BASE_DELAY_MS * 2 ** attempt);
-    clearWsReconnectTimer();
-    const timerId = setTimeout(() => {
-      setState({ wsReconnectTimerId: null }, 'wsReconnect:timerFired');
-      connectWebSocket(state.matchId, { isReconnect: true });
-    }, delay);
-    setState(
-      {
-        wsRetryCount: attempt + 1,
-        wsReconnectTimerId: timerId,
-      },
-      'scheduleWsReconnect'
-    );
-    if (attempt === 0) {
-      showToast('Соединение потеряно, пытаемся переподключиться…', 'error');
-    }
+    timersScheduleWsReconnect(connectWebSocket, showToast);
   }
 
   function shouldAttemptWsReconnect(event) {
@@ -269,101 +168,53 @@
     scheduleWsReconnect();
   }
 
+  // Используем syncAutoCancelDeadline из MatchTimers
+  // Но сначала конвертируем auto_cancel_at (ISO строка) в auto_cancel_deadline_ms (число)
   function syncAutoCancelDeadline(detail) {
     if (!detail) {
-      clearAutoCancelTimer();
+      timersSyncAutoCancelDeadline(detail, updateClockDisplays);
       return;
     }
-    if (detail.status !== 'CREATED' || detail.move_count > 0) {
-      clearAutoCancelTimer();
-      return;
-    }
-    const whiteReady = detail.white_id !== null && detail.white_id !== undefined;
-    const blackReady = detail.black_id !== null && detail.black_id !== undefined;
-    if (!whiteReady || !blackReady) {
-      clearAutoCancelTimer();
-      return;
-    }
+    // Backend отправляет auto_cancel_at как ISO строку, нужно конвертировать в миллисекунды
     let deadlineMs = null;
     if (detail.auto_cancel_at) {
       const parsed = Date.parse(detail.auto_cancel_at);
-      if (!Number.isNaN(parsed)) {
+      if (!isNaN(parsed)) {
         deadlineMs = parsed;
       }
     }
-    if (!deadlineMs) {
-      if (state.autoCancelDeadline) {
-        updateAutoCancelTimerDisplay();
-        return;
-      }
-      deadlineMs = Date.now() + AUTO_CANCEL_TIMEOUT_MS;
-    }
-    setAutoCancelDeadline(deadlineMs);
+    // Создаем объект с auto_cancel_deadline_ms для MatchTimers
+    const detailWithMs = deadlineMs !== null ? { ...detail, auto_cancel_deadline_ms: deadlineMs } : detail;
+    timersSyncAutoCancelDeadline(detailWithMs, updateClockDisplays);
   }
 
-  const titleName = (id) => {
-    if (id === null || id === undefined) return '—';
-    const username = usernameFromCache(id);
-    if (username) return username;
-    return `ID ${id}`;
-  };
+  // Используем функции из модулей
+  const titleName = utilsTitleName;
 
+  // Обёртка для fetchUsername с обновлением UI
   async function fetchUsername(userId) {
-    const key = normalizeUserId(userId);
-    if (key === null) return null;
-    if (playerUsernames.has(key)) return playerUsernames.get(key);
-    try {
-      const res = await authedFetch(`/api/users/${encodeURIComponent(key)}`);
-      if (!res.ok) {
-        storeUsername(key, null);
-        return null;
-      }
-      const data = await res.json();
-      const username =
-        (data && (data.username || data.display_name || data.name || data.handle || data.login)) || null;
-      storeUsername(key, username);
-      updatePlayerLabelsAndTitle();
-      updateWinnerDisplay();
-      return usernameFromCache(key);
-    } catch {
-      storeUsername(key, null);
-      updatePlayerLabelsAndTitle();
-      updateWinnerDisplay();
-      return null;
-    }
+    const result = await playerNamesFetchUsername(userId);
+    // Обновляем UI после получения имени
+    updatePlayerLabelsAndTitle();
+    updateWinnerDisplay();
+    return result;
   }
 
+  // Обёртка для ensurePlayerUsernames с обновлением UI
   async function ensurePlayerUsernames(game) {
-    if (!game) return;
-    const ids = [normalizeUserId(game.white_id), normalizeUserId(game.black_id)]
-      .filter((id) => id !== null && !playerUsernames.has(id));
-    if (!ids.length) return;
-    await Promise.all(ids.map((id) => fetchUsername(id)));
+    await playerNamesEnsurePlayerUsernames(game);
     updatePlayerLabelsAndTitle();
   }
 
-  const describeWinner = (game) => {
-    if (!game || game.status !== 'FINISHED') return '—';
-    const reasonLabel = game.termination_reason
-      ? TERMINATION_REASON_LABELS[game.termination_reason] || game.termination_reason.toLowerCase()
-      : null;
-    if (game.result === '1/2-1/2') {
-      return reasonLabel ? `Ничья (${reasonLabel})` : 'Ничья';
-    }
-    const winnerIsWhite = game.result === '1-0';
-    const colorLabel = winnerIsWhite ? 'Белые' : 'Чёрные';
-    const winnerName = titleName(winnerIsWhite ? game.white_id : game.black_id);
-    const suffix = reasonLabel ? ` (${reasonLabel})` : '';
-    return `${colorLabel}: ${winnerName} победили${suffix}`;
-  };
+  // Используем describeWinner из MatchUtils
+  const describeWinner = utilsDescribeWinner;
   const labelPlayer = (id) => {
     if (id === null || id === undefined) return '—';
     if (state.currentUser && state.currentUser.id === id) {
       return state.currentUser.username ? `Вы (${state.currentUser.username})` : 'Вы';
     }
-    const username = usernameFromCache(id);
-    if (username) return username;
-    return `ID ${id}`;
+    // Используем titleName из MatchUtils
+    return titleName(id);
   };
 
   function updateWinnerDisplay() {
@@ -682,82 +533,36 @@
     }
   }
 
+  // Используем функции из MatchClocks
+  const MatchClocksModule = window.MatchClocks;
+  if (!MatchClocksModule) {
+    throw new Error('MatchClocks module is not loaded. Ensure match.clocks.js is included before match.js');
+  }
+  const {
+    getDisplayedClocks: clocksGetDisplayedClocks,
+    getAutoCancelCountdownSeconds: clocksGetAutoCancelCountdownSeconds,
+    updateClockDisplays: clocksUpdateClockDisplays,
+  } = MatchClocksModule;
+
+  // Обёртки для использования функций из MatchClocks
   function getDisplayedClocks(applyRunning = true) {
-    if (!state.game) return null;
-    let { white_clock_ms: white, black_clock_ms: black, status, next_turn, move_count } = state.game;
-    if (!applyRunning) return { white, black };
-    if (status === 'ACTIVE' && move_count > 0 && typeof state.lastStateTimestamp === 'number') {
-      const elapsed = Date.now() - state.lastStateTimestamp;
-      if (next_turn === 'w') white = Math.max(0, white - elapsed);
-      else if (next_turn === 'b') black = Math.max(0, black - elapsed);
-    }
-    return { white, black };
+    return clocksGetDisplayedClocks(applyRunning);
+  }
+
+  function getAutoCancelCountdownSeconds() {
+    return clocksGetAutoCancelCountdownSeconds();
   }
 
   function updateClockDisplays(resetTimer = false) {
-    const clocks = getDisplayedClocks(true);
-    if (!clocks) return;
-    const autoCountdownSeconds = getAutoCancelCountdownSeconds();
-    const countdownTargetRole =
-      autoCountdownSeconds !== null && state.game ? (state.game.next_turn === 'w' ? 'white' : 'black') : null;
-    const formatWithCountdown = (role, baseMs) => {
-      if (countdownTargetRole && countdownTargetRole === role && autoCountdownSeconds !== null) {
-        return formatClock(autoCountdownSeconds * 1000);
-      }
-      return formatClock(baseMs);
+    // Используем MatchClocks.updateClockDisplays с нужными параметрами
+    // Передаём дополнительный колбэк для вызова renderActions после каждого обновления
+    const maybeRenderActions = (clocks) => {
+      renderActions();
     };
-
-    const whiteEl = document.getElementById('whiteClock');
-    const blackEl = document.getElementById('blackClock');
-    if (whiteEl) whiteEl.textContent = formatWithCountdown('white', clocks.white);
-    if (blackEl) blackEl.textContent = formatWithCountdown('black', clocks.black);
-    const topClockEl = document.getElementById('topClock');
-    const bottomClockEl = document.getElementById('bottomClock');
-    if (topClockEl || bottomClockEl) {
-      const { topRole, bottomRole } = getPanelRoles();
-      if (topClockEl) {
-        const topValue = topRole === 'white' ? clocks.white : clocks.black;
-        topClockEl.textContent = formatWithCountdown(topRole, topValue);
-      }
-      if (bottomClockEl) {
-        const bottomValue = bottomRole === 'white' ? clocks.white : clocks.black;
-        bottomClockEl.textContent = formatWithCountdown(bottomRole, bottomValue);
-      }
-    }
-    maybeAutoDeclareTimeout(clocks);
-
-    if (resetTimer) {
-      if (state.clockTimer) clearInterval(state.clockTimer);
-      const timerId = setInterval(() => {
-        const tick = getDisplayedClocks(true);
-        if (!tick) return;
-        const tickCountdownSeconds = getAutoCancelCountdownSeconds();
-        const tickCountdownTarget =
-          tickCountdownSeconds !== null && state.game ? (state.game.next_turn === 'w' ? 'white' : 'black') : null;
-        const formatTick = (role, baseMs) => {
-          if (tickCountdownTarget && tickCountdownTarget === role && tickCountdownSeconds !== null) {
-            return formatClock(tickCountdownSeconds * 1000);
-          }
-          return formatClock(baseMs);
-        };
-        if (whiteEl) whiteEl.textContent = formatTick('white', tick.white);
-        if (blackEl) blackEl.textContent = formatTick('black', tick.black);
-        if (topClockEl || bottomClockEl) {
-          const { topRole, bottomRole } = getPanelRoles();
-          if (topClockEl) {
-            const topValue = topRole === 'white' ? tick.white : tick.black;
-            topClockEl.textContent = formatTick(topRole, topValue);
-          }
-          if (bottomClockEl) {
-            const bottomValue = bottomRole === 'white' ? tick.white : tick.black;
-            bottomClockEl.textContent = formatTick(bottomRole, bottomValue);
-          }
-        }
-        renderActions();
-        maybeAutoDeclareTimeout(tick);
-      }, 1000);
-      setState({ clockTimer: timerId }, 'updateClockDisplays:setInterval');
-    }
+    clocksUpdateClockDisplays(resetTimer, getPanelRoles, (clocks) => {
+      maybeAutoDeclareTimeout(clocks);
+      maybeRenderActions(clocks);
+    });
   }
 
   function maybeAutoDeclareTimeout(clocks) {
@@ -1149,9 +954,34 @@
     indicator.className = `ws-indicator ${status === 'online' ? 'ws-online' : 'ws-offline'}`;
   }
 
-  function applyGameDetail(detail, { isRealtimeMove = false } = {}) {
+  function applyGameDetail(detail, { isRealtimeMove = false, moveTimestamp = null } = {}) {
     const previousGame = state.game;
     const previousRole = getCurrentUserRole();
+    
+    // Проверяем, изменилась ли игра (для предотвращения лишних обновлений clockAnchorTime)
+    const gameChanged = !previousGame || 
+      previousGame.status !== detail?.status ||
+      previousGame.move_count !== detail?.move_count ||
+      previousGame.next_turn !== detail?.next_turn ||
+      previousGame.white_clock_ms !== detail?.white_clock_ms ||
+      previousGame.black_clock_ms !== detail?.black_clock_ms;
+    
+    // Логируем состояние ДО обновления
+    if (window.__DEBUG_CLOCKS__) {
+      console.log('[clock] applyGameDetail: BEFORE', {
+        previous_status: previousGame?.status,
+        previous_move_count: previousGame?.move_count,
+        previous_next_turn: previousGame?.next_turn,
+        detail_status: detail?.status,
+        detail_move_count: detail?.move_count,
+        detail_moves_length: detail?.moves?.length || 0,
+        detail_next_turn: detail?.next_turn,
+        isRealtimeMove,
+        gameChanged,
+        current_clockAnchorTime: state.clockAnchorTime,
+      });
+    }
+    
     setState(
       {
         game: detail,
@@ -1160,24 +990,104 @@
       'applyGameDetail:updateGame'
     );
     const moveCount = detail?.moves?.length || 0;
+    
+    // Логируем состояние ПОСЛЕ обновления
+    if (window.__DEBUG_CLOCKS__) {
+      console.log('[clock] applyGameDetail: AFTER', {
+        state_status: state.game?.status,
+        state_move_count: state.game?.move_count,
+        state_next_turn: state.game?.next_turn,
+        moves_length: moveCount,
+      });
+    }
     if (typeof state.analysisCursor === 'number' && state.analysisCursor > moveCount) {
       setState({ analysisCursor: null }, 'applyGameDetail:clampAnalysis');
     }
 
-    let lastStateTimestamp = Date.now();
-    if (detail.moves && detail.moves.length > 0) {
+    // Обновляем clockAnchorTime только если игра изменилась
+    let lastStateTimestamp = state.clockAnchorTime || Date.now();
+    const now = Date.now();
+    
+    // Если игра не изменилась, не обновляем clockAnchorTime
+    if (!gameChanged && !isRealtimeMove) {
+      if (window.__DEBUG_CLOCKS__) {
+        console.log('[clock] applyGameDetail: game not changed, keeping clockAnchorTime', {
+          clockAnchorTime: lastStateTimestamp,
+        });
+      }
+      return;
+    }
+    
+    // ВАЖНО: При получении move_made события (isRealtimeMove):
+    // - Время игрока, который сделал ход: вычтено прошедшее время + добавлен инкремент
+    // - next_turn уже изменен на следующего игрока
+    // - Время следующего игрока в БД правильное (не вычтено, так как он только начал ход)
+    // - Время в БД уже обновлено и соответствует моменту после хода
+    // Поэтому clockAnchorTime должен быть установлен на Date.now(),
+    // чтобы время следующего игрока начало тикать с момента получения события, а не с момента хода на сервере
+    // Если использовать move.created_at, то elapsed будет включать задержку сети, и время будет вычитаться дважды
+    if (isRealtimeMove) {
+      // Для move_made используем Date.now(), так как время в БД уже обновлено
+      // и соответствует моменту после хода. Время следующего игрока должно тикать с момента получения события.
+      lastStateTimestamp = now;
+      if (window.__DEBUG_CLOCKS__) {
+        console.log('[clock] applyGameDetail: move_made, using Date.now()', {
+          clockAnchorTime: lastStateTimestamp,
+          moveTimestamp: moveTimestamp,
+          next_turn: detail.next_turn,
+          white_clock: detail.white_clock_ms,
+          black_clock: detail.black_clock_ms,
+          now,
+          delay_ms: moveTimestamp !== null ? now - moveTimestamp : null,
+        });
+      }
+    } else if (detail.moves && detail.moves.length > 0) {
       const lastMove = detail.moves[detail.moves.length - 1];
-      if (isRealtimeMove) {
-        lastStateTimestamp = Date.now();
-      } else if (lastMove.created_at) {
+      // Для загрузки через HTTP используем created_at последнего хода
+      // Это гарантирует правильное вычисление прошедшего времени
+      if (lastMove.created_at) {
         lastStateTimestamp = new Date(lastMove.created_at).getTime();
+        const elapsed = now - lastStateTimestamp;
+        if (window.__DEBUG_CLOCKS__) {
+          console.log('[clock] applyGameDetail: HTTP load, using lastMove.created_at', {
+            lastMove_created_at: lastMove.created_at,
+            clockAnchorTime: lastStateTimestamp,
+            now,
+            elapsed_ms: elapsed,
+            next_turn: detail.next_turn,
+            white_clock: detail.white_clock_ms,
+            black_clock: detail.black_clock_ms,
+            move_count: detail.move_count,
+          });
+        }
+      } else {
+        lastStateTimestamp = now;
+        if (window.__DEBUG_CLOCKS__) {
+          console.log('[clock] applyGameDetail: HTTP load, no lastMove.created_at, using Date.now()', {
+            clockAnchorTime: lastStateTimestamp,
+            next_turn: detail.next_turn,
+          });
+        }
       }
     } else if (detail.started_at) {
       lastStateTimestamp = new Date(detail.started_at).getTime();
+      if (window.__DEBUG_CLOCKS__) {
+        console.log('[clock] applyGameDetail: using started_at', {
+          started_at: detail.started_at,
+          clockAnchorTime: lastStateTimestamp,
+        });
+      }
     } else if (detail.created_at) {
       lastStateTimestamp = new Date(detail.created_at).getTime();
+      if (window.__DEBUG_CLOCKS__) {
+        console.log('[clock] applyGameDetail: using created_at', {
+          created_at: detail.created_at,
+          clockAnchorTime: lastStateTimestamp,
+        });
+      }
     }
-    setState({ lastStateTimestamp }, 'applyGameDetail:timestamp');
+    // Синхронизируем clockAnchorTime с lastStateTimestamp для правильной работы часов
+    setState({ lastStateTimestamp, clockAnchorTime: lastStateTimestamp }, 'applyGameDetail:timestamp');
 
     setState({ pendingMove: false }, 'applyGameDetail:pending');
     if (state.timeoutAutoRequested && detail.status !== 'ACTIVE') {
@@ -1194,7 +1104,11 @@
     computeOrientationFromRole();
     updateUI();
     maybeAutoJoin();
-    ensurePlayerUsernames(detail);
+    // Загружаем имена игроков асинхронно и обновляем UI после загрузки
+    ensurePlayerUsernames(detail).then(() => {
+      updatePlayerLabelsAndTitle();
+      updateWinnerDisplay();
+    });
 
     const notifyOpponentJoined = () => {
       if (!state.game) return;
@@ -1408,7 +1322,17 @@
       const previousWhiteId = state.game?.white_id;
       const previousBlackId = state.game?.black_id;
       const isRealtimeMove = payload.type === 'move_made';
-      applyGameDetail(payload.game, { isRealtimeMove });
+      // Для move_made используем move.created_at для правильной синхронизации времени
+      // Это гарантирует, что время следующего игрока начинает тикать с момента хода на сервере, а не с момента получения события
+      const moveTimestamp = isRealtimeMove && payload.move?.created_at 
+        ? new Date(payload.move.created_at).getTime() 
+        : null;
+      applyGameDetail(payload.game, { isRealtimeMove, moveTimestamp });
+      // Загружаем имена игроков после обновления состояния игры
+      ensurePlayerUsernames(payload.game).then(() => {
+        updatePlayerLabelsAndTitle();
+        updateWinnerDisplay();
+      });
       if (previousStatus === 'CREATED' && payload.game.status === 'ACTIVE') {
         showToast('Игра началась! Теперь вы можете делать ходы', 'success');
       }
@@ -1424,6 +1348,7 @@
         requestAnimationFrame(() => {
           updateLegalMoves();
           renderBoard();
+          renderMoves();
           updateClockDisplays();
         });
       }

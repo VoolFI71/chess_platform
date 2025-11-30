@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♔</text></svg>">
+    <title>PowerChess | Выбор режима задач</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Выберите режим решения шахматных задач на PowerChess: выживание или игра на рейтинг.">
+    <meta name="keywords" content="шахматные задачи, тактика, выживание, рейтинг задач, тренировка шахмат, шахматная тактика">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://powerchess.org/tasks">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://powerchess.org/tasks">
+    <meta property="og:title" content="PowerChess | Выбор режима задач">
+    <meta property="og:description" content="Выберите режим: выживание или рейтинг, и тренируйтесь на шахматных задачах PowerChess.">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="PowerChess | Выбор режима задач">
+    <meta name="twitter:description" content="Страница выбора режима решения шахматных задач: выживание или рейтинг.">
+    
+    <!-- Загрузка темы до отрисовки страницы, чтобы избежать мерцания -->
+    <script>
+      (function() {
+        try {
+          const saved = localStorage.getItem('theme');
+          if (saved === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
+          }
+        } catch {}
+      })();
+    </script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Common Styles -->
+    <link rel="stylesheet" href="/styles/variables.css">
+    <link rel="stylesheet" href="/styles/common.css">
+    <link rel="stylesheet" href="/styles/header.css">
+    <link rel="stylesheet" href="/styles/notifications.css">
+    <link rel="stylesheet" href="/styles/chess-board.css">
+    <link rel="stylesheet" href="/styles/tasks.css">
+</head>
+<body>
+    <div class="chess-pattern-bg"></div>
+
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div class="logo-icon">
+                        <div class="chess-pattern"></div>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                            <defs>
+                                <linearGradient id="tasks-crown-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#ffd700" />
+                                    <stop offset="50%" stop-color="#ffffff" />
+                                    <stop offset="100%" stop-color="#ffd700" />
+                                </linearGradient>
+                            </defs>
+                            <rect x="3" y="16" width="18" height="3" fill="url(#tasks-crown-gradient)" stroke="#fff" stroke-width="0.5" rx="1.5"/>
+                            <path d="M4 16L3 6L6 11L12 3L18 11L21 6L20 16H4Z" fill="url(#tasks-crown-gradient)" stroke="#fff" stroke-width="1"/>
+                            <circle cx="12" cy="9" r="1.5" fill="#e11d48" stroke="#fff" stroke-width="0.5"/>
+                        </svg>
+                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                            <path d="M7 1L3 7H5L4 11L8 5H6L7 1Z" fill="#ffd700" stroke="#fff" stroke-width="0.8"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="gradient-text">PowerChess</div>
+                        <div>♔ Шахматная академия</div>
+                    </div>
+                </a>
+                <nav class="nav">
+                    <a href="/games" class="nav-link">Играть</a>
+                    <a href="/tasks" class="nav-link active">Задачи</a>
+                    <a href="/course" class="nav-link">Курсы</a>
+                    <a href="/couch" class="nav-link">Тренеры</a>
+                    <a href="#tournaments" class="nav-link">Турниры</a>
+                </nav>
+                <div class="header-actions">
+                    <div id="authButtons">
+                        <button class="btn-login" id="gamesLoginBtn" onclick="showLoginModal()">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Войти
+                        </button>
+                        <button class="btn-register" id="gamesRegisterBtn" onclick="showRegisterModal()">
+                            <i class="fas fa-user-plus"></i>
+                            Регистрация
+                        </button>
+                    </div>
+                    <div id="userActions">
+                        <div id="gamesUserInfo">
+                            <span></span>
+                        </div>
+                    </div>
+                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()">
+                        <i class="fas fa-sun" id="themeIcon"></i>
+                    </button>
+                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars" id="menuIcon"></i>
+                    </button>
+                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="mobile-menu" id="mobileMenu">
+                <div>
+                    <a href="/games" class="nav-link" onclick="closeMobileMenu()">Играть</a>
+                    <a href="/tasks" class="nav-link" onclick="closeMobileMenu()">Задачи</a>
+                    <a href="/course" class="nav-link" onclick="closeMobileMenu()">Курсы</a>
+                    <a href="/couch" class="nav-link" onclick="closeMobileMenu()">Тренеры</a>
+                    <a href="#tournaments" class="nav-link" onclick="closeMobileMenu()">Турниры</a>
+                    <hr>
+                    <div id="mobileAuthButtons">
+                        <button class="btn-login" id="gamesLoginBtnMobile" onclick="showLoginModal(); closeMobileMenu();">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Войти
+                        </button>
+                        <button class="btn-register" id="gamesRegisterBtnMobile" onclick="showRegisterModal(); closeMobileMenu();">
+                            <i class="fas fa-user-plus"></i>
+                            Регистрация
+                        </button>
+                    </div>
+                    <div id="mobileUserActions">
+                        <div id="gamesUserInfoMobile">
+                            <span></span>
+                        </div>
+                        <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile" title="Выйти">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="tasks-container">
+        <div class="tasks-content">
+            <div class="tasks-header">
+                <h1 class="tasks-title">Выберите режим тренировки</h1>
+                <p class="tasks-subtitle">Оттачивайте свои навыки, решая шахматные задачи в режиме выживания или на рейтинг</p>
+            </div>
+            <div class="mode-grid" id="modeGrid"></div>
+
+            <section class="puzzle-section" id="puzzleSection">
+                <div class="puzzle-layout">
+                    <!-- Левая панель с информацией о задаче -->
+                    <aside class="puzzle-left-sidebar" id="puzzleLeftSidebar">
+                        <div class="sidebar-card" id="puzzleHeaderCard" style="display: none;">
+                            <div class="puzzle-title-compact">
+                                <i class="fas fa-chess-puzzle"></i>
+                                Позиция задачи
+                            </div>
+                            <div class="puzzle-meta-line-compact">
+                                <span class="puzzle-meta-pill" id="currentModeLabel">
+                                    <i class="fas fa-layer-group"></i>
+                                    Режим: —
+                                </span>
+                                <span class="puzzle-meta-pill" id="currentPuzzleRating">
+                                    <i class="fas fa-chess"></i>
+                                    Рейтинг: —
+                                </span>
+                                <span class="puzzle-meta-pill" id="currentPuzzleMoves">
+                                    <i class="fas fa-arrows-alt"></i>
+                                    Ходов: —
+                                </span>
+                            </div>
+                        </div>
+                        <div class="sidebar-card" id="puzzleInfoCard" style="display: none;">
+                            <h3 class="sidebar-title">
+                                <i class="fas fa-info-circle"></i>
+                                О задаче
+                            </h3>
+                            <div class="puzzle-info-content">
+                                <div class="info-item" id="puzzleThemes">
+                                    <div class="info-label">
+                                        <i class="fas fa-tags"></i>
+                                        Темы
+                                    </div>
+                                    <div class="info-value" id="puzzleThemesValue">—</div>
+                                </div>
+                                <div class="info-item" id="puzzleOpening">
+                                    <div class="info-label">
+                                        <i class="fas fa-chess-board"></i>
+                                        Дебют
+                                    </div>
+                                    <div class="info-value" id="puzzleOpeningValue">—</div>
+                                </div>
+                                <div class="info-item" id="puzzlePopularity">
+                                    <div class="info-label">
+                                        <i class="fas fa-chart-line"></i>
+                                        Популярность
+                                    </div>
+                                    <div class="info-value" id="puzzlePopularityValue">—</div>
+                                </div>
+                                <div class="info-item" id="puzzlePlays">
+                                    <div class="info-label">
+                                        <i class="fas fa-users"></i>
+                                        Решено раз
+                                    </div>
+                                    <div class="info-value" id="puzzlePlaysValue">—</div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <!-- Основная область с доской -->
+                    <div class="puzzle-main">
+                        <div class="board-container" id="boardContainer">
+                            <div class="board-wrapper">
+                                <div class="board-shell">
+                                    <div class="chess-board" id="boardGrid"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Боковая панель со статистикой -->
+                    <aside class="puzzle-sidebar" id="puzzleSidebar">
+                        <div class="sidebar-card">
+                            <h3 class="sidebar-title">
+                                <i class="fas fa-chart-line"></i>
+                                Статистика
+                            </h3>
+                            
+                            <div class="stats-section">
+                                <div class="stat-item" id="currentRatingStat">
+                                    <div class="stat-label">
+                                        <i class="fas fa-star"></i>
+                                        Рейтинг
+                                    </div>
+                                    <div class="stat-value" id="currentRatingValue">—</div>
+                                </div>
+                                
+                                <div class="stat-item" id="streakStat">
+                                    <div class="stat-label">
+                                        <i class="fas fa-fire"></i>
+                                        Серия
+                                    </div>
+                                    <div class="stat-value" id="streakValue">0</div>
+                                </div>
+                                
+                                <div class="stat-item" id="timeStat">
+                                    <div class="stat-label">
+                                        <i class="fas fa-clock"></i>
+                                        Время
+                                    </div>
+                                    <div class="stat-value" id="currentTimeValue">00:00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sidebar-card">
+                            <h3 class="sidebar-title">
+                                <i class="fas fa-history"></i>
+                                История ходов
+                            </h3>
+                            <div class="moves-history" id="movesHistory">
+                                <div class="moves-empty">Ходы появятся здесь</div>
+                            </div>
+                            <div class="moves-navigation" id="movesNavigation" style="display: none;">
+                                <button class="nav-btn" id="prevMoveBtn" title="Предыдущий ход">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <button class="nav-btn" id="nextMoveBtn" title="Следующий ход">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/scripts/auth.js"></script>
+    <script src="/scripts/modal-utils.js"></script>
+    <script src="/scripts/chess-move-utils.js" defer></script>
+    <script src="/scripts/chess-pieces-svg.js" defer></script>
+    <!-- Tasks modules (order matters) -->
+    <script src="/scripts/tasks/constants.js"></script>
+    <script src="/scripts/tasks/state.js"></script>
+    <script src="/scripts/tasks/utils.js"></script>
+    <script src="/scripts/tasks/board.js"></script>
+    <script src="/scripts/tasks/moves.js"></script>
+    <script src="/scripts/tasks/api.js"></script>
+    <script src="/scripts/tasks/ui.js"></script>
+    <script src="/scripts/tasks/history.js"></script>
+    <script src="/scripts/tasks/animations.js"></script>
+    <script src="/scripts/tasks/main.js"></script>
+</body>
+</html>

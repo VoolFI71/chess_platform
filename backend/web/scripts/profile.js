@@ -16,6 +16,43 @@ const historyState = {
   profileUserId: null, // ID пользователя, для которого загружается история (если смотрим чужой профиль)
 };
 let currentUser = null;
+let currentPuzzleStats = null;
+
+async function loadPuzzlesProgress() {
+  try {
+    if (typeof window.apiFetch !== 'function') return;
+    const res = await window.apiFetch('/api/puzzles/stats/me');
+    if (!res.ok) {
+      throw new Error('Failed to load puzzle stats');
+    }
+    currentPuzzleStats = await res.json();
+  } catch (e) {
+    console.error('Failed to load puzzle stats:', e);
+    currentPuzzleStats = null;
+  }
+
+  const solved = currentPuzzleStats?.solved_count ?? 0;
+  const failed = currentPuzzleStats?.failed_count ?? 0;
+  const attempts = solved + failed;
+  const accuracy = currentPuzzleStats
+    ? Math.round((currentPuzzleStats.accuracy ?? 0) * 100)
+    : 0;
+  const rating = currentPuzzleStats?.puzzle_rating ?? 1200;
+  const currentStreak = currentPuzzleStats?.current_streak ?? 0;
+  const bestStreak = currentPuzzleStats?.best_streak ?? 0;
+
+  const solvedEl = document.getElementById('puzzlesSolved');
+  if (solvedEl) solvedEl.textContent = solved;
+
+  const accEl = document.getElementById('puzzlesAccuracy');
+  if (accEl) accEl.textContent = `${accuracy}%`;
+
+  const ratingEl = document.getElementById('puzzlesRating');
+  if (ratingEl) ratingEl.textContent = rating;
+
+  const streakEl = document.getElementById('puzzlesStreak');
+  if (streakEl) streakEl.textContent = `${currentStreak} / ${bestStreak}`;
+}
 
 function createCourseCard(course, owned) {
   const card = document.createElement('div');
@@ -257,6 +294,8 @@ const describeResult = (game) => {
   };
 };
 
+// Экспортируем функцию загрузки прогресса по задачам в глобальный scope
+window.loadPuzzlesProgress = loadPuzzlesProgress;
 function renderHistoryAuthPrompt() {
   const container = document.getElementById('matchHistoryList');
   if (!container) return;
@@ -722,6 +761,538 @@ window.copyMatchLink = function copyMatchLink(gameId) {
     });
 };
 
+// ==================== Функции для работы с друзьями ====================
+
+let friendshipState = {
+  profileUserId: null,
+  friendship: null,
+  loading: false,
+};
+
+async function checkFriendshipStatus(userId) {
+  if (!userId || !window.apiFetch) return null;
+  
+  try {
+    const res = await window.apiFetch(`/api/friendships/status/${userId}`);
+    if (res.ok) {
+      const data = await res.json();
+      return data; // Может быть null если дружбы нет
+    } else if (res.status === 404) {
+      return null; // Дружбы нет
+    } else if (res.status === 401 || res.status === 403) {
+      // Не авторизован или нет доступа - не показываем кнопку
+      return null;
+    }
+    return null;
+  } catch (e) {
+    console.error('Failed to check friendship status:', e);
+    return null;
+  }
+}
+
+async function sendFriendRequest(userId) {
+  if (!userId || !window.apiFetch) return false;
+  
+  try {
+    const res = await window.apiFetch('/api/friendships/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ addressee_id: userId }),
+    });
+    return res.ok;
+  } catch (e) {
+    console.error('Failed to send friend request:', e);
+    return false;
+  }
+}
+
+async function deleteFriendship(friendshipId) {
+  if (!friendshipId || !window.apiFetch) return false;
+  
+  try {
+    const res = await window.apiFetch(`/api/friendships/${friendshipId}`, {
+      method: 'DELETE',
+    });
+    return res.ok || res.status === 204;
+  } catch (e) {
+    console.error('Failed to delete friendship:', e);
+    return false;
+  }
+}
+
+function updateFriendshipButton() {
+  const container = document.getElementById('friendshipButtonContainer');
+  const button = document.getElementById('friendshipButton');
+  const buttonText = document.getElementById('friendshipButtonText');
+  
+  if (!container || !button || !buttonText) return;
+  
+  if (friendshipState.loading) {
+    button.disabled = true;
+    buttonText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+    return;
+  }
+  
+  button.disabled = false;
+  
+  if (!friendshipState.friendship) {
+    // Нет дружбы - показываем "Добавить в друзья"
+    button.className = 'btn btn-primary';
+    buttonText.innerHTML = '<i class="fas fa-user-plus"></i> Добавить в друзья';
+  } else if (friendshipState.friendship.status === 'pending') {
+    // Запрос отправлен, но не принят
+    if (friendshipState.friendship.requester_id === currentUser?.id) {
+      // Мы отправили запрос
+      button.className = 'btn btn-outline';
+      buttonText.innerHTML = '<i class="fas fa-clock"></i> Запрос отправлен';
+      button.disabled = true;
+    } else {
+      // Нам отправили запрос (не должно быть видно на странице другого пользователя)
+      button.className = 'btn btn-primary';
+      buttonText.innerHTML = '<i class="fas fa-user-plus"></i> Добавить в друзья';
+    }
+  } else if (friendshipState.friendship.status === 'accepted') {
+    // Друзья - показываем "Удалить из друзей"
+    button.className = 'btn btn-outline';
+    buttonText.innerHTML = '<i class="fas fa-user-minus"></i> Удалить из друзей';
+  } else {
+    // declined или другой статус
+    button.className = 'btn btn-primary';
+    buttonText.innerHTML = '<i class="fas fa-user-plus"></i> Добавить в друзья';
+  }
+}
+
+async function handleFriendshipButtonClick() {
+  if (friendshipState.loading || !friendshipState.profileUserId) return;
+  
+  friendshipState.loading = true;
+  updateFriendshipButton();
+  
+  try {
+    if (!friendshipState.friendship) {
+      // Отправляем запрос на дружбу
+      const success = await sendFriendRequest(friendshipState.profileUserId);
+      if (success) {
+        // Обновляем статус
+        friendshipState.friendship = await checkFriendshipStatus(friendshipState.profileUserId);
+      } else {
+        alert('Не удалось отправить запрос на дружбу');
+      }
+    } else if (friendshipState.friendship.status === 'accepted') {
+      // Удаляем дружбу
+      const success = await deleteFriendship(friendshipState.friendship.id);
+      if (success) {
+        friendshipState.friendship = null;
+      } else {
+        alert('Не удалось удалить из друзей');
+      }
+    } else if (friendshipState.friendship.status === 'pending' && friendshipState.friendship.requester_id === currentUser?.id) {
+      // Запрос уже отправлен - ничего не делаем
+    }
+  } catch (e) {
+    console.error('Failed to handle friendship action:', e);
+    alert('Произошла ошибка. Попробуйте обновить страницу.');
+  } finally {
+    friendshipState.loading = false;
+    updateFriendshipButton();
+  }
+}
+
+async function initFriendshipButton(userId) {
+  if (!userId || !window.apiFetch) return;
+  
+  friendshipState.profileUserId = userId;
+  friendshipState.loading = true;
+  
+  const container = document.getElementById('friendshipButtonContainer');
+  const button = document.getElementById('friendshipButton');
+  
+  if (container) container.style.display = 'block';
+  updateFriendshipButton();
+  
+  // Проверяем статус дружбы
+  friendshipState.friendship = await checkFriendshipStatus(userId);
+  
+  friendshipState.loading = false;
+  updateFriendshipButton();
+  
+  // Добавляем обработчик клика
+  if (button) {
+    button.onclick = handleFriendshipButtonClick;
+  }
+}
+
+// ==================== Функции для отображения списка друзей ====================
+
+let friendsListState = {
+  loaded: false,
+  loading: false,
+  friends: [],
+};
+
+function getInitials(username) {
+  if (!username) return '?';
+  const parts = username.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return username.substring(0, 2).toUpperCase();
+}
+
+function getHighestRating(user) {
+  if (!user) return 1200;
+  return Math.max(
+    user.blitz_rating || 1200,
+    user.bullet_rating || 1200,
+    user.rapid_rating || 1200,
+    user.puzzle_rating || 1200
+  );
+}
+
+function createFriendCard(friendship) {
+  const friend = friendship.user;
+  if (!friend) return null;
+  
+  const card = document.createElement('div');
+  card.className = 'friend-card';
+  
+  const avatar = document.createElement('div');
+  avatar.className = 'friend-avatar';
+  avatar.textContent = getInitials(friend.username || friend.display_name);
+  
+  const name = document.createElement('div');
+  name.className = 'friend-name';
+  name.textContent = friend.username || friend.display_name || 'Неизвестно';
+  
+  const rating = document.createElement('div');
+  rating.className = 'friend-rating';
+  const highestRating = getHighestRating(friend);
+  rating.innerHTML = `⭐ ${highestRating}`;
+  
+  // Добавляем ссылку на профиль
+  card.style.cursor = 'pointer';
+  card.onclick = () => {
+    window.location.href = `/profile/${encodeURIComponent(friend.username || friend.id)}`;
+  };
+  
+  card.appendChild(avatar);
+  card.appendChild(name);
+  card.appendChild(rating);
+  
+  return card;
+}
+
+function renderFriendsList(friendships) {
+  const container = document.getElementById('friendsList');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (!friendships || friendships.length === 0) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.style.cssText = 'text-align: center; padding: 3rem; color: var(--muted-foreground); grid-column: 1 / -1;';
+    const icon = document.createElement('i');
+    icon.className = 'fas fa-user-friends';
+    icon.style.cssText = 'font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;';
+    emptyDiv.appendChild(icon);
+    const text = document.createElement('div');
+    text.textContent = 'У вас пока нет друзей';
+    text.style.fontSize = '1.125rem';
+    emptyDiv.appendChild(text);
+    container.appendChild(emptyDiv);
+    return;
+  }
+  
+  friendships.forEach(friendship => {
+    const card = createFriendCard(friendship);
+    if (card) {
+      container.appendChild(card);
+    }
+  });
+}
+
+async function loadFriendsList() {
+  const container = document.getElementById('friendsList');
+  if (!container || !window.apiFetch) return;
+  
+  // Если уже загружено, не загружаем снова
+  if (friendsListState.loaded && !friendsListState.loading) {
+    renderFriendsList(friendsListState.friends);
+    return;
+  }
+  
+  // Если уже загружается, не начинаем новую загрузку
+  if (friendsListState.loading) return;
+  
+  friendsListState.loading = true;
+  
+  // Показываем индикатор загрузки
+  container.innerHTML = '';
+  const loadingDiv = document.createElement('div');
+  loadingDiv.style.cssText = 'text-align: center; padding: 2rem; color: var(--muted-foreground); grid-column: 1 / -1;';
+  const spinner = document.createElement('i');
+  spinner.className = 'fas fa-spinner fa-spin';
+  spinner.style.cssText = 'font-size: 2rem; margin-bottom: 1rem;';
+  loadingDiv.appendChild(spinner);
+  loadingDiv.appendChild(document.createTextNode('Загрузка друзей...'));
+  container.appendChild(loadingDiv);
+  
+  try {
+    const res = await window.apiFetch('/api/friendships/me?status=accepted&limit=100');
+    if (!res.ok) {
+      throw new Error('Failed to load friends');
+    }
+    
+    const data = await res.json();
+    friendsListState.friends = data.friendships || [];
+    friendsListState.loaded = true;
+    
+    renderFriendsList(friendsListState.friends);
+  } catch (e) {
+    console.error('Failed to load friends list:', e);
+    container.innerHTML = '';
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = 'text-align: center; padding: 2rem; color: var(--danger); grid-column: 1 / -1;';
+    const errorIcon = document.createElement('i');
+    errorIcon.className = 'fas fa-exclamation-triangle';
+    errorIcon.style.cssText = 'font-size: 2rem; margin-bottom: 1rem;';
+    errorDiv.appendChild(errorIcon);
+    const errorText = document.createElement('div');
+    errorText.textContent = 'Не удалось загрузить список друзей';
+    errorDiv.appendChild(errorText);
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn btn-primary';
+    retryBtn.style.marginTop = '1rem';
+    retryBtn.textContent = 'Попробовать снова';
+    retryBtn.onclick = () => {
+      friendsListState.loaded = false;
+      loadFriendsList();
+    };
+    errorDiv.appendChild(retryBtn);
+    container.appendChild(errorDiv);
+  } finally {
+    friendsListState.loading = false;
+  }
+}
+
+// Экспортируем функцию для использования в HTML
+window.loadFriendsList = loadFriendsList;
+
+// ==================== Функции для работы с входящими заявками ====================
+
+let friendRequestsState = {
+  loaded: false,
+  loading: false,
+  requests: [],
+};
+
+function createRequestCard(friendship) {
+  if (!friendship || !friendship.user) return null;
+  
+  const requester = friendship.user;
+  const card = document.createElement('div');
+  card.className = 'friend-card';
+  card.style.position = 'relative';
+  
+  // Аватар
+  const avatar = document.createElement('div');
+  avatar.className = 'friend-avatar';
+  const initials = getInitials(requester.username || requester.display_name || '?');
+  avatar.textContent = initials;
+  card.appendChild(avatar);
+  
+  // Имя пользователя
+  const name = document.createElement('div');
+  name.className = 'friend-name';
+  name.textContent = requester.username || requester.display_name || 'Неизвестный';
+  card.appendChild(name);
+  
+  // Рейтинг
+  const rating = getHighestRating(requester);
+  if (rating) {
+    const ratingEl = document.createElement('div');
+    ratingEl.className = 'friend-rating';
+    ratingEl.textContent = `Рейтинг: ${rating}`;
+    card.appendChild(ratingEl);
+  }
+  
+  // Кнопки действий
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display: flex; gap: 0.5rem; margin-top: 1rem;';
+  
+  const acceptBtn = document.createElement('button');
+  acceptBtn.className = 'btn btn-primary';
+  acceptBtn.style.flex = '1';
+  acceptBtn.innerHTML = '<i class="fas fa-check"></i> Принять';
+  acceptBtn.onclick = async () => {
+    acceptBtn.disabled = true;
+    acceptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    const success = await acceptFriendRequest(friendship.id);
+    if (success) {
+      friendRequestsState.loaded = false;
+      await loadFriendRequests();
+      if (typeof window.loadFriendsList === 'function') {
+        window.loadFriendsList();
+      }
+    } else {
+      acceptBtn.disabled = false;
+      acceptBtn.innerHTML = '<i class="fas fa-check"></i> Принять';
+      alert('Не удалось принять заявку');
+    }
+  };
+  
+  const declineBtn = document.createElement('button');
+  declineBtn.className = 'btn btn-outline';
+  declineBtn.style.flex = '1';
+  declineBtn.innerHTML = '<i class="fas fa-times"></i> Отклонить';
+  declineBtn.onclick = async () => {
+    declineBtn.disabled = true;
+    declineBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    const success = await declineFriendRequest(friendship.id);
+    if (success) {
+      friendRequestsState.loaded = false;
+      await loadFriendRequests();
+    } else {
+      declineBtn.disabled = false;
+      declineBtn.innerHTML = '<i class="fas fa-times"></i> Отклонить';
+      alert('Не удалось отклонить заявку');
+    }
+  };
+  
+  actions.appendChild(acceptBtn);
+  actions.appendChild(declineBtn);
+  card.appendChild(actions);
+  
+  return card;
+}
+
+function renderFriendRequests(requests) {
+  const container = document.getElementById('friendRequestsList');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (!requests || requests.length === 0) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.style.cssText = 'text-align: center; padding: 3rem; color: var(--muted-foreground); grid-column: 1 / -1;';
+    const icon = document.createElement('i');
+    icon.className = 'fas fa-inbox';
+    icon.style.cssText = 'font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;';
+    emptyDiv.appendChild(icon);
+    const text = document.createElement('div');
+    text.textContent = 'У вас нет входящих заявок';
+    text.style.fontSize = '1.125rem';
+    emptyDiv.appendChild(text);
+    container.appendChild(emptyDiv);
+    return;
+  }
+  
+  requests.forEach(request => {
+    console.log('Processing request:', request);
+    const card = createRequestCard(request);
+    if (card) {
+      container.appendChild(card);
+    } else {
+      console.warn('Failed to create card for request:', request);
+    }
+  });
+}
+
+async function loadFriendRequests() {
+  const container = document.getElementById('friendRequestsList');
+  if (!container || !window.apiFetch) return;
+
+  if (friendRequestsState.loaded && !friendRequestsState.loading) {
+    renderFriendRequests(friendRequestsState.requests);
+    return;
+  }
+
+  if (friendRequestsState.loading) return;
+
+  friendRequestsState.loading = true;
+  container.innerHTML = '';
+  const loadingDiv = document.createElement('div');
+  loadingDiv.style.cssText = 'text-align: center; padding: 2rem; color: var(--muted-foreground); grid-column: 1 / -1;';
+  const spinner = document.createElement('i');
+  spinner.className = 'fas fa-spinner fa-spin';
+  spinner.style.cssText = 'font-size: 2rem; margin-bottom: 1rem;';
+  loadingDiv.appendChild(spinner);
+  loadingDiv.appendChild(document.createTextNode('Загрузка заявок...'));
+  container.appendChild(loadingDiv);
+
+  try {
+    const res = await window.apiFetch('/api/friendships/requests/incoming?limit=100');
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Failed to load friend requests:', res.status, errorText);
+      throw new Error('Failed to load friend requests');
+    }
+    const data = await res.json();
+    console.log('Friend requests data:', data);
+    friendRequestsState.requests = data.friendships || [];
+    friendRequestsState.loaded = true;
+    renderFriendRequests(friendRequestsState.requests);
+  } catch (e) {
+    console.error('Error loading friend requests:', e);
+    container.innerHTML = '';
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = 'text-align: center; padding: 2rem; color: var(--danger); grid-column: 1 / -1;';
+    const errorIcon = document.createElement('i');
+    errorIcon.className = 'fas fa-exclamation-triangle';
+    errorIcon.style.cssText = 'font-size: 2rem; margin-bottom: 1rem;';
+    errorDiv.appendChild(errorIcon);
+    const errorText = document.createElement('div');
+    errorText.textContent = 'Не удалось загрузить заявки';
+    errorDiv.appendChild(errorText);
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn btn-primary';
+    retryBtn.style.marginTop = '1rem';
+    retryBtn.textContent = 'Попробовать снова';
+    retryBtn.onclick = () => {
+      friendRequestsState.loaded = false;
+      loadFriendRequests();
+    };
+    errorDiv.appendChild(retryBtn);
+    container.appendChild(errorDiv);
+  } finally {
+    friendRequestsState.loading = false;
+  }
+}
+
+async function acceptFriendRequest(friendshipId) {
+  if (!friendshipId || !window.apiFetch) return false;
+  
+  try {
+    const res = await window.apiFetch(`/api/friendships/${friendshipId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'accepted' }),
+    });
+    return res.ok;
+  } catch (e) {
+    console.error('Failed to accept friend request:', e);
+    return false;
+  }
+}
+
+async function declineFriendRequest(friendshipId) {
+  if (!friendshipId || !window.apiFetch) return false;
+  
+  try {
+    const res = await window.apiFetch(`/api/friendships/${friendshipId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'declined' }),
+    });
+    return res.ok;
+  } catch (e) {
+    console.error('Failed to decline friend request:', e);
+    return false;
+  }
+}
+
+window.loadFriendRequests = loadFriendRequests;
+
 const formatNames = {
   bullet: 'Пуля',
   blitz: 'Блиц',
@@ -964,7 +1535,39 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Загружаем статистику этого пользователя
       await loadGameStats(profileUsername);
       
+      // Загружаем текущего пользователя для проверки дружбы
+      // Кнопка дружбы показывается только для авторизованных пользователей
+      if (typeof window.apiFetch === 'function') {
+        try {
+          const meRes = await window.apiFetch('/api/auth/me');
+          if (meRes.ok) {
+            currentUser = await meRes.json();
+            // Инициализируем кнопку дружбы только если это не свой профиль
+            if (currentUser && currentUser.id !== profileUser.id) {
+              await initFriendshipButton(profileUser.id);
+            }
+          }
+          // Если не авторизован, кнопка не показывается (container.style.display = 'none' по умолчанию)
+        } catch (e) {
+          console.error('Failed to load current user:', e);
+          // Если ошибка авторизации, кнопка не показывается
+        }
+      }
+      
       // НЕ загружаем историю партий при инициализации - только при клике на вкладку
+      
+      // Загружаем заявки и друзей, если это свой профиль и соответствующие вкладки активны
+      if (currentUser && currentUser.id === profileUser.id) {
+        const friendRequestsSection = document.getElementById('friendRequests');
+        if (friendRequestsSection && friendRequestsSection.classList.contains('active')) {
+          await loadFriendRequests();
+        }
+        
+        const friendsSection = document.getElementById('friends');
+        if (friendsSection && friendsSection.classList.contains('active')) {
+          await loadFriendsList();
+        }
+      }
       
       // Обновляем заголовок страницы
       document.title = `${profileUser.username} — PowerChess`;
@@ -989,8 +1592,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Загружаем статистику игр
     await loadGameStats();
+
+    // Загружаем прогресс по задачам (для своего профиля по умолчанию)
+    await loadPuzzlesProgress();
     
     // НЕ загружаем историю партий при инициализации - только при клике на вкладку
+    
+    // Загружаем заявки, если вкладка "Заявки в друзья" активна
+    const friendRequestsSection = document.getElementById('friendRequests');
+    if (friendRequestsSection && friendRequestsSection.classList.contains('active')) {
+      await loadFriendRequests();
+    }
+    
+    // Загружаем друзей, если вкладка "Друзья" активна
+    const friendsSection = document.getElementById('friends');
+    if (friendsSection && friendsSection.classList.contains('active')) {
+      await loadFriendsList();
+    }
 
     const [allRes, mineRes] = await Promise.all([window.apiFetch('/api/courses/'), window.apiFetch('/api/courses/me')]);
     if (!allRes.ok) return;

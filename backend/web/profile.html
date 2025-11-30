@@ -26,8 +26,10 @@
     <link rel="stylesheet" href="/styles/header.css">
     <!-- Cabinet Styles -->
     <link rel="stylesheet" href="/styles/cabinet.css">
+    <link rel="stylesheet" href="/styles/notifications.css">
     <!-- Scripts -->
     <script src="/scripts/auth.js"></script>
+    <script src="/scripts/notifications.js"></script>
     <script src="/scripts/profile.js"></script>
 </head>
 <body>
@@ -61,7 +63,7 @@
                 </a>
                 <nav class="nav">
                     <a href="/games" class="nav-link">Играть</a>
-                    <a href="/spaced-repetition" class="nav-link">Задачи</a>
+                    <a href="/tasks" class="nav-link">Задачи</a>
                     <a href="/course" class="nav-link">Курсы</a>
                     <a href="/couch" class="nav-link">Тренеры</a>
                     <a href="#tournaments" class="nav-link">Турниры</a>
@@ -97,7 +99,7 @@
             <div class="mobile-menu" id="mobileMenu">
                 <div>
                     <a href="/games" class="nav-link mobile-nav-link">Играть</a>
-                    <a href="/spaced-repetition" class="nav-link mobile-nav-link">Задачи</a>
+                    <a href="/tasks" class="nav-link mobile-nav-link">Задачи</a>
                     <a href="/course" class="nav-link mobile-nav-link">Курсы</a>
                     <a href="/couch" class="nav-link mobile-nav-link">Тренеры</a>
                     <a href="/profile" class="nav-link mobile-nav-link active">Кабинет</a>
@@ -136,6 +138,10 @@
                 <div class="sidebar-item active" data-section="dashboard">
                     <i class="fas fa-chart-line"></i>
                     <span>Панель управления</span>
+                </div>
+                <div class="sidebar-item" data-section="friendRequests">
+                    <i class="fas fa-user-clock"></i>
+                    <span>Заявки в друзья</span>
                 </div>
                 <div class="sidebar-item" data-section="friends">
                     <i class="fas fa-user-friends"></i>
@@ -177,6 +183,12 @@
                         <i class="fas fa-chart-line"></i>
                         Аналитическая панель
                     </h1>
+                    <!-- Кнопка добавления в друзья (только для чужого профиля) -->
+                    <div id="friendshipButtonContainer" style="display: none;">
+                        <button id="friendshipButton" class="btn btn-primary">
+                            <span id="friendshipButtonText">Добавить в друзья</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="stats-grid">
@@ -255,6 +267,20 @@
                 </div>
             </section>
 
+            <!-- FRIEND REQUESTS -->
+            <section class="content-section" id="friendRequests">
+                <div class="section-header">
+                    <h1 class="section-title">
+                        <i class="fas fa-user-clock"></i>
+                        Заявки в друзья
+                    </h1>
+                </div>
+
+                <div class="friends-grid" id="friendRequestsList">
+                    <!-- Список заявок будет загружен динамически -->
+                </div>
+            </section>
+
             <!-- FRIENDS -->
             <section class="content-section" id="friends">
                 <div class="section-header">
@@ -264,60 +290,11 @@
                     </h1>
                 </div>
 
-                <div class="friends-grid">
-                    <div class="friend-card">
-                        <div class="friend-avatar">CK</div>
-                        <div class="friend-name">ChessKing777</div>
-                        <div class="friend-rating">⭐ 2380</div>
-                        <div class="friend-status online">
-                            <div class="status-dot"></div>
-                            Онлайн
-                        </div>
-                    </div>
-                    <div class="friend-card">
-                        <div class="friend-avatar">SM</div>
-                        <div class="friend-name">StrategicMind</div>
-                        <div class="friend-rating">⭐ 2200</div>
-                        <div class="friend-status online">
-                            <div class="status-dot"></div>
-                            Онлайн
-                        </div>
-                    </div>
-                    <div class="friend-card">
-                        <div class="friend-avatar">TG</div>
-                        <div class="friend-name">TacticalGenius</div>
-                        <div class="friend-rating">⭐ 2290</div>
-                        <div class="friend-status offline">
-                            <div class="status-dot"></div>
-                            Офлайн
-                        </div>
-                    </div>
-                    <div class="friend-card">
-                        <div class="friend-avatar">RM</div>
-                        <div class="friend-name">RookMaster</div>
-                        <div class="friend-rating">⭐ 1980</div>
-                        <div class="friend-status online">
-                            <div class="status-dot"></div>
-                            Онлайн
-                        </div>
-                    </div>
-                    <div class="friend-card">
-                        <div class="friend-avatar">BL</div>
-                        <div class="friend-name">BishopLover</div>
-                        <div class="friend-rating">⭐ 2050</div>
-                        <div class="friend-status offline">
-                            <div class="status-dot"></div>
-                            Офлайн
-                        </div>
-                    </div>
-                    <div class="friend-card">
-                        <div class="friend-avatar">KR</div>
-                        <div class="friend-name">KnightRider</div>
-                        <div class="friend-rating">⭐ 2100</div>
-                        <div class="friend-status online">
-                            <div class="status-dot"></div>
-                            Онлайн
-                        </div>
+                <div class="friends-grid" id="friendsList">
+                    <!-- Список друзей будет загружен динамически -->
+                    <div style="text-align: center; padding: 2rem; color: var(--muted-foreground);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <div>Загрузка друзей...</div>
                     </div>
                 </div>
             </section>
@@ -607,29 +584,29 @@
                         <div class="stat-icon purple">
                             <i class="fas fa-check-double"></i>
                         </div>
-                        <div class="stat-value">1,247</div>
+                        <div class="stat-value" id="puzzlesSolved">0</div>
                         <div class="stat-label">Решено задач</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon gold">
                             <i class="fas fa-percentage"></i>
                         </div>
-                        <div class="stat-value">85%</div>
+                        <div class="stat-value" id="puzzlesAccuracy">0%</div>
                         <div class="stat-label">Точность</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon green">
                             <i class="fas fa-bolt"></i>
                         </div>
-                        <div class="stat-value">2380</div>
+                        <div class="stat-value" id="puzzlesRating">1200</div>
                         <div class="stat-label">Рейтинг тактики</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon red">
                             <i class="fas fa-fire"></i>
                         </div>
-                        <div class="stat-value">28</div>
-                        <div class="stat-label">Серия решений</div>
+                        <div class="stat-value" id="puzzlesStreak">0 / 0</div>
+                        <div class="stat-label">Серия (текущая / лучшая)</div>
                     </div>
                 </div>
 
@@ -707,8 +684,60 @@
                 const profileUsername = pathMatch ? decodeURIComponent(pathMatch[1]) : null;
                 window.ensureMatchHistoryLoaded(false, profileUsername);
             }
+            
+            // Загружаем заявки при переключении на вкладку "Заявки в друзья"
+            if (targetSection === 'friendRequests' && typeof window.loadFriendRequests === 'function') {
+                window.loadFriendRequests();
+            }
+            
+            // Загружаем друзей при переключении на вкладку "Друзья"
+            if (targetSection === 'friends' && typeof window.loadFriendsList === 'function') {
+                window.loadFriendsList();
+            }
+
+            // Загружаем прогресс по задачам при переключении на вкладку "Прогресс по задачам"
+            if (targetSection === 'puzzles' && typeof window.loadPuzzlesProgress === 'function') {
+                window.loadPuzzlesProgress();
+            }
         });
     });
+
+    // Обработка хеша в URL для автоматического открытия вкладки
+    function openSectionFromHash() {
+        const hash = window.location.hash.replace('#', '');
+        if (hash) {
+            const targetSection = document.getElementById(hash);
+            const sidebarItem = document.querySelector(`[data-section="${hash}"]`);
+            if (targetSection && sidebarItem) {
+                // Убираем активность со всех элементов
+                sidebarItems.forEach(i => i.classList.remove('active'));
+                contentSections.forEach(section => section.classList.remove('active'));
+                
+                // Активируем нужную вкладку
+                sidebarItem.classList.add('active');
+                targetSection.classList.add('active');
+                
+                // Загружаем данные для вкладки
+                if (hash === 'friendRequests' && typeof window.loadFriendRequests === 'function') {
+                    window.loadFriendRequests();
+                } else if (hash === 'friends' && typeof window.loadFriendsList === 'function') {
+                    window.loadFriendsList();
+                } else if (hash === 'games' && typeof window.ensureMatchHistoryLoaded === 'function') {
+                    const pathMatch = window.location.pathname.match(/^\/profile\/(.+)$/);
+                    const profileUsername = pathMatch ? decodeURIComponent(pathMatch[1]) : null;
+                    window.ensureMatchHistoryLoaded(false, profileUsername);
+                }
+            }
+        }
+    }
+
+    // Обрабатываем хеш при загрузке страницы
+    if (window.location.hash) {
+        openSectionFromHash();
+    }
+
+    // Обрабатываем изменение хеша
+    window.addEventListener('hashchange', openSectionFromHash);
 
     // Header functionality
     document.addEventListener('DOMContentLoaded', () => {

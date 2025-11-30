@@ -13,7 +13,7 @@ COPY games_service/requirements.txt ./requirements.txt
 ENV PIP_DEFAULT_TIMEOUT=100 \
 	PIP_RETRIES=10
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 COPY games_service/app ./app
 COPY common ./common

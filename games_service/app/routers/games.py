@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -34,6 +35,7 @@ from ..services import (
 router = APIRouter(prefix="/api/games", tags=["games"])
 
 RECENT_MOVES_LIMIT = 60
+LOGGER = logging.getLogger(__name__)
 
 
 def _handle_error(exc: GameServiceError) -> HTTPException:
@@ -130,6 +132,25 @@ async def get_game(
 		game, moves = await service.get_game_with_moves(game_id, limit=limit)
 	except GameServiceError as exc:
 		raise _handle_error(exc)
+	
+	# Логируем что отправляется при HTTP запросе (обновление страницы)
+	last_move_created_at = None
+	if moves and len(moves) > 0:
+		last_move = moves[-1]
+		if hasattr(last_move, 'created_at') and last_move.created_at:
+			last_move_created_at = last_move.created_at.isoformat() if hasattr(last_move.created_at, 'isoformat') else str(last_move.created_at)
+	
+	LOGGER.info(
+		"[HTTP GET GAME] game_id=%s "
+		"white_clock_ms=%d black_clock_ms=%d next_turn=%s move_count=%d "
+		"last_move_created_at=%s moves_count=%d limit=%d",
+		game_id,
+		game.white_clock_ms, game.black_clock_ms,
+		game.next_turn, game.move_count,
+		last_move_created_at,
+		len(moves) if moves else 0, limit,
+	)
+	
 	return build_game_detail(game, moves=moves)
 
 

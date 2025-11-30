@@ -1,6 +1,5 @@
 .board-container {
     width: 100%;
-    padding: 1.5rem 0;
 }
 
 .board-wrapper {
@@ -161,8 +160,8 @@ body.dark .square .piece svg {
 }
 
 .square.selected-user {
-	box-shadow: inset 0 0 0 3px rgba(59, 130, 246, 0.85), 0 0 12px rgba(59, 130, 246, 0.4);
-	background: rgba(59, 130, 246, 0.15) !important;
+	box-shadow: inset 0 0 0 3px rgba(34, 197, 94, 0.85), 0 0 12px rgba(34, 197, 94, 0.4) !important;
+	background: rgba(34, 197, 94, 0.15) !important;
 	z-index: 10;
 }
 
@@ -184,22 +183,10 @@ body.dark .square .piece svg {
 	width: 20px;
 	height: 20px;
 	border-radius: 50%;
-	background: rgba(59, 130, 246, 0.7);
-	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), 0 2px 8px rgba(59, 130, 246, 0.3);
+	background: rgba(34, 197, 94, 0.7) !important;
+	box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2), 0 2px 8px rgba(34, 197, 94, 0.3) !important;
 	z-index: 2;
 	pointer-events: none;
-	animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-	0%, 100% {
-		opacity: 0.7;
-		transform: translate(-50%, -50%) scale(1);
-	}
-	50% {
-		opacity: 1;
-		transform: translate(-50%, -50%) scale(1.1);
-	}
 }
 
 .square.legal-target-capture .legal-move-indicator {
@@ -207,20 +194,8 @@ body.dark .square .piece svg {
 	height: calc(100% - 10px);
 	border-radius: 50%;
 	border: 4px solid rgba(248, 113, 113, 0.95);
-	background: rgba(248, 113, 113, 0.25);
-	box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2), inset 0 0 10px rgba(248, 113, 113, 0.3);
-	animation: pulse-capture 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse-capture {
-	0%, 100% {
-		opacity: 0.8;
-		transform: translate(-50%, -50%) scale(1);
-	}
-	50% {
-		opacity: 1;
-		transform: translate(-50%, -50%) scale(1.05);
-	}
+	background: rgba(248, 113, 113, 0.25) !important;
+	box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2), inset 0 0 10px rgba(248, 113, 113, 0.3) !important;
 }
 
 .highlight-overlay {
@@ -232,12 +207,12 @@ body.dark .square .piece svg {
 }
 
 .square.selected {
-    box-shadow: inset 0 0 0 3px rgba(59, 130, 246, 0.8), 0 0 10px rgba(59, 130, 246, 0.3);
-    background: rgba(59, 130, 246, 0.12) !important;
+    box-shadow: inset 0 0 0 3px rgba(34, 197, 94, 0.8), 0 0 10px rgba(34, 197, 94, 0.3);
+    background: rgba(34, 197, 94, 0.12) !important;
 }
 
 .square.selected .highlight-overlay {
-    background: rgba(59, 130, 246, 0.25);
+    background: rgba(34, 197, 94, 0.25);
     animation: fadeIn 0.2s ease;
 }
 
@@ -306,12 +281,12 @@ body.dark .square .piece svg {
 
 /* Улучшенная поддержка темной темы */
 body.dark .square.selected-user {
-    box-shadow: inset 0 0 0 3px rgba(96, 165, 250, 0.9), 0 0 12px rgba(96, 165, 250, 0.5);
-    background: rgba(59, 130, 246, 0.2) !important;
+    box-shadow: inset 0 0 0 3px rgba(74, 222, 128, 0.9), 0 0 12px rgba(74, 222, 128, 0.5);
+    background: rgba(34, 197, 94, 0.2) !important;
 }
 
 body.dark .square.selected {
-    box-shadow: inset 0 0 0 3px rgba(96, 165, 250, 0.8), 0 0 10px rgba(96, 165, 250, 0.4);
+    box-shadow: inset 0 0 0 3px rgba(74, 222, 128, 0.8), 0 0 10px rgba(74, 222, 128, 0.4);
 }
 
 

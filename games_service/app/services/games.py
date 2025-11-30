@@ -136,6 +136,26 @@ def build_game_detail(game: Game, moves: Sequence[Move | MoveOut] | None = None)
 			except ValueError:
 				deadline = None
 	data["auto_cancel_at"] = deadline.isoformat() if deadline else None
+	
+	# Логируем что отправляется клиенту
+	last_move_created_at = None
+	if moves and len(moves) > 0:
+		last_move = moves[-1]
+		if hasattr(last_move, 'created_at') and last_move.created_at:
+			last_move_created_at = last_move.created_at.isoformat() if isinstance(last_move.created_at, datetime) else str(last_move.created_at)
+	
+	LOGGER.info(
+		"[BUILD GAME DETAIL] game_id=%s "
+		"white_clock_ms=%d black_clock_ms=%d next_turn=%s move_count=%d "
+		"last_move_created_at=%s auto_cancel_at=%s moves_count=%d",
+		game.id,
+		data.get("white_clock_ms"), data.get("black_clock_ms"),
+		data.get("next_turn"), data.get("move_count"),
+		last_move_created_at,
+		data.get("auto_cancel_at"),
+		len(data.get("moves", [])),
+	)
+	
 	return GameDetail(**data)
 
 
@@ -261,15 +281,13 @@ class GameService:
 		black_clock = game.black_clock_ms
 
 		LOGGER.info(
-			"Clock calc start: game=%s turn=%s payload_white=%s payload_black=%s stored_white=%s stored_black=%s elapsed=%d increment=%d",
-			game.id,
-			current_turn,
-			payload.white_clock_ms,
-			payload.black_clock_ms,
-			white_clock,
-			black_clock,
-			elapsed_ms,
-			increment_ms,
+			"[CLOCK CALC START] game_id=%s turn=%s "
+			"payload_white=%s payload_black=%s stored_white=%s stored_black=%s "
+			"elapsed_ms=%d increment_ms=%d",
+			game.id, current_turn,
+			payload.white_clock_ms, payload.black_clock_ms,
+			white_clock, black_clock,
+			elapsed_ms, increment_ms,
 		)
 
 		if current_turn == SideToMove.WHITE.value:
@@ -305,11 +323,12 @@ class GameService:
 				)
 
 		LOGGER.info(
-			"Clock calc result: game=%s turn=%s white=%s black=%s",
-			game.id,
-			current_turn,
-			white_clock,
-			black_clock,
+			"[CLOCK CALC RESULT] game_id=%s turn=%s "
+			"white_clock_result=%dms black_clock_result=%dms "
+			"white_delta=%d black_delta=%d",
+			game.id, current_turn,
+			white_clock, black_clock,
+			white_clock - game.white_clock_ms, black_clock - game.black_clock_ms,
 		)
 
 		return white_clock, black_clock
@@ -326,13 +345,25 @@ class GameService:
 		last_activity = await self._get_last_activity_timestamp(game, last_move)
 		if not last_activity:
 			return white, black
-		elapsed_ms = int((_utcnow() - last_activity).total_seconds() * 1000)
+		now = _utcnow()
+		elapsed_ms = int((now - last_activity).total_seconds() * 1000)
 		if elapsed_ms <= 0:
 			return white, black
 		if game.next_turn == SideToMove.WHITE.value:
 			white = max(0, white - elapsed_ms)
 		else:
 			black = max(0, black - elapsed_ms)
+		LOGGER.debug(
+			"[EFFECTIVE CLOCKS] game_id=%s next_turn=%s last_activity=%s now=%s "
+			"elapsed_ms=%d white_stored=%d black_stored=%d "
+			"white_effective=%d black_effective=%d",
+			game.id, game.next_turn,
+			last_activity.isoformat() if last_activity else None,
+			now.isoformat(),
+			elapsed_ms,
+			game.white_clock_ms, game.black_clock_ms,
+			white, black,
+		)
 		return white, black
 
 	async def create_game(self, *, creator_id: int, payload: CreateGameRequest) -> Game:
@@ -478,8 +509,26 @@ class GameService:
 		# Оптимизация: загружаем последний ход один раз для всех вычислений
 		last_move = await self._get_last_move(game) if game.move_count > 0 else None
 		
+		# Логируем состояние ДО хода
+		last_activity = await self._get_last_activity_timestamp(game, last_move) if game.move_count > 0 else None
+		LOGGER.info(
+			"[MOVE START] game_id=%s player_id=%s move_index=%d turn=%s "
+			"white_clock_before=%dms black_clock_before=%dms next_turn_before=%s "
+			"move_count=%d last_activity=%s last_move_created_at=%s",
+			game.id, player_id, game.move_count + 1, current_turn,
+			game.white_clock_ms, game.black_clock_ms, game.next_turn,
+			game.move_count,
+			last_activity.isoformat() if last_activity else None,
+			last_move.created_at.isoformat() if last_move and last_move.created_at else None,
+		)
+		
 		# Проверка таймаута: проверяем, не закончилось ли время у игрока, который делает ход
 		effective_white, effective_black = await self._compute_effective_clocks(game, last_move)
+		LOGGER.info(
+			"[TIMEOUT CHECK] game_id=%s effective_white=%dms effective_black=%dms "
+			"server_time=%s",
+			game.id, effective_white, effective_black, _utcnow().isoformat(),
+		)
 		if current_turn == SideToMove.WHITE.value:
 			if effective_white <= 0:
 				LOGGER.info(
@@ -506,18 +555,14 @@ class GameService:
 		# Вычисляем прошедшее время (используется для вычисления времени на сервере, если клиент не отправил)
 		# Используем кэшированный last_move для оптимизации
 		elapsed_ms = await self._compute_elapsed_ms(game, last_move)
+		LOGGER.info(
+			"[ELAPSED TIME] game_id=%s elapsed_ms=%d server_time=%s",
+			game.id, elapsed_ms, _utcnow().isoformat(),
+		)
 		
 		# Вычисляем время для обоих игроков
 		white_clock, black_clock = await self._compute_clocks_for_move(
 			game, current_turn, payload, elapsed_ms, increment_ms
-		)
-		
-		# Логируем успешный ход (только на уровне DEBUG для оптимизации)
-		LOGGER.debug(
-			"Move made: game_id=%s, player_id=%s, turn=%s, move_index=%d, "
-			"white_clock=%dms, black_clock=%dms, elapsed=%dms, increment=%dms",
-			game.id, player_id, current_turn, game.move_count + 1,
-			white_clock, black_clock, elapsed_ms, increment_ms
 		)
 
 		move_index = game.move_count + 1
@@ -540,6 +585,7 @@ class GameService:
 		game.move_count = move_index
 		game.white_clock_ms = white_clock
 		game.black_clock_ms = black_clock
+		old_next_turn = game.next_turn
 		game.next_turn = SideToMove.BLACK.value if game.next_turn == SideToMove.WHITE.value else SideToMove.WHITE.value
 
 		if game.status == GameStatus.CREATED.value:
@@ -547,6 +593,17 @@ class GameService:
 			game.started_at = _utcnow()
 
 		self.db.add(move)
+		
+		# Логируем состояние ПОСЛЕ хода (до коммита)
+		LOGGER.info(
+			"[MOVE AFTER] game_id=%s move_index=%d "
+			"white_clock_after=%dms black_clock_after=%dms next_turn_after=%s "
+			"move_created_at=%s server_time=%s",
+			game.id, move_index,
+			white_clock, black_clock, game.next_turn,
+			move.created_at.isoformat() if move.created_at else None,
+			_utcnow().isoformat(),
+		)
 
 		if move_index % SNAPSHOT_INTERVAL == 0:
 			self.db.add(
@@ -585,6 +642,17 @@ class GameService:
 		await self.db.refresh(game)
 		# move уже обновлен после commit, refresh не нужен
 		# await self.db.refresh(move)  # Убрано для оптимизации
+		
+		# Логируем финальное состояние после коммита
+		LOGGER.info(
+			"[MOVE COMMITTED] game_id=%s move_index=%d "
+			"white_clock_final=%dms black_clock_final=%dms next_turn_final=%s "
+			"move_created_at=%s move_id=%s",
+			game.id, move_index,
+			game.white_clock_ms, game.black_clock_ms, game.next_turn,
+			move.created_at.isoformat() if move.created_at else None,
+			move.id,
+		)
 		
 		# Оптимизация: cancel_auto_cancel выполняется асинхронно после коммита
 		# Не блокируем ответ на это

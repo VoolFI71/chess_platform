@@ -38,6 +38,16 @@ html.dark .spaced-header {
 .header .container,
 .spaced-header .container {
     position: relative;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .header .container,
+    .spaced-header .container {
+        padding: 0 3rem;
+    }
 }
 
 .header-content,
@@ -48,6 +58,56 @@ html.dark .spaced-header {
     gap: 2rem;
     width: 100%;
     min-width: 0;
+}
+
+/* Spaced Header Specific Elements */
+.spaced-header {
+    margin-top: 2rem;
+}
+
+.spaced-header .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.spaced-header .header-title h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, #7c3aed, #3b82f6, #f59e0b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.25rem;
+}
+
+.spaced-header .header-title p {
+    color: var(--muted-foreground);
+    font-size: 0.95rem;
+}
+
+.spaced-header .header-stats {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .spaced-header .header-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .spaced-header .header-stats {
+        width: 100%;
+        justify-content: space-around;
+    }
+}
+
+@media (min-width: 768px) {
+    .spaced-header .header-content {
+        padding: 1.75rem 3rem;
+    }
 }
 
 .logo {
@@ -395,6 +455,14 @@ html.dark .nav-link.active {
     .logo > div:last-child {
         min-width: 0;
         overflow: hidden;
+    }
+
+    .logo .gradient-text {
+        font-size: 1.3rem;
+    }
+
+    .logo .gradient-text + div {
+        font-size: 0.7rem;
     }
 }
 

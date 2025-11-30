@@ -56,6 +56,67 @@ Unless noted otherwise, errors follow FastAPI’s default envelope:
 |--------|-------------|
 | `GET /api/users/{id}` | Lightweight public profile (`UserPublic`: `id, username, display_name, title, rating, country, avatar_url, created_at, updated_at`). |
 
+### Friendships Service (`/api/friendships`)
+
+All endpoints require Bearer tokens.
+
+| Method & Path | Description |
+|---------------|-------------|
+| `POST /api/friendships/` | Send friend request. Body: `{ "addressee_id": <int> }`. Returns `FriendshipOut`. |
+| `GET /api/friendships/me?status=accepted&limit=50&offset=0` | List friends or pending friendships. Query `status`: `"accepted"` (default) or `"pending"`. Returns `FriendshipListResponse`. |
+| `GET /api/friendships/requests/incoming?limit=50&offset=0` | List incoming friend requests (pending). Returns `FriendshipListResponse`. |
+| `GET /api/friendships/requests/outgoing?limit=50&offset=0` | List outgoing friend requests (pending). Returns `FriendshipListResponse`. |
+| `PATCH /api/friendships/{friendship_id}` | Update friendship status. Body: `{ "status": "accepted" | "declined" }`. Only the addressee can accept/decline. Returns `FriendshipOut`. |
+| `DELETE /api/friendships/{friendship_id}` | Remove friendship. Only participants can delete. Returns `204 No Content`. |
+| `GET /api/friendships/status/{user_id}` | Get friendship status between current user and specified user. Returns `FriendshipOut` or `null` if no friendship exists. |
+
+`FriendshipOut` fields: `id, requester_id, addressee_id, status, created_at, updated_at`.  
+`FriendshipWithUser` extends `FriendshipOut` with `user: UserPublic` (friend's profile).  
+`FriendshipListResponse` contains `friendships: List[FriendshipWithUser]` and `total: int`.
+
+### Notifications Service (`/api/notifications`)
+
+All endpoints require Bearer authentication.
+
+| Method & Path | Description |
+|---------------|-------------|
+| `GET /api/notifications/me?read=true&limit=50&offset=0` | List user notifications. Query `read`: filter by read status (`true`/`false`). Returns `NotificationListResponse` with `notifications`, `total`, and `unread_count`. |
+| `GET /api/notifications/me/unread-count` | Get count of unread notifications. Returns `{ "unread_count": <int> }`. |
+| `PATCH /api/notifications/{notification_id}` | Update notification. Body: `{ "read": true | false }`. Returns `NotificationOut`. |
+| `DELETE /api/notifications/{notification_id}` | Delete notification. Returns `204 No Content`. |
+| `POST /api/notifications/me/mark-all-read` | Mark all notifications as read. Returns `204 No Content`. |
+
+`NotificationOut` fields: `id, user_id, type, title, message, read, data (optional JSON), created_at`.  
+`NotificationListResponse` contains `notifications: List[NotificationOut]`, `total: int`, and `unread_count: int`.
+
+**Notification Types:**
+- `friend_request` - New friend request received
+- `friend_request_accepted` - Friend request was accepted
+- `game_invite` - Game invitation (future)
+- `game_finished` - Game finished (future)
+
+### Puzzles Service (`/api/puzzles`)
+
+All puzzle endpoints require Bearer tokens except the random feed (public). Data is sourced from the official Lichess puzzle CSV.
+
+| Method & Path | Description |
+|---------------|-------------|
+| `GET /api/puzzles/random?rating_min=1400&themes=fork&themes=mateIn2` | Возвращает случайный пазл в рамках фильтров. Доступен без авторизации. |
+| `GET /api/puzzles/?page=1&size=20&themes=endgame` | Постраничный список пазлов с фильтрами по рейтингу, темам и дебютам. |
+| `GET /api/puzzles/{puzzle_id}` | Детали конкретного пазла. |
+| `POST /api/puzzles/attempts/` | Фиксирует попытку решения. Тело: `{ "puzzle_id": "...", "mode": "survival" \| "rated", "success": true, "time_spent_ms": 42000 }`. |
+| `GET /api/puzzles/attempts/me?limit=50` | Последние попытки текущего пользователя (новые сверху). |
+| `GET /api/puzzles/stats/me` | Сводная статистика по пазлам: решено, accuracy, текущая/лучшая серия, среднее время, текущий puzzle rating. |
+
+- **Выживание (survival):** серия растёт при каждом верном ответе и сбрасывается при ошибке. После ответа автоматически выдаётся следующая задача.
+- **Рейтинг (rated):** задачи подбираются около текущего puzzle rating, а каждое решение обновляет рейтинг по Elo и тут же загружает новую задачу.
+
+Internal ingestion (gateway-protected, requires `X-Internal-Token`):
+
+| Method & Path | Description |
+|---------------|-------------|
+| `POST /api/puzzles/internal/import` | Триггер фонового импорта CSV. Тело: `{ "file_path": "/data/lichess_db_puzzle.csv", "limit": 5000 }`. Используется CI/админкой, не мобильными приложениями. |
+
 ### Courses Service (`/api/courses`)
 
 Most endpoints require Bearer auth if they depend on the current user.

@@ -20,6 +20,8 @@ services:
       - enrollments
       - lessons
       - games
+      - notifications
+      - puzzles
     env_file:
       - .env
     environment:
@@ -107,6 +109,30 @@ services:
       METRICS_ENABLED: "true"
     restart: unless-stopped
 
+  notifications:
+    build:
+      context: .
+      dockerfile: notifications_service/Dockerfile
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      METRICS_ENABLED: "true"
+    restart: unless-stopped
+
+  puzzles:
+    build:
+      context: .
+      dockerfile: puzzles_service/Dockerfile
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      METRICS_ENABLED: "true"
+    restart: unless-stopped
+
   gateway:
     image: nginx:alpine
     depends_on:
@@ -118,6 +144,8 @@ services:
       - payments
       - lessons
       - games
+      - notifications
+      - puzzles
     ports:
       - "8080:80"
     volumes:

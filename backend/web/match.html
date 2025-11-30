@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="/styles/variables.css">
   <link rel="stylesheet" href="/styles/common.css">
   <link rel="stylesheet" href="/styles/header.css">
+  <link rel="stylesheet" href="/styles/notifications.css">
   <link rel="stylesheet" href="/styles/chess-board.css">
   <link rel="stylesheet" href="/styles/match.css">
 </head>
@@ -60,7 +61,7 @@
         </a>
         <nav class="nav">
           <a href="/games" class="nav-link active">Играть</a>
-          <a href="/spaced-repetition" class="nav-link">Задачи</a>
+          <a href="/tasks" class="nav-link">Задачи</a>
           <a href="/course" class="nav-link">Курсы</a>
           <a href="/couch" class="nav-link">Тренеры</a>
           <a href="#tournaments" class="nav-link">Турниры</a>
@@ -96,7 +97,7 @@
       <div class="mobile-menu" id="mobileMenu">
         <div>
           <a href="/games" class="nav-link mobile-nav-link">Играть</a>
-          <a href="/spaced-repetition" class="nav-link mobile-nav-link">Задачи</a>
+          <a href="/tasks" class="nav-link mobile-nav-link">Задачи</a>
           <a href="/course" class="nav-link mobile-nav-link">Курсы</a>
           <a href="/couch" class="nav-link mobile-nav-link">Тренеры</a>
           <a href="#tournaments" class="nav-link mobile-nav-link">Турниры</a>
@@ -166,10 +167,6 @@
             <div class="status-value" id="gameTimeControl">—</div>
           </div>
           <div class="status-row">
-            <div class="status-label">Статус</div>
-            <span class="pill" id="gameStatusBadge">—</span>
-          </div>
-          <div class="status-row">
             <div class="status-label">Результат</div>
             <div class="status-value" id="gameResult">—</div>
           </div>
@@ -221,6 +218,7 @@
 
   <!-- Common Auth Script (must load first) -->
   <script src="/scripts/auth.js"></script>
+  <script src="/scripts/notifications.js"></script>
   <!-- Match Page Scripts -->
   <script src="/scripts/chess-move-utils.js" defer></script>
   <script src="/scripts/chess-pieces-svg.js" defer></script>

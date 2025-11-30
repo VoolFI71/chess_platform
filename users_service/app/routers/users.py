@@ -10,25 +10,10 @@ from ..database import get_db
 from ..models import User
 from ..schemas import UserPublic, UserGameStats
 from ..security import get_current_user_id
+from ..utils import build_user_public
 
 
 router = APIRouter(prefix="/api/users", tags=["users"])
-
-
-def _build_user_public(user: User) -> UserPublic:
-	"""Вспомогательная функция для построения UserPublic"""
-	return UserPublic(
-		id=user.id,
-		username=user.username,
-		display_name=user.username,
-		blitz_rating=user.blitz_rating,
-		bullet_rating=user.bullet_rating,
-		rapid_rating=user.rapid_rating,
-		puzzle_rating=user.puzzle_rating,
-		games_played=user.games_played,
-		created_at=user.created_at,
-		updated_at=user.updated_at,
-	)
 
 
 @router.get("/me", response_model=UserPublic)
@@ -40,7 +25,7 @@ async def get_current_user_profile(
 	user = await db.get(User, current_user_id)
 	if not user or not user.is_active:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
-	return _build_user_public(user)
+	return build_user_public(user)
 
 
 @router.get("/{identifier}", response_model=UserPublic)
@@ -65,26 +50,35 @@ async def get_user(
 	if not user or not user.is_active:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
 	
-	return _build_user_public(user)
+	return build_user_public(user)
 
 
-def _get_games_client() -> tuple[str, dict[str, str]]:
-	"""Получает настройки для HTTP клиента games_service."""
-	settings = get_settings()
+# Глобальный HTTP клиент для переиспользования
+_games_client: httpx.AsyncClient | None = None
 
-	# games_service всегда доступен по имени контейнера внутри сети docker compose.
-	# Чтобы не заставлять конфигурировать URL для локальной разработки,
-	# используем http://games:8000 в качестве значения по умолчанию.
-	base_url = (settings.games_service_url or "http://games:8000").rstrip("/")
 
-	if not settings.games_internal_token:
-		raise HTTPException(
-			status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-			detail="Сервис игр недоступен"
+async def _get_games_client() -> httpx.AsyncClient:
+	"""Получает или создает HTTP клиент для games_service с переиспользованием."""
+	global _games_client
+	
+	if _games_client is None:
+		settings = get_settings()
+		base_url = (settings.games_service_url or "http://games:8000").rstrip("/")
+		
+		if not settings.games_internal_token:
+			raise HTTPException(
+				status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+				detail="Сервис игр недоступен"
+			)
+		
+		headers = {"X-Internal-Token": settings.games_internal_token}
+		_games_client = httpx.AsyncClient(
+			base_url=base_url,
+			headers=headers,
+			timeout=10.0,
 		)
-
-	headers = {"X-Internal-Token": settings.games_internal_token}
-	return base_url, headers
+	
+	return _games_client
 
 
 async def _get_user_stats_by_id(user_id: int, db: AsyncSession) -> UserGameStats:
@@ -92,14 +86,13 @@ async def _get_user_stats_by_id(user_id: int, db: AsyncSession) -> UserGameStats
 	
 	Использует HTTP вызов к games_service вместо прямого доступа к таблице games.
 	"""
-	base_url, headers = _get_games_client()
-	url = f"{base_url}/internal/stats/{user_id}"
+	client = await _get_games_client()
+	url = f"/internal/stats/{user_id}"
 	
 	try:
-		async with httpx.AsyncClient(timeout=10.0) as client:
-			response = await client.get(url, headers=headers)
-			response.raise_for_status()
-			return UserGameStats.model_validate(response.json())
+		response = await client.get(url)
+		response.raise_for_status()
+		return UserGameStats.model_validate(response.json())
 	except httpx.HTTPStatusError as exc:
 		if exc.response.status_code == 404:
 			raise HTTPException(
