@@ -14,6 +14,8 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
 
 RUN pip install -r requirements.txt
 
+COPY puzzles_service/alembic.ini ./alembic.ini
+COPY puzzles_service/alembic ./alembic
 COPY puzzles_service/app ./app
 COPY common ./common
 

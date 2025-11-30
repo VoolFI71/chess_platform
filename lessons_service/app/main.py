@@ -2,6 +2,8 @@ import httpx
 import time
 from pathlib import Path
 
+from alembic import command
+from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
 from sqlalchemy import inspect
 
@@ -10,13 +12,14 @@ from common import configure_observability
 from .config import get_settings
 from .database import get_db, sync_engine
 from .routers import lessons_router, pgn_files_router
+from .enrollments_client import close_enrollments_client
 
 
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
 
-MIGRATIONS_PATH = Path(__file__).resolve().parent / "migrations" / "versions"
+ALEMBIC_INI_PATH = Path(__file__).resolve().parent.parent / "alembic.ini"
 
 
 def _wait_for_tables(tables: tuple[str, ...], timeout: float = 60.0) -> None:
@@ -30,22 +33,21 @@ def _wait_for_tables(tables: tuple[str, ...], timeout: float = 60.0) -> None:
 		time.sleep(1)
 
 
-def apply_sql_migrations() -> None:
+def apply_migrations() -> None:
 	_wait_for_tables(("courses",))
-	if not MIGRATIONS_PATH.is_dir():
-		return
-
-	for sql_file in sorted(MIGRATIONS_PATH.glob("*.sql")):
-		sql = sql_file.read_text(encoding="utf-8").strip()
-		if not sql:
-			continue
-		with sync_engine.begin() as conn:
-			conn.exec_driver_sql(sql)
+	alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
+	alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+	command.upgrade(alembic_cfg, "head")
 
 
 @app.on_event("startup")
 def run_startup_tasks() -> None:
-	apply_sql_migrations()
+	apply_migrations()
+
+
+@app.on_event("shutdown")
+async def shutdown_http_clients() -> None:
+	await close_enrollments_client()
 
 
 async def _check_enrollments(_: object) -> None:

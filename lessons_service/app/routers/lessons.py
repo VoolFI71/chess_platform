@@ -7,30 +7,24 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..config import get_settings
 from ..database import get_db
 from ..models import Course, Lesson
 from ..schemas import LessonCreate, LessonOut, LessonUpdate
-from ..security import get_current_user, get_current_user_id
+from ..security import get_current_user_id
+from ..enrollments_client import EnrollmentsClientUnavailable, get_enrollments_client
 
 
 router = APIRouter(prefix="/api/courses/{course_id}/lessons", tags=["lessons"])
 
 
-def _get_enrollments_client() -> tuple[str, dict[str, str]]:
-	settings = get_settings()
-	if not settings.enrollments_service_url or not settings.enrollments_internal_token:
-		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
-	base_url = settings.enrollments_service_url.rstrip("/")
-	headers = {"X-Internal-Token": settings.enrollments_internal_token}
-	return base_url, headers
-
-
-def _user_enrolled(course_id: int, user_id: int) -> bool:
-	base_url, headers = _get_enrollments_client()
-	url = f"{base_url}/api/enrollments/internal/user/{user_id}"
+async def _user_enrolled(course_id: int, user_id: int) -> bool:
 	try:
-		res = httpx.get(url, headers=headers, timeout=5.0)
+		client = await get_enrollments_client()
+	except EnrollmentsClientUnavailable:
+		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
+
+	try:
+		res = await client.get(f"/api/enrollments/internal/user/{user_id}")
 	except httpx.RequestError:
 		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 
@@ -58,7 +52,7 @@ async def list_lessons(
 	if not course or not course.is_active:
 		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Курс не найден")
 
-	if course.price_cents and course.price_cents > 0 and not _user_enrolled(course_id, user_id):
+	if course.price_cents and course.price_cents > 0 and not await _user_enrolled(course_id, user_id):
 		raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Нет доступа к этому курсу")
 
 	stmt = (

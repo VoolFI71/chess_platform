@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import List
 
 import httpx
@@ -16,21 +17,45 @@ from ..security import get_current_user_id
 
 router = APIRouter(prefix="/api/courses", tags=["courses"])
 
+_enrollments_client: httpx.AsyncClient | None = None
+_client_lock = asyncio.Lock()
 
-def _get_enrollments_client() -> tuple[str, dict[str, str]]:
+
+async def _get_enrollments_client() -> httpx.AsyncClient:
 	settings = get_settings()
 	if not settings.enrollments_service_url or not settings.enrollments_internal_token:
 		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
+
 	base_url = settings.enrollments_service_url.rstrip("/")
 	headers = {"X-Internal-Token": settings.enrollments_internal_token}
-	return base_url, headers
+
+	global _enrollments_client
+	if _enrollments_client is None:
+		async with _client_lock:
+			if _enrollments_client is None:
+				timeout = httpx.Timeout(connect=2.0, read=5.0, write=5.0, pool=10.0)
+				limits = httpx.Limits(max_connections=20, max_keepalive_connections=5)
+				_enrollments_client = httpx.AsyncClient(
+					base_url=base_url,
+					headers=headers,
+					timeout=timeout,
+					limits=limits,
+				)
+	return _enrollments_client
 
 
-def _fetch_user_enrollment_course_ids(user_id: int) -> List[int]:
-	base_url, headers = _get_enrollments_client()
-	url = f"{base_url}/api/enrollments/internal/user/{user_id}"
+async def close_enrollments_client() -> None:
+	global _enrollments_client
+	async with _client_lock:
+		if _enrollments_client is not None:
+			await _enrollments_client.aclose()
+			_enrollments_client = None
+
+
+async def _fetch_user_enrollment_course_ids(user_id: int) -> List[int]:
+	client = await _get_enrollments_client()
 	try:
-		res = httpx.get(url, headers=headers, timeout=5.0)
+		res = await client.get(f"/api/enrollments/internal/user/{user_id}")
 	except httpx.RequestError:
 		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 
@@ -53,12 +78,11 @@ def _fetch_user_enrollment_course_ids(user_id: int) -> List[int]:
 	return ids
 
 
-def _ensure_enrollment(user_id: int, course_id: int) -> None:
-	base_url, headers = _get_enrollments_client()
-	url = f"{base_url}/api/enrollments/internal"
+async def _ensure_enrollment(user_id: int, course_id: int) -> None:
+	client = await _get_enrollments_client()
 	payload = {"user_id": user_id, "course_id": course_id}
 	try:
-		res = httpx.post(url, json=payload, headers=headers, timeout=5.0)
+		res = await client.post("/api/enrollments/internal", json=payload)
 	except httpx.RequestError:
 		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 
@@ -86,7 +110,7 @@ async def my_courses(
 	current_user_id: int = Depends(get_current_user_id),
 	db: AsyncSession = Depends(get_db),
 ) -> List[CourseOut]:
-	course_ids = _fetch_user_enrollment_course_ids(current_user_id)
+	course_ids = await _fetch_user_enrollment_course_ids(current_user_id)
 	if not course_ids:
 		return []
 	stmt = select(Course).where(Course.id.in_(course_ids))
@@ -129,7 +153,7 @@ async def enroll_course(
 	if not course or not course.is_active:
 		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Курс не найден")
 
-	_ensure_enrollment(user_id=current_user_id, course_id=course_id)
+	await _ensure_enrollment(user_id=current_user_id, course_id=course_id)
 	return course
 
 

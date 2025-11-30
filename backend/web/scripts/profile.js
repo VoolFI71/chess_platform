@@ -1557,8 +1557,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       // НЕ загружаем историю партий при инициализации - только при клике на вкладку
       
       // Загружаем заявки и друзей, если это свой профиль и соответствующие вкладки активны
+      const friendRequestsSection = document.getElementById('friendRequests');
+      const friendRequestsNavItem = document.querySelector('.sidebar-item[data-section="friendRequests"]');
+      
       if (currentUser && currentUser.id === profileUser.id) {
-        const friendRequestsSection = document.getElementById('friendRequests');
         if (friendRequestsSection && friendRequestsSection.classList.contains('active')) {
           await loadFriendRequests();
         }
@@ -1567,6 +1569,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (friendsSection && friendsSection.classList.contains('active')) {
           await loadFriendsList();
         }
+        
+        if (friendRequestsSection) friendRequestsSection.style.removeProperty('display');
+        if (friendRequestsNavItem) friendRequestsNavItem.style.removeProperty('display');
+      } else {
+        if (friendRequestsSection) friendRequestsSection.style.display = 'none';
+        if (friendRequestsNavItem) friendRequestsNavItem.style.display = 'none';
       }
       
       // Обновляем заголовок страницы

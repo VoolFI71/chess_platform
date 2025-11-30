@@ -14,6 +14,8 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
 
 RUN pip install -r requirements.txt
 
+COPY auth_service/alembic.ini ./alembic.ini
+COPY auth_service/alembic ./alembic
 COPY auth_service/app ./app
 COPY common ./common
 # provide shared users_service models for imports like users_service.app.models.user

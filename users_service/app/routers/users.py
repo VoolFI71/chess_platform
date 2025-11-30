@@ -1,7 +1,8 @@
+import asyncio
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -55,30 +56,44 @@ async def get_user(
 
 # Глобальный HTTP клиент для переиспользования
 _games_client: httpx.AsyncClient | None = None
+_games_client_lock = asyncio.Lock()
 
 
 async def _get_games_client() -> httpx.AsyncClient:
 	"""Получает или создает HTTP клиент для games_service с переиспользованием."""
 	global _games_client
-	
+
 	if _games_client is None:
 		settings = get_settings()
 		base_url = (settings.games_service_url or "http://games:8000").rstrip("/")
-		
+
 		if not settings.games_internal_token:
 			raise HTTPException(
 				status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
 				detail="Сервис игр недоступен"
 			)
-		
-		headers = {"X-Internal-Token": settings.games_internal_token}
-		_games_client = httpx.AsyncClient(
-			base_url=base_url,
-			headers=headers,
-			timeout=10.0,
-		)
-	
+
+		async with _games_client_lock:
+			if _games_client is None:
+				timeout = httpx.Timeout(connect=2.0, read=5.0, write=5.0, pool=10.0)
+				limits = httpx.Limits(max_connections=20, max_keepalive_connections=5)
+				headers = {"X-Internal-Token": settings.games_internal_token}
+				_games_client = httpx.AsyncClient(
+					base_url=base_url,
+					headers=headers,
+					timeout=timeout,
+					limits=limits,
+				)
+
 	return _games_client
+
+
+async def close_games_client() -> None:
+	global _games_client
+	async with _games_client_lock:
+		if _games_client is not None:
+			await _games_client.aclose()
+			_games_client = None
 
 
 async def _get_user_stats_by_id(user_id: int, db: AsyncSession) -> UserGameStats:

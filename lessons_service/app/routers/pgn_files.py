@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..config import get_settings
+from ..enrollments_client import EnrollmentsClientUnavailable, get_enrollments_client
 from ..database import get_db
 from ..models import Course, Lesson
 from ..schemas import PGNFileOut
@@ -17,20 +17,14 @@ from ..security import get_current_user_id
 router = APIRouter(prefix="/api/pgn-files", tags=["pgn-files"])
 
 
-def _get_enrollments_client() -> tuple[str, dict[str, str]]:
-	settings = get_settings()
-	if not settings.enrollments_service_url or not settings.enrollments_internal_token:
-		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
-	base_url = settings.enrollments_service_url.rstrip("/")
-	headers = {"X-Internal-Token": settings.enrollments_internal_token}
-	return base_url, headers
-
-
-def _fetch_user_enrolled_course_ids(user_id: int) -> List[int]:
-	base_url, headers = _get_enrollments_client()
-	url = f"{base_url}/api/enrollments/internal/user/{user_id}"
+async def _fetch_user_enrolled_course_ids(user_id: int) -> List[int]:
 	try:
-		res = httpx.get(url, headers=headers, timeout=5.0)
+		client = await get_enrollments_client()
+	except EnrollmentsClientUnavailable:
+		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
+
+	try:
+		res = await client.get(f"/api/enrollments/internal/user/{user_id}")
 	except httpx.RequestError:
 		raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Сервис зачислений недоступен")
 
@@ -58,7 +52,7 @@ async def list_user_pgn_files(
 	db: AsyncSession = Depends(get_db),
 	user_id: int = Depends(get_current_user_id),
 ) -> List[PGNFileOut]:
-	course_ids = _fetch_user_enrolled_course_ids(user_id)
+	course_ids = await _fetch_user_enrolled_course_ids(user_id)
 	if not course_ids:
 		return []
 

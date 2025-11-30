@@ -15,6 +15,8 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
 
 RUN pip install -r requirements.txt
 
+COPY enrollments_service/alembic.ini ./alembic.ini
+COPY enrollments_service/alembic ./alembic
 COPY enrollments_service/app ./app
 COPY common ./common
 

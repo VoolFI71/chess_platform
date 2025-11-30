@@ -1,6 +1,9 @@
 import logging
+import time
 from pathlib import Path
 
+from alembic import command
+from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
 
 from common import configure_observability
@@ -8,6 +11,7 @@ from common import configure_observability
 from .config import get_settings
 from .database import get_db, sync_engine
 from .routers import friendships_router, users_router
+from .routers.users import close_games_client
 
 
 logger = logging.getLogger(__name__)
@@ -15,35 +19,43 @@ settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
 
-MIGRATIONS_PATH = Path(__file__).resolve().parent / "migrations" / "versions"
+ALEMBIC_INI_PATH = Path(__file__).resolve().parent.parent / "alembic.ini"
 
 
-def apply_sql_migrations() -> None:
-	if not MIGRATIONS_PATH.is_dir():
-		logger.warning("Migrations directory not found: %s", MIGRATIONS_PATH)
-		return
-
-	migration_files = sorted(MIGRATIONS_PATH.glob("*.sql"))
-	logger.info("Found %d migration file(s)", len(migration_files))
-	
-	for sql_file in migration_files:
-		logger.info("Applying migration: %s", sql_file.name)
-		sql = sql_file.read_text(encoding="utf-8").strip()
-		if not sql:
-			logger.warning("Migration file %s is empty, skipping", sql_file.name)
-			continue
+def _wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> None:
+	deadline = time.time() + timeout
+	last_error: Exception | None = None
+	while time.time() < deadline:
 		try:
 			with sync_engine.begin() as conn:
-				conn.exec_driver_sql(sql)
-			logger.info("Migration %s applied successfully", sql_file.name)
-		except Exception as e:
-			logger.error("Failed to apply migration %s: %s", sql_file.name, e, exc_info=True)
-			raise
+				conn.exec_driver_sql("SELECT 1")
+			if last_error:
+				logger.info("Database connection restored after: %s", last_error)
+			return
+		except Exception as exc:  # noqa: BLE001
+			last_error = exc
+			logger.warning(
+				"Database not ready yet (retrying in %.1fs): %s", retry_interval, exc
+			)
+			time.sleep(retry_interval)
+	raise RuntimeError("Database is not reachable") from last_error
+
+
+def apply_migrations() -> None:
+	_wait_for_database()
+	alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
+	alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+	command.upgrade(alembic_cfg, "head")
 
 
 @app.on_event("startup")
 def run_startup_tasks() -> None:
-	apply_sql_migrations()
+	apply_migrations()
+
+
+@app.on_event("shutdown")
+async def shutdown_http_clients() -> None:
+	await close_games_client()
 
 
 configure_observability(

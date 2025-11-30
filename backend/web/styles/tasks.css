@@ -121,7 +121,7 @@ body.dark .mode-card {
     color: white;
     border-color: transparent;
     box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
-    transform: translateY(-8px) scale(1.03);
+    transform: translateY(-8px);
 }
 
 .mode-card.active::before {
@@ -213,7 +213,8 @@ body.dark .mode-card {
 
 @media (max-width: 768px) {
     .tasks-container {
-        padding: 2rem 1rem;
+        padding: 1.5rem 0.75rem 2rem;
+        display: block;
     }
 
     .tasks-title {
@@ -230,7 +231,8 @@ body.dark .mode-card {
     }
 
     .mode-card {
-        padding: 2rem;
+        padding: 1.75rem;
+        min-height: 0;
     }
 
     .mode-icon {
@@ -241,6 +243,65 @@ body.dark .mode-card {
 
     .mode-name {
         font-size: 1.5rem;
+    }
+
+    .puzzle-layout {
+        gap: 1.5rem;
+    }
+
+    .puzzle-card,
+    .sidebar-card {
+        padding: 1rem;
+        border-radius: 1rem;
+    }
+
+    .puzzle-header-line {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .puzzle-meta-line {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .puzzle-progress-wrapper {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .puzzle-progress-text {
+        margin-left: 0;
+    }
+
+    .puzzle-left-sidebar,
+    .puzzle-sidebar {
+        gap: 1rem;
+    }
+
+    .moves-history {
+        max-height: none;
+    }
+
+    .board-controls {
+        gap: 0.4rem;
+    }
+
+    .control-btn,
+    .size-btn,
+    .nav-btn {
+        width: 34px;
+        height: 34px;
+    }
+
+    .board-size-control {
+        gap: 0.2rem;
+    }
+
+    .puzzle-progress-wrapper-compact .puzzle-progress-text {
+        text-align: left;
     }
 }
 
@@ -757,11 +818,51 @@ body.dark .nav-btn {
 @media (max-width: 1024px) {
     .puzzle-layout {
         grid-template-columns: 1fr;
+        gap: 1.75rem;
     }
 
     .puzzle-left-sidebar,
     .puzzle-sidebar {
         position: static;
+    }
+
+    .puzzle-main {
+        order: 1;
+    }
+
+    .puzzle-left-sidebar {
+        order: 2;
+    }
+
+    .puzzle-sidebar {
+        order: 3;
+    }
+}
+
+@media (max-width: 480px) {
+    .tasks-title {
+        font-size: 1.75rem;
+    }
+
+    .tasks-subtitle {
+        font-size: 0.95rem;
+    }
+
+    .puzzle-card,
+    .sidebar-card {
+        padding: 0.85rem;
+    }
+
+    .puzzle-title {
+        font-size: 1.25rem;
+    }
+
+    .puzzle-meta-pill {
+        font-size: 0.8rem;
+    }
+
+    .puzzle-status {
+        font-size: 0.85rem;
     }
 }
 

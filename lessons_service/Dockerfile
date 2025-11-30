@@ -14,6 +14,8 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
 
 RUN pip install -r requirements.txt
 
+COPY lessons_service/alembic.ini ./alembic.ini
+COPY lessons_service/alembic ./alembic
 COPY lessons_service/app ./app
 COPY common ./common
 

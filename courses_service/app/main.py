@@ -3,6 +3,8 @@ import logging
 import time
 from pathlib import Path
 
+from alembic import command
+from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
 from sqlalchemy.orm import Session
 
@@ -11,6 +13,7 @@ from common import configure_observability
 from .config import get_settings
 from .database import get_db, sync_engine
 from .routers import courses_router
+from .routers.courses import close_enrollments_client
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +21,7 @@ settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
 
-MIGRATIONS_PATH = Path(__file__).resolve().parent / "migrations" / "versions"
+ALEMBIC_INI_PATH = Path(__file__).resolve().parent.parent / "alembic.ini"
 
 
 def _wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> None:
@@ -41,22 +44,21 @@ def _wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> No
 	raise RuntimeError("Database is not reachable") from last_error
 
 
-def apply_sql_migrations() -> None:
+def apply_migrations() -> None:
 	_wait_for_database()
-	if not MIGRATIONS_PATH.is_dir():
-		return
-
-	for sql_file in sorted(MIGRATIONS_PATH.glob("*.sql")):
-		sql = sql_file.read_text(encoding="utf-8").strip()
-		if not sql:
-			continue
-		with sync_engine.begin() as conn:
-			conn.exec_driver_sql(sql)
+	alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
+	alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+	command.upgrade(alembic_cfg, "head")
 
 
 @app.on_event("startup")
 def run_startup_tasks() -> None:
-	apply_sql_migrations()
+	apply_migrations()
+
+
+@app.on_event("shutdown")
+async def shutdown_http_clients() -> None:
+	await close_enrollments_client()
 
 
 async def _check_enrollments(_: Session) -> None:

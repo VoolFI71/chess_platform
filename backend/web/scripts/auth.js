@@ -69,7 +69,7 @@
   async function apiFetch(path, options = {}) {
     const headers = createHeaders(options);
     const res = await fetch(path, { ...options, headers });
-    if (res.status !== 401) return res;
+    if (res.status !== 401 && res.status !== 403) return res;
 
     // Try refresh once
     const refreshed = await tryRefresh();
@@ -89,15 +89,18 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: rt }),
       });
-      if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
         clearTokens();
+        return false;
+      }
+      if (!res.ok) {
         return false;
       }
       const data = await res.json();
       setTokens(data.access_token, data.refresh_token);
       return true;
-    } catch {
-      clearTokens();
+    } catch (err) {
+      console.warn('Token refresh failed', err);
       return false;
     }
   }
@@ -480,13 +483,17 @@
       let user = null;
       if (getAccessToken() || getRefreshToken()) {
         user = await me();
+        if (!user && !(await tryRefresh())) {
+          // keep tokens if refresh failed due to transient issues
+          if (!getRefreshToken()) clearTokens();
+        } else if (!user && (getAccessToken() || getRefreshToken())) {
+          user = await me();
+        }
       }
       lastAuthState = !!user;
       updateAuthUI(user);
     } catch (error) {
       console.error('Failed to initialize auth:', error);
-      // Clear tokens if initialization fails
-      clearTokens();
       lastAuthState = false;
       updateAuthUI(null);
     }
@@ -495,6 +502,18 @@
   // Expose fetch and helpers globally for page scripts
   window.apiFetch = apiFetch;
   window.authMe = me;
+  if (typeof window.getAccessToken !== 'function') {
+    window.getAccessToken = getAccessToken;
+  }
+  if (typeof window.getRefreshToken !== 'function') {
+    window.getRefreshToken = getRefreshToken;
+  }
+  if (typeof window.setTokens !== 'function') {
+    window.setTokens = setTokens;
+  }
+  if (typeof window.clearTokens !== 'function') {
+    window.clearTokens = clearTokens;
+  }
 
   // Global theme initializer used by multiple pages
   // Использует единый ключ 'theme' для сохранения выбранной темы

@@ -14,6 +14,8 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
 
 RUN pip install -r requirements.txt
 
+COPY payments_service/alembic.ini ./alembic.ini
+COPY payments_service/alembic ./alembic
 COPY payments_service/app ./app
 COPY common ./common
 
