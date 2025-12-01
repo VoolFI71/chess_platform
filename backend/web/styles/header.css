@@ -128,15 +128,21 @@ html.dark .spaced-header {
     font-weight: 800;
     letter-spacing: -0.5px;
     margin: 0;
-    color: #3b82f6;
+    color: #000000 !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: #000000 !important;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+    animation: none !important;
 }
 
-/* Улучшенная видимость логотипа в темной теме */
+/* Светлый цвет в темной теме */
 body.dark .logo .gradient-text,
 html.dark .logo .gradient-text {
-    color: #60a5fa;
-    filter: drop-shadow(0 1px 3px rgba(59, 130, 246, 0.3));
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.1));
 }
 
 .logo .gradient-text + div {
@@ -172,16 +178,17 @@ html.dark .logo .gradient-text {
     opacity: 0.4;
 }
 
+/* Общий стиль для gradient-text, но логотип имеет приоритет через .logo .gradient-text */
 .gradient-text {
-    color: #3b82f6;
+    color: #000000;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
-/* Улучшенная видимость в темной теме */
+/* Светлый цвет в темной теме */
 body.dark .gradient-text,
 html.dark .gradient-text {
-    color: #60a5fa;
-    filter: drop-shadow(0 1px 3px rgba(59, 130, 246, 0.3));
+    color: #ffffff;
+    filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.1));
 }
 
 .nav {
@@ -192,7 +199,7 @@ html.dark .gradient-text {
 .nav-link {
     padding: 0.6rem 1.2rem;
     text-decoration: none;
-    color: var(--muted);
+    color: #000000;
     font-weight: 600;
     font-size: 1rem;
     border-radius: 8px;
@@ -201,13 +208,13 @@ html.dark .gradient-text {
 }
 
 .nav-link:hover {
-    color: var(--primary);
-    background: rgba(59, 130, 246, 0.08);
+    color: #000000;
+    background: transparent;
 }
 
 .nav-link.active {
-    color: var(--primary);
-    background: rgba(59, 130, 246, 0.12);
+    color: #000000;
+    background: transparent;
 }
 
 .header-actions {
@@ -215,6 +222,8 @@ html.dark .gradient-text {
     align-items: center;
     gap: 0.75rem;
     flex-shrink: 0;
+    min-height: 48px;
+    position: relative;
 }
 
 .btn-login, .btn-register {
@@ -378,19 +387,19 @@ html.dark .mobile-menu {
 
 body.dark .nav-link,
 html.dark .nav-link {
-    color: var(--muted);
+    color: #ffffff;
 }
 
 body.dark .nav-link:hover,
 html.dark .nav-link:hover {
-    color: var(--primary);
-    background: rgba(59, 130, 246, 0.12);
+    color: #ffffff;
+    background: transparent;
 }
 
 body.dark .nav-link.active,
 html.dark .nav-link.active {
-    color: var(--primary);
-    background: rgba(59, 130, 246, 0.15);
+    color: #ffffff;
+    background: transparent;
 }
 
 .mobile-menu .nav-link {
@@ -825,4 +834,55 @@ html.dark .nav-link.active {
     top: 0.25rem;
     right: 0.25rem;
     z-index: 3;
+}
+
+/* Auth Icon Button - Single square button for login/register */
+.auth-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+    border: none;
+    cursor: pointer;
+}
+
+.auth-icon-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+}
+
+.auth-icon-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+.auth-icon-btn i {
+    font-size: 1.1rem;
+}
+
+body.dark .auth-icon-btn {
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.5);
+}
+
+body.dark .auth-icon-btn:hover {
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.6);
+}
+
+@media (max-width: 768px) {
+    .auth-icon-btn {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .auth-icon-btn i {
+        font-size: 1rem;
+    }
 }

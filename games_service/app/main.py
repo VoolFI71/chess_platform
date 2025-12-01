@@ -46,11 +46,11 @@ def _wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> No
 
 def apply_migrations() -> None:
     logger.info("Applying database migrations...")
-    _wait_for_database()
-    alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
-    alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
-    command.upgrade(alembic_cfg, "head")
-    logger.info("Database migrations applied successfully")
+        _wait_for_database()
+        alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
+        alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Database migrations applied successfully")
 
 
 @app.on_event("startup")

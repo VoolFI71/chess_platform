@@ -30,13 +30,25 @@
       if (TasksState.isPuzzleLoading) return;
 
       const section = document.getElementById('puzzleSection');
-      if (section) section.style.display = 'block';
+      if (section) section.classList.remove('hidden');
 
       TasksState.isPuzzleLoading = true;
       window.TasksUI.setPuzzleStatus('Загружаем задачу...', false);
 
       window.TasksUtils.clearAllTimers();
       window.TasksUI.stopTimeTracking();
+      
+      // Очистка памяти: удаляем старые обработчики событий
+      if (TasksState.eventListeners) {
+        TasksState.eventListeners.forEach((handlers, element) => {
+          if (element && element.parentNode) {
+            handlers.forEach(({ type, handler }) => {
+              element.removeEventListener(type, handler);
+            });
+          }
+        });
+        TasksState.eventListeners.clear();
+      }
       
       TasksState.userMoves = [];
       TasksState.selectedSquare = null;
@@ -49,7 +61,63 @@
       TasksState.renderBoardScheduled = false;
       TasksState.lastMoveSquares = [];
       
+      // Очистка кеша позиций (WeakMap очистится автоматически, но можно явно очистить ссылки)
+      // WeakMap не требует явной очистки, но мы можем очистить другие кеши
+      
       window.TasksHistory.updateMovesHistory();
+
+      // Показываем скелетон доски и скрываем реальную доску
+      const skeleton = document.getElementById('boardSkeleton');
+      const boardWrapper = document.getElementById('boardWrapper');
+      if (skeleton) {
+        skeleton.classList.remove('hidden');
+        // Создаем клетки скелетона если их еще нет
+        const skeletonGrid = skeleton.querySelector('.skeleton-board-grid');
+        if (skeletonGrid && skeletonGrid.children.length === 0) {
+          for (let i = 0; i < 64; i++) {
+            const square = document.createElement('div');
+            square.className = 'skeleton-square';
+            skeletonGrid.appendChild(square);
+          }
+        }
+      }
+      if (boardWrapper) {
+        boardWrapper.classList.add('hidden');
+      }
+
+      // Показываем секцию с задачей и базовую информацию сразу с плавным переходом
+      const puzzleSection = document.getElementById('puzzleSection');
+      if (puzzleSection) {
+        puzzleSection.classList.remove('hidden');
+        // Добавляем класс для плавного появления
+        puzzleSection.classList.add('puzzle-transition-in');
+        window.TasksUtils.createTimer(() => {
+          puzzleSection.classList.remove('puzzle-transition-in');
+        }, 500);
+      }
+      
+      // Показываем скелетоны для боковых панелей
+      const headerSkeleton = document.getElementById('headerSkeleton');
+      const infoSkeleton = document.getElementById('infoSkeleton');
+      if (headerSkeleton) {
+        headerSkeleton.classList.remove('hidden');
+      }
+      if (infoSkeleton) {
+        infoSkeleton.classList.remove('hidden');
+      }
+      
+      // Показываем заголовок с режимом сразу (базовая информация)
+      const headerCard = document.getElementById('puzzleHeaderCard');
+      if (headerCard) {
+        headerCard.classList.remove('hidden');
+        const modeLabel = document.getElementById('currentModeLabel');
+        if (modeLabel) {
+          modeLabel.innerHTML = `
+            <i class="fas fa-layer-group"></i>
+            Режим: ${TasksState.selectedMode.name}
+          `;
+        }
+      }
 
       try {
         const url = window.TasksAPI.buildPuzzleRequestUrl();
@@ -102,8 +170,54 @@
           }
         }
         
-        window.TasksBoard.renderBoard();
+        // Убеждаемся, что модули доски загружены перед рендерингом
+        if (!window.TasksBoard) {
+          console.error('TasksBoard module not loaded');
+          throw new Error('Модули доски не загружены');
+        }
+        
+        // Плавный переход: сначала скрываем старую доску, затем показываем новую
+        const boardWrapper = document.getElementById('boardWrapper');
+        
+        if (boardWrapper && boardWrapper.classList.contains('hidden')) {
+          // Первая загрузка - рендерим и показываем с анимацией
+          window.TasksBoard.renderBoard();
+          boardWrapper.classList.remove('hidden');
+          boardWrapper.classList.add('board-fade-in');
+          window.TasksUtils.createTimer(() => {
+            boardWrapper.classList.remove('board-fade-in');
+          }, 400);
+        } else if (boardWrapper) {
+          // Переход между задачами - плавное исчезновение и появление
+          boardWrapper.classList.add('board-fade-out');
+          window.TasksUtils.createTimer(() => {
+            window.TasksBoard.renderBoard();
+            boardWrapper.classList.remove('board-fade-out');
+            boardWrapper.classList.add('board-fade-in');
+            window.TasksUtils.createTimer(() => {
+              boardWrapper.classList.remove('board-fade-in');
+            }, 400);
+          }, 200);
+        } else {
+          window.TasksBoard.renderBoard();
+        }
+        
         window.TasksUI.updatePuzzleHeader(puzzle);
+        
+        // Скрываем все скелетоны
+        const skeleton = document.getElementById('boardSkeleton');
+        const headerSkeleton = document.getElementById('headerSkeleton');
+        const infoSkeleton = document.getElementById('infoSkeleton');
+        
+        if (skeleton) {
+          skeleton.classList.add('hidden');
+        }
+        if (headerSkeleton) {
+          headerSkeleton.classList.add('hidden');
+        }
+        if (infoSkeleton) {
+          infoSkeleton.classList.add('hidden');
+        }
         
         TasksState.puzzleStartTime = Date.now();
         window.TasksUI.startTimeTracking();
@@ -129,6 +243,22 @@
         TasksState.playerColor = 'b';
         TasksState.boardOrientation = 'white';
         TasksState.lastMoveSquares = [];
+        
+        // Очистка памяти: удаляем обработчики событий
+        if (window.TasksUtils && window.TasksUtils.clearAllEventListeners) {
+          window.TasksUtils.clearAllEventListeners();
+        }
+        
+        // Скрываем скелетон при ошибке
+        const skeleton = document.getElementById('boardSkeleton');
+        const boardWrapper = document.getElementById('boardWrapper');
+        if (skeleton) {
+          skeleton.classList.add('hidden');
+        }
+        if (boardWrapper) {
+          boardWrapper.classList.add('hidden');
+        }
+        
         window.TasksBoard.renderBoard();
         window.TasksHistory.updateMovesHistory();
       } finally {
@@ -224,8 +354,18 @@
         }
         
         if (success) {
+          // Оптимизация: предзагружаем следующую задачу в фоне
+          const nextPuzzleUrl = window.TasksAPI.buildPuzzleRequestUrl();
+          // Используем link prefetch для предзагрузки следующей задачи
+          const link = document.createElement('link');
+          link.rel = 'prefetch';
+          link.href = nextPuzzleUrl;
+          link.as = 'fetch';
+          link.crossOrigin = 'anonymous';
+          document.head.appendChild(link);
+          
           await new Promise(resolve => {
-            window.TasksUtils.createTimer(resolve, 2000);
+            window.TasksUtils.createTimer(resolve, 1500);
           });
           window.TasksUI.setPuzzleStatus('Загружаем следующую задачу...', false);
           await window.TasksAPI.loadPuzzleForCurrentMode();

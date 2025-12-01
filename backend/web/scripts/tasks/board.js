@@ -71,8 +71,29 @@
         const moveUtils = window.ChessMoveUtils;
         // Конвертируем формат цвета: 'w'/'b' -> 'white'/'black'
         const colorForMoveGen = activeColor === 'w' ? 'white' : 'black';
-        const { movesByFrom: movesMap } = moveUtils.generateMoves(TasksState.currentFEN, colorForMoveGen);
-        movesByFrom = movesMap;
+        
+        // Оптимизация памяти: используем кеш для позиций
+        const cacheKey = `${TasksState.currentFEN}|${colorForMoveGen}`;
+        let cachedMoves = TasksState.positionCache?.get(cacheKey);
+        
+        if (!cachedMoves) {
+          const { movesByFrom: movesMap } = moveUtils.generateMoves(TasksState.currentFEN, colorForMoveGen);
+          cachedMoves = movesMap;
+          // Сохраняем в кеш с ограничением размера (предотвращает утечки памяти)
+          if (TasksState.positionCache) {
+            // Ограничиваем размер кеша до 50 позиций
+            if (TasksState.positionCache.size >= 50) {
+              // Удаляем самую старую запись (первую)
+              const firstKey = TasksState.positionCache.keys().next().value;
+              if (firstKey) {
+                TasksState.positionCache.delete(firstKey);
+              }
+            }
+            TasksState.positionCache.set(cacheKey, cachedMoves);
+          }
+        }
+        
+        movesByFrom = cachedMoves;
       }
       
       // Устанавливаем делегирование событий на контейнер доски (один раз, при первом рендере)

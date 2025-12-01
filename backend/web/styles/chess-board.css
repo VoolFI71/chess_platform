@@ -275,8 +275,13 @@ body.dark .square .piece svg {
 
 /* Анимация для перемещения фигур */
 .piece-moving {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
     z-index: 100;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.piece-moving svg {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 
 /* Улучшенная поддержка темной темы */

@@ -28,9 +28,13 @@
       (function() {
         try {
           const saved = localStorage.getItem('theme');
-          if (saved === 'dark') {
+          const isDark = saved === 'dark';
+          if (isDark) {
             document.documentElement.classList.add('dark');
             document.body.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.body.classList.remove('dark');
           }
         } catch {}
       })();
@@ -84,21 +88,9 @@
                 <nav class="nav">
                     <a href="/games" class="nav-link">Играть</a>
                     <a href="/tasks" class="nav-link active">Задачи</a>
-                    <a href="/course" class="nav-link">Курсы</a>
-                    <a href="/couch" class="nav-link">Тренеры</a>
-                    <a href="#tournaments" class="nav-link">Турниры</a>
+                    <a href="/leaderboard" class="nav-link">Рейтинг</a>
                 </nav>
                 <div class="header-actions">
-                    <div id="authButtons">
-                        <button class="btn-login" id="gamesLoginBtn" onclick="showLoginModal()">
-                            <i class="fas fa-sign-in-alt"></i>
-                            Войти
-                        </button>
-                        <button class="btn-register" id="gamesRegisterBtn" onclick="showRegisterModal()">
-                            <i class="fas fa-user-plus"></i>
-                            Регистрация
-                        </button>
-                    </div>
                     <div id="userActions">
                         <div id="gamesUserInfo">
                             <span></span>
@@ -107,6 +99,11 @@
                     <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()">
                         <i class="fas fa-sun" id="themeIcon"></i>
                     </button>
+                    <div id="authButtons">
+                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtn" title="Войти / Регистрация">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </a>
+                    </div>
                     <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
                         <i class="fas fa-bars" id="menuIcon"></i>
                     </button>
@@ -119,19 +116,12 @@
                 <div>
                     <a href="/games" class="nav-link" onclick="closeMobileMenu()">Играть</a>
                     <a href="/tasks" class="nav-link" onclick="closeMobileMenu()">Задачи</a>
-                    <a href="/course" class="nav-link" onclick="closeMobileMenu()">Курсы</a>
-                    <a href="/couch" class="nav-link" onclick="closeMobileMenu()">Тренеры</a>
-                    <a href="#tournaments" class="nav-link" onclick="closeMobileMenu()">Турниры</a>
+                    <a href="/leaderboard" class="nav-link" onclick="closeMobileMenu()">Рейтинг</a>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <button class="btn-login" id="gamesLoginBtnMobile" onclick="showLoginModal(); closeMobileMenu();">
+                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtnMobile" title="Войти / Регистрация" onclick="closeMobileMenu();">
                             <i class="fas fa-sign-in-alt"></i>
-                            Войти
-                        </button>
-                        <button class="btn-register" id="gamesRegisterBtnMobile" onclick="showRegisterModal(); closeMobileMenu();">
-                            <i class="fas fa-user-plus"></i>
-                            Регистрация
-                        </button>
+                        </a>
                     </div>
                     <div id="mobileUserActions">
                         <div id="gamesUserInfoMobile">
@@ -154,11 +144,17 @@
             </div>
             <div class="mode-grid" id="modeGrid"></div>
 
-            <section class="puzzle-section" id="puzzleSection">
+            <section class="puzzle-section hidden" id="puzzleSection">
                 <div class="puzzle-layout">
                     <!-- Левая панель с информацией о задаче -->
                     <aside class="puzzle-left-sidebar" id="puzzleLeftSidebar">
-                        <div class="sidebar-card" id="puzzleHeaderCard" style="display: none;">
+                        <!-- Скелетон для заголовка -->
+                        <div class="sidebar-card skeleton-card hidden" id="headerSkeleton">
+                            <div class="skeleton-line" style="width: 60%; height: 20px; margin-bottom: 1rem;"></div>
+                            <div class="skeleton-line" style="width: 100%; height: 16px; margin-bottom: 0.5rem;"></div>
+                            <div class="skeleton-line" style="width: 80%; height: 16px;"></div>
+                        </div>
+                        <div class="sidebar-card hidden" id="puzzleHeaderCard">
                             <div class="puzzle-title-compact">
                                 <i class="fas fa-chess-puzzle"></i>
                                 Позиция задачи
@@ -178,7 +174,15 @@
                                 </span>
                             </div>
                         </div>
-                        <div class="sidebar-card" id="puzzleInfoCard" style="display: none;">
+                        <!-- Скелетон для информации о задаче -->
+                        <div class="sidebar-card skeleton-card hidden" id="infoSkeleton">
+                            <div class="skeleton-line" style="width: 50%; height: 20px; margin-bottom: 1.5rem;"></div>
+                            <div class="skeleton-line" style="width: 100%; height: 16px; margin-bottom: 1rem;"></div>
+                            <div class="skeleton-line" style="width: 70%; height: 16px; margin-bottom: 1rem;"></div>
+                            <div class="skeleton-line" style="width: 90%; height: 16px; margin-bottom: 1rem;"></div>
+                            <div class="skeleton-line" style="width: 60%; height: 16px;"></div>
+                        </div>
+                        <div class="sidebar-card hidden" id="puzzleInfoCard">
                             <h3 class="sidebar-title">
                                 <i class="fas fa-info-circle"></i>
                                 О задаче
@@ -219,7 +223,13 @@
                     <!-- Основная область с доской -->
                     <div class="puzzle-main">
                         <div class="board-container" id="boardContainer">
-                            <div class="board-wrapper">
+                            <!-- Скелетон доски во время загрузки -->
+                            <div class="board-skeleton" id="boardSkeleton">
+                                <div class="skeleton-board-grid">
+                                    <!-- Генерируем 64 клетки для скелетона -->
+                                </div>
+                            </div>
+                            <div class="board-wrapper hidden" id="boardWrapper">
                                 <div class="board-shell">
                                     <div class="chess-board" id="boardGrid"></div>
                                 </div>
@@ -249,7 +259,10 @@
                                         <i class="fas fa-fire"></i>
                                         Серия
                                     </div>
-                                    <div class="stat-value" id="streakValue">0</div>
+                                    <div class="streak-indicator" id="streakIndicator">
+                                        <i class="fas fa-fire streak-icon"></i>
+                                        <span class="streak-value" id="streakValue">0</span>
+                                    </div>
                                 </div>
                                 
                                 <div class="stat-item" id="timeStat">
@@ -270,7 +283,7 @@
                             <div class="moves-history" id="movesHistory">
                                 <div class="moves-empty">Ходы появятся здесь</div>
                             </div>
-                            <div class="moves-navigation" id="movesNavigation" style="display: none;">
+                            <div class="moves-navigation hidden" id="movesNavigation">
                                 <button class="nav-btn" id="prevMoveBtn" title="Предыдущий ход">
                                     <i class="fas fa-chevron-left"></i>
                                 </button>
@@ -287,18 +300,15 @@
 
     <script src="/scripts/auth.js"></script>
     <script src="/scripts/modal-utils.js"></script>
-    <script src="/scripts/chess-move-utils.js" defer></script>
-    <script src="/scripts/chess-pieces-svg.js" defer></script>
-    <!-- Tasks modules (order matters) -->
+    <!-- Ленивая загрузка модулей -->
+    <script src="/scripts/tasks/lazy-loader.js"></script>
+    <!-- Tasks modules (order matters) - только критичные модули -->
     <script src="/scripts/tasks/constants.js"></script>
     <script src="/scripts/tasks/state.js"></script>
     <script src="/scripts/tasks/utils.js"></script>
-    <script src="/scripts/tasks/board.js"></script>
-    <script src="/scripts/tasks/moves.js"></script>
     <script src="/scripts/tasks/api.js"></script>
     <script src="/scripts/tasks/ui.js"></script>
-    <script src="/scripts/tasks/history.js"></script>
-    <script src="/scripts/tasks/animations.js"></script>
     <script src="/scripts/tasks/main.js"></script>
+    <!-- Остальные модули загружаются лениво через lazy-loader.js -->
 </body>
 </html>

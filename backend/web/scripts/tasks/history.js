@@ -51,13 +51,33 @@
       
       if (!historyEl) return;
       
+      // Ограничиваем размер истории для предотвращения утечек памяти
+      const maxSize = TasksState.maxHistorySize || 100;
+      if (TasksState.movesHistory.length > maxSize) {
+        // Удаляем старые записи, сохраняя последние maxSize
+        const itemsToRemove = TasksState.movesHistory.length - maxSize;
+        TasksState.movesHistory.splice(0, itemsToRemove);
+        // Корректируем индекс, если он вышел за границы
+        if (TasksState.currentHistoryIndex >= TasksState.movesHistory.length) {
+          TasksState.currentHistoryIndex = TasksState.movesHistory.length - 1;
+        }
+      }
+      
       if (TasksState.movesHistory.length === 0) {
         historyEl.innerHTML = '<div class="moves-empty">Ходы появятся здесь</div>';
-        if (navEl) navEl.style.display = 'none';
+        if (navEl) navEl.classList.add('hidden');
         return;
       }
       
-      if (navEl) navEl.style.display = 'flex';
+      if (navEl) navEl.classList.remove('hidden');
+      
+      // Очищаем старые обработчики событий перед перерисовкой
+      const oldMoveElements = historyEl.querySelectorAll('.move-item');
+      oldMoveElements.forEach(el => {
+        // Клонируем элемент без обработчиков событий
+        const newEl = el.cloneNode(true);
+        el.parentNode?.replaceChild(newEl, el);
+      });
       
       historyEl.innerHTML = '';
       
@@ -74,7 +94,9 @@
             moveEl.classList.add('move-incorrect');
           }
         }
-        moveEl.addEventListener('click', () => {
+        
+        // Сохраняем обработчик для последующей очистки
+        const clickHandler = () => {
           TasksState.currentHistoryIndex = index;
           TasksState.currentFEN = item.fen;
           TasksState.board = window.TasksBoard.parseFEN(TasksState.currentFEN);
@@ -84,7 +106,16 @@
           window.TasksBoard.renderBoard();
           window.TasksHistory.updateHistoryNavigation();
           window.TasksHistory.updateMovesHistory();
-        });
+        };
+        
+        moveEl.addEventListener('click', clickHandler);
+        
+        // Сохраняем ссылку на обработчик для возможной очистки
+        if (!TasksState.eventListeners.has(moveEl)) {
+          TasksState.eventListeners.set(moveEl, new Set());
+        }
+        TasksState.eventListeners.get(moveEl).add({ type: 'click', handler: clickHandler });
+        
         historyEl.appendChild(moveEl);
       });
       

@@ -13,15 +13,24 @@ services:
   api:
     build: .
     depends_on:
-      - db
-      - minio
-      - auth
-      - courses
-      - enrollments
-      - lessons
-      - games
-      - notifications
-      - puzzles
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
+      auth:
+        condition: service_started
+      courses:
+        condition: service_started
+      enrollments:
+        condition: service_started
+      lessons:
+        condition: service_started
+      games:
+        condition: service_started
+      notifications:
+        condition: service_started
+      puzzles:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -35,8 +44,10 @@ services:
       context: .
       dockerfile: auth_service/Dockerfile
     depends_on:
-      - db
-      - users
+      db:
+        condition: service_started
+      users:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -48,7 +59,8 @@ services:
       context: .
       dockerfile: users_service/Dockerfile
     depends_on:
-      - db
+      db:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -63,7 +75,8 @@ services:
       context: .
       dockerfile: enrollments_service/Dockerfile
     depends_on:
-      - db
+      db:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -76,8 +89,10 @@ services:
       context: .
       dockerfile: courses_service/Dockerfile
     depends_on:
-      - db
-      - enrollments
+      db:
+        condition: service_started
+      enrollments:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -91,8 +106,10 @@ services:
       context: .
       dockerfile: lessons_service/Dockerfile
     depends_on:
-      - db
-      - enrollments
+      db:
+        condition: service_started
+      enrollments:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -106,7 +123,8 @@ services:
       context: .
       dockerfile: games_service/Dockerfile
     depends_on:
-      - db
+      db:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -118,7 +136,10 @@ services:
       context: .
       dockerfile: notifications_service/Dockerfile
     depends_on:
-      - db
+      db:
+        condition: service_started
+      users:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -130,7 +151,8 @@ services:
       context: .
       dockerfile: puzzles_service/Dockerfile
     depends_on:
-      - db
+      db:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -160,7 +182,8 @@ services:
       context: .
       dockerfile: payments_service/Dockerfile
     depends_on:
-      - db
+      db:
+        condition: service_started
     env_file:
       - .env
     environment:

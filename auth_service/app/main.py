@@ -57,8 +57,8 @@ def apply_migrations() -> None:
 async def run_startup_tasks() -> None:
 	logger.info("Auth service startup initiated")
 	try:
-		await asyncio.to_thread(apply_migrations)
-		logger.info("Auth service startup completed")
+	await asyncio.to_thread(apply_migrations)
+	logger.info("Auth service startup completed")
 	except (SystemExit, Exception) as exc:
 		logger.exception("Error during startup tasks: %s", exc)
 		logger.error("Server will continue despite migration errors")

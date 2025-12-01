@@ -18,6 +18,7 @@
     
     /* Фоновые цвета */
     --background: #ffffff;
+    --background-secondary: #f8fafc;
     --foreground: #0a0a0a;
     /* Старые переменные для обратной совместимости */
     --bg-light: var(--background);
@@ -66,6 +67,10 @@
     --gray-700: #374151;
     --gray-800: #1f2937;
     --gray-900: #111827;
+    
+    /* Дополнительные переменные */
+    --danger: #ef4444;
+    --card-bg: var(--card);
 }
 
 /* ===== DARK THEME VARIABLES ===== */
@@ -73,6 +78,7 @@ body.dark,
 html.dark,
 html.dark body {
     --background: #1a1a1a;
+    --background-secondary: #141414;
     --foreground: #f8fafc;
     --card: #2d2d2d;
     --card-foreground: #f8fafc;
@@ -84,5 +90,6 @@ html.dark body {
     --card-dark: #2d2d2d;
     --border-dark: #404040;
     --text-dark: #f8fafc;
+    --card-bg: var(--card);
 }
 

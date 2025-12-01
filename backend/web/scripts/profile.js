@@ -17,12 +17,20 @@ const historyState = {
 };
 let currentUser = null;
 let currentPuzzleStats = null;
+window.profileUserId = null; // ID пользователя, профиль которого просматривается (глобальная переменная для доступа из HTML)
 
-async function loadPuzzlesProgress() {
+async function loadPuzzlesProgress(userId = null) {
   try {
-    if (typeof window.apiFetch !== 'function') return;
-    const res = await window.apiFetch('/api/puzzles/stats/me');
-    if (!res.ok) {
+    // Если передан userId, загружаем статистику этого пользователя, иначе текущего
+    const statsPath = userId ? `/api/puzzles/stats/${userId}` : '/api/puzzles/stats/me';
+    
+    // Для чужого профиля используем обычный fetch (без авторизации)
+    // Для своего профиля используем apiFetch (с авторизацией)
+    const res = userId 
+      ? await fetch(statsPath)
+      : (typeof window.apiFetch === 'function' ? await window.apiFetch(statsPath) : null);
+    
+    if (!res || !res.ok) {
       throw new Error('Failed to load puzzle stats');
     }
     currentPuzzleStats = await res.json();
@@ -928,6 +936,8 @@ let friendsListState = {
   loaded: false,
   loading: false,
   friends: [],
+  filteredFriends: [],
+  searchQuery: '',
 };
 
 function getInitials(username) {
@@ -960,6 +970,9 @@ function createFriendCard(friendship) {
   avatar.className = 'friend-avatar';
   avatar.textContent = getInitials(friend.username || friend.display_name);
   
+  const info = document.createElement('div');
+  info.style.flex = '1';
+  
   const name = document.createElement('div');
   name.className = 'friend-name';
   name.textContent = friend.username || friend.display_name || 'Неизвестно';
@@ -969,6 +982,40 @@ function createFriendCard(friendship) {
   const highestRating = getHighestRating(friend);
   rating.innerHTML = `⭐ ${highestRating}`;
   
+  info.appendChild(name);
+  info.appendChild(rating);
+  
+  // Кнопка удаления из друзей
+  const actions = document.createElement('div');
+  actions.className = 'friend-actions';
+  
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'btn btn-icon btn-danger';
+  removeBtn.title = 'Удалить из друзей';
+  removeBtn.innerHTML = '<i class="fas fa-user-minus"></i>';
+  removeBtn.onclick = async (e) => {
+    e.stopPropagation();
+    if (confirm(`Удалить ${friend.username || friend.display_name} из друзей?`)) {
+      const success = await deleteFriendship(friendship.id);
+      if (success) {
+        await loadFriendsList();
+      }
+    }
+  };
+  
+  // Кнопка пригласить в игру
+  const inviteBtn = document.createElement('button');
+  inviteBtn.className = 'btn btn-icon btn-primary';
+  inviteBtn.title = 'Пригласить в игру';
+  inviteBtn.innerHTML = '<i class="fas fa-chess"></i>';
+  inviteBtn.onclick = (e) => {
+    e.stopPropagation();
+    inviteFriendToGame(friend.id, friend.username || friend.display_name);
+  };
+  
+  actions.appendChild(inviteBtn);
+  actions.appendChild(removeBtn);
+  
   // Добавляем ссылку на профиль
   card.style.cursor = 'pointer';
   card.onclick = () => {
@@ -976,34 +1023,55 @@ function createFriendCard(friendship) {
   };
   
   card.appendChild(avatar);
-  card.appendChild(name);
-  card.appendChild(rating);
+  card.appendChild(info);
+  card.appendChild(actions);
   
   return card;
+}
+
+function filterFriends(friendships, query) {
+  if (!query || query.trim().length === 0) {
+    return friendships;
+  }
+  
+  const searchTerm = query.toLowerCase().trim();
+  return friendships.filter(friendship => {
+    const friend = friendship.user;
+    if (!friend) return false;
+    const username = (friend.username || '').toLowerCase();
+    const displayName = (friend.display_name || '').toLowerCase();
+    return username.includes(searchTerm) || displayName.includes(searchTerm);
+  });
 }
 
 function renderFriendsList(friendships) {
   const container = document.getElementById('friendsList');
   if (!container) return;
   
+  // Применяем фильтр поиска
+  const filtered = filterFriends(friendships, friendsListState.searchQuery);
+  friendsListState.filteredFriends = filtered;
+  
   container.innerHTML = '';
   
-  if (!friendships || friendships.length === 0) {
+  if (!filtered || filtered.length === 0) {
     const emptyDiv = document.createElement('div');
     emptyDiv.style.cssText = 'text-align: center; padding: 3rem; color: var(--muted-foreground); grid-column: 1 / -1;';
     const icon = document.createElement('i');
-    icon.className = 'fas fa-user-friends';
+    icon.className = friendsListState.searchQuery ? 'fas fa-search' : 'fas fa-user-friends';
     icon.style.cssText = 'font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;';
     emptyDiv.appendChild(icon);
     const text = document.createElement('div');
-    text.textContent = 'У вас пока нет друзей';
+    text.textContent = friendsListState.searchQuery 
+      ? 'Друзья не найдены' 
+      : 'У вас пока нет друзей';
     text.style.fontSize = '1.125rem';
     emptyDiv.appendChild(text);
     container.appendChild(emptyDiv);
     return;
   }
   
-  friendships.forEach(friendship => {
+  filtered.forEach(friendship => {
     const card = createFriendCard(friendship);
     if (card) {
       container.appendChild(card);
@@ -1077,6 +1145,314 @@ async function loadFriendsList() {
 
 // Экспортируем функцию для использования в HTML
 window.loadFriendsList = loadFriendsList;
+window.showAddFriendModal = showAddFriendModal;
+
+// Инициализация поиска друзей
+function initFriendsSearch() {
+  const searchInput = document.getElementById('friendsSearchInput');
+  const searchClear = document.getElementById('friendsSearchClear');
+  
+  if (!searchInput) return;
+  
+  // Debounce для поиска
+  let searchTimeout = null;
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    const query = e.target.value;
+    
+    // Показываем/скрываем кнопку очистки
+    if (searchClear) {
+      searchClear.style.display = query.length > 0 ? 'block' : 'none';
+    }
+    
+    searchTimeout = setTimeout(() => {
+      friendsListState.searchQuery = query;
+      renderFriendsList(friendsListState.friends);
+    }, 300);
+  });
+  
+  // Очистка поиска
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      friendsListState.searchQuery = '';
+      searchClear.style.display = 'none';
+      renderFriendsList(friendsListState.friends);
+    });
+  }
+}
+
+// Функция приглашения друга в игру
+async function inviteFriendToGame(friendId, friendUsername) {
+  try {
+    // Создаем игру с приглашением друга
+    if (!window.apiFetch) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Необходимо войти в систему', 'error');
+      }
+      window.location.href = '/login';
+      return;
+    }
+    
+    // Создаем игру (стандартные настройки)
+    const gameData = {
+      creator_color: 'white',
+      time_control: {
+        initial_ms: 300000, // 5 минут
+        increment_ms: 0,
+        type: 'STANDARD'
+      },
+      metadata: {
+        invited_friend_id: friendId,
+        invited_friend_username: friendUsername
+      }
+    };
+    
+    const res = await window.apiFetch('/api/games/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(gameData)
+    });
+    
+    if (!res.ok) {
+      throw new Error('Failed to create game');
+    }
+    
+    const game = await res.json();
+    
+    // Переходим на страницу игры
+    window.location.href = `/match/${game.id}`;
+    
+    // Отправляем уведомление другу (если есть API для этого)
+    // TODO: Реализовать отправку уведомления через notifications service
+    
+  } catch (e) {
+    console.error('Error inviting friend to game:', e);
+    if (typeof window.showToast === 'function') {
+      window.showToast('Ошибка при создании игры', 'error');
+    } else {
+      alert('Ошибка при создании игры');
+    }
+  }
+}
+
+// Модальное окно для добавления друга
+function showAddFriendModal() {
+  // Создаем модальное окно для поиска и добавления друзей
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'addFriendModal';
+  modal.style.display = 'flex';
+  
+  const modalContent = document.createElement('div');
+  modalContent.className = 'modal-content';
+  modalContent.style.maxWidth = '500px';
+  
+  const header = document.createElement('div');
+  header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;';
+  
+  const title = document.createElement('h2');
+  title.textContent = 'Добавить друга';
+  title.style.margin = '0';
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn btn-icon';
+  closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+  closeBtn.onclick = () => {
+    modal.remove();
+  };
+  
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+  
+  // Поиск пользователей
+  const searchContainer = document.createElement('div');
+  searchContainer.style.marginBottom = '1.5rem';
+  
+  const searchBox = document.createElement('div');
+  searchBox.className = 'search-box';
+  searchBox.style.marginBottom = '1rem';
+  
+  const searchIcon = document.createElement('i');
+  searchIcon.className = 'fas fa-search';
+  
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.placeholder = 'Введите имя пользователя...';
+  searchInput.id = 'userSearchInput';
+  searchInput.autocomplete = 'off';
+  
+  searchBox.appendChild(searchIcon);
+  searchBox.appendChild(searchInput);
+  searchContainer.appendChild(searchBox);
+  
+  // Результаты поиска
+  const resultsContainer = document.createElement('div');
+  resultsContainer.id = 'userSearchResults';
+  resultsContainer.style.maxHeight = '400px';
+  resultsContainer.style.overflowY = 'auto';
+  
+  let searchTimeout = null;
+  let currentSearchQuery = '';
+  
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    currentSearchQuery = query;
+    
+    clearTimeout(searchTimeout);
+    
+    if (query.length < 2) {
+      resultsContainer.innerHTML = '';
+      return;
+    }
+    
+    searchTimeout = setTimeout(async () => {
+      resultsContainer.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i></div>';
+      
+      try {
+        const res = await window.apiFetch(`/api/users/search?q=${encodeURIComponent(query)}&limit=10`);
+        if (!res.ok) throw new Error('Search failed');
+        
+        const data = await res.json();
+        
+        // Проверяем, что это все еще актуальный запрос
+        if (currentSearchQuery !== query) return;
+        
+        resultsContainer.innerHTML = '';
+        
+        if (!data.users || data.users.length === 0) {
+          const empty = document.createElement('div');
+          empty.style.cssText = 'text-align: center; padding: 2rem; color: var(--muted-foreground);';
+          empty.textContent = 'Пользователи не найдены';
+          resultsContainer.appendChild(empty);
+          return;
+        }
+        
+        data.users.forEach(user => {
+          const userCard = createUserSearchCard(user);
+          resultsContainer.appendChild(userCard);
+        });
+      } catch (e) {
+        console.error('Search error:', e);
+        resultsContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger);">Ошибка поиска</div>';
+      }
+    }, 500);
+  });
+  
+  // Закрытие по клику вне модального окна
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+  
+  modalContent.appendChild(header);
+  modalContent.appendChild(searchContainer);
+  modalContent.appendChild(resultsContainer);
+  modal.appendChild(modalContent);
+  document.body.appendChild(modal);
+  
+  searchInput.focus();
+}
+
+function createUserSearchCard(user) {
+  const card = document.createElement('div');
+  card.className = 'user-search-card';
+  card.style.cssText = 'display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 0.5rem;';
+  
+  const avatar = document.createElement('div');
+  avatar.className = 'friend-avatar';
+  avatar.textContent = getInitials(user.username || user.display_name || '?');
+  
+  const info = document.createElement('div');
+  info.style.flex = '1';
+  
+  const name = document.createElement('div');
+  name.className = 'friend-name';
+  name.textContent = user.username || user.display_name || 'Неизвестно';
+  
+  const rating = document.createElement('div');
+  rating.className = 'friend-rating';
+  const highestRating = getHighestRating(user);
+  rating.innerHTML = `⭐ ${highestRating}`;
+  
+  info.appendChild(name);
+  info.appendChild(rating);
+  
+  const actionBtn = document.createElement('button');
+  actionBtn.className = 'btn btn-primary';
+  actionBtn.innerHTML = '<i class="fas fa-user-plus"></i> Добавить';
+  
+  // Проверяем статус дружбы
+  let friendshipStatus = null;
+  actionBtn.onclick = async () => {
+    actionBtn.disabled = true;
+    
+    try {
+      // Проверяем текущий статус
+      const statusRes = await window.apiFetch(`/api/friendships/status/${user.id}`);
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        friendshipStatus = statusData;
+      }
+      
+      if (!friendshipStatus) {
+        // Отправляем запрос
+        const res = await window.apiFetch('/api/friendships/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ addressee_id: user.id })
+        });
+        
+        if (res.ok) {
+          if (typeof window.showToast === 'function') {
+            window.showToast(`Запрос отправлен ${user.username || user.display_name}`, 'success');
+          }
+          actionBtn.innerHTML = '<i class="fas fa-clock"></i> Запрос отправлен';
+          actionBtn.disabled = true;
+        } else {
+          throw new Error('Failed to send request');
+        }
+      } else if (friendshipStatus.status === 'pending') {
+        if (friendshipStatus.requester_id === currentUser?.id) {
+          actionBtn.innerHTML = '<i class="fas fa-clock"></i> Запрос отправлен';
+          actionBtn.disabled = true;
+        } else {
+          actionBtn.innerHTML = '<i class="fas fa-check"></i> Принять';
+          actionBtn.onclick = async () => {
+            const acceptRes = await window.apiFetch(`/api/friendships/${friendshipStatus.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'accepted' })
+            });
+            if (acceptRes.ok) {
+              actionBtn.innerHTML = '<i class="fas fa-check"></i> Друзья';
+              actionBtn.disabled = true;
+              if (typeof window.loadFriendsList === 'function') {
+                await window.loadFriendsList();
+              }
+            }
+          };
+        }
+      } else if (friendshipStatus.status === 'accepted') {
+        actionBtn.innerHTML = '<i class="fas fa-check"></i> Уже друзья';
+        actionBtn.disabled = true;
+      }
+    } catch (e) {
+      console.error('Error:', e);
+      if (typeof window.showToast === 'function') {
+        window.showToast('Ошибка при добавлении друга', 'error');
+      }
+      actionBtn.disabled = false;
+    }
+  };
+  
+  card.appendChild(avatar);
+  card.appendChild(info);
+  card.appendChild(actionBtn);
+  
+  return card;
+}
 
 // ==================== Функции для работы с входящими заявками ====================
 
@@ -1292,6 +1668,221 @@ async function declineFriendRequest(friendshipId) {
 }
 
 window.loadFriendRequests = loadFriendRequests;
+
+// ==================== Функции для работы с историей рейтингов ====================
+
+let ratingHistoryState = {
+  loaded: false,
+  loading: false,
+  entries: [],
+  currentFormat: 'all',
+};
+
+const formatDisplayNames = {
+  blitz: 'Блиц',
+  rapid: 'Рапид',
+  bullet: 'Пуля',
+  puzzle: 'Задачи',
+};
+
+function createRatingHistoryEntry(entry) {
+  const card = document.createElement('div');
+  card.className = 'rating-history-entry';
+  card.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 1rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 0.75rem; background: var(--card); transition: all 0.2s;';
+  
+  card.onmouseenter = () => {
+    card.style.borderColor = 'var(--primary)';
+    card.style.boxShadow = '0 2px 8px rgba(124, 58, 237, 0.1)';
+  };
+  card.onmouseleave = () => {
+    card.style.borderColor = 'var(--border)';
+    card.style.boxShadow = 'none';
+  };
+  
+  const left = document.createElement('div');
+  left.style.display = 'flex';
+  left.style.alignItems = 'center';
+  left.style.gap = '1rem';
+  
+  const formatBadge = document.createElement('div');
+  formatBadge.className = 'format-badge';
+  formatBadge.textContent = formatDisplayNames[entry.format_type] || entry.format_type;
+  formatBadge.style.cssText = 'padding: 0.25rem 0.75rem; border-radius: 0.25rem; background: var(--primary); color: white; font-size: 0.875rem; font-weight: 600;';
+  
+  const info = document.createElement('div');
+  
+  const resultText = document.createElement('div');
+  resultText.style.cssText = 'font-weight: 600; margin-bottom: 0.25rem;';
+  
+  let resultIcon = '';
+  let resultColor = '';
+  if (entry.result === 'win') {
+    resultIcon = '✓';
+    resultColor = 'var(--success)';
+    resultText.textContent = 'Победа';
+  } else if (entry.result === 'loss') {
+    resultIcon = '✗';
+    resultColor = 'var(--danger)';
+    resultText.textContent = 'Поражение';
+  } else if (entry.result === 'draw') {
+    resultIcon = '=';
+    resultColor = 'var(--muted-foreground)';
+    resultText.textContent = 'Ничья';
+  } else {
+    resultText.textContent = 'Игра';
+  }
+  
+  resultText.style.color = resultColor;
+  
+  const dateText = document.createElement('div');
+  dateText.style.cssText = 'font-size: 0.875rem; color: var(--muted-foreground);';
+  const date = new Date(entry.created_at);
+  dateText.textContent = date.toLocaleString('ru-RU', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  info.appendChild(resultText);
+  info.appendChild(dateText);
+  
+  left.appendChild(formatBadge);
+  left.appendChild(info);
+  
+  const right = document.createElement('div');
+  right.style.display = 'flex';
+  right.style.alignItems = 'center';
+  right.style.gap = '1rem';
+  
+  const ratingChange = document.createElement('div');
+  ratingChange.style.cssText = 'text-align: right;';
+  
+  const changeValue = document.createElement('div');
+  changeValue.style.cssText = `font-weight: 700; font-size: 1.125rem; color: ${entry.rating_change >= 0 ? 'var(--success)' : 'var(--danger)'};`;
+  changeValue.textContent = `${entry.rating_change >= 0 ? '+' : ''}${entry.rating_change}`;
+  
+  const ratingRange = document.createElement('div');
+  ratingRange.style.cssText = 'font-size: 0.875rem; color: var(--muted-foreground);';
+  ratingRange.textContent = `${entry.rating_before} → ${entry.rating_after}`;
+  
+  ratingChange.appendChild(changeValue);
+  ratingChange.appendChild(ratingRange);
+  
+  right.appendChild(ratingChange);
+  
+  card.appendChild(left);
+  card.appendChild(right);
+  
+  return card;
+}
+
+function renderRatingHistory(entries) {
+  const container = document.getElementById('ratingHistoryList');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (!entries || entries.length === 0) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.style.cssText = 'text-align: center; padding: 3rem; color: var(--muted-foreground);';
+    const icon = document.createElement('i');
+    icon.className = 'fas fa-chart-line';
+    icon.style.cssText = 'font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;';
+    emptyDiv.appendChild(icon);
+    const text = document.createElement('div');
+    text.textContent = 'История рейтингов пуста';
+    text.style.fontSize = '1.125rem';
+    emptyDiv.appendChild(text);
+    container.appendChild(emptyDiv);
+    return;
+  }
+  
+  entries.forEach(entry => {
+    const card = createRatingHistoryEntry(entry);
+    container.appendChild(card);
+  });
+}
+
+async function loadRatingHistory(formatType = null) {
+  const container = document.getElementById('ratingHistoryList');
+  if (!container || !window.apiFetch) return;
+  
+  const userId = window.profileUserId || null;
+  const format = formatType || ratingHistoryState.currentFormat;
+  
+  if (ratingHistoryState.loading) return;
+  
+  ratingHistoryState.loading = true;
+  
+  container.innerHTML = '';
+  const loadingDiv = document.createElement('div');
+  loadingDiv.style.cssText = 'text-align: center; padding: 2rem; color: var(--muted-foreground);';
+  const spinner = document.createElement('i');
+  spinner.className = 'fas fa-spinner fa-spin';
+  spinner.style.cssText = 'font-size: 2rem; margin-bottom: 1rem;';
+  loadingDiv.appendChild(spinner);
+  loadingDiv.appendChild(document.createTextNode('Загрузка истории рейтингов...'));
+  container.appendChild(loadingDiv);
+  
+  try {
+    const url = userId 
+      ? `/api/ratings/history/${userId}${format !== 'all' ? `?format_type=${format}` : ''}`
+      : `/api/ratings/history/me${format !== 'all' ? `?format_type=${format}` : ''}`;
+    
+    const res = await window.apiFetch(url);
+    if (!res.ok) {
+      throw new Error('Failed to load rating history');
+    }
+    
+    const data = await res.json();
+    ratingHistoryState.entries = data.entries || [];
+    ratingHistoryState.loaded = true;
+    
+    renderRatingHistory(ratingHistoryState.entries);
+  } catch (e) {
+    console.error('Failed to load rating history:', e);
+    container.innerHTML = '';
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = 'text-align: center; padding: 2rem; color: var(--danger);';
+    const errorIcon = document.createElement('i');
+    errorIcon.className = 'fas fa-exclamation-triangle';
+    errorIcon.style.cssText = 'font-size: 2rem; margin-bottom: 1rem;';
+    errorDiv.appendChild(errorIcon);
+    const errorText = document.createElement('div');
+    errorText.textContent = 'Не удалось загрузить историю рейтингов';
+    errorDiv.appendChild(errorText);
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn btn-primary';
+    retryBtn.style.marginTop = '1rem';
+    retryBtn.textContent = 'Попробовать снова';
+    retryBtn.onclick = () => {
+      ratingHistoryState.loaded = false;
+      loadRatingHistory();
+    };
+    errorDiv.appendChild(retryBtn);
+    container.appendChild(errorDiv);
+  } finally {
+    ratingHistoryState.loading = false;
+  }
+}
+
+window.loadRatingHistory = loadRatingHistory;
+
+// Инициализация фильтров истории рейтингов
+function initRatingHistoryFilters() {
+  const filterTabs = document.querySelectorAll('.rating-filter-tabs .filter-tab');
+  filterTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      filterTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const format = tab.dataset.format;
+      ratingHistoryState.currentFormat = format;
+      loadRatingHistory(format === 'all' ? null : format);
+    });
+  });
+}
 
 const formatNames = {
   bullet: 'Пуля',
@@ -1531,9 +2122,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
       const profileUser = await userRes.json();
+      window.profileUserId = profileUser.id; // Сохраняем ID для использования в обработчиках вкладок
       
       // Загружаем статистику этого пользователя
       await loadGameStats(profileUsername);
+      
+      // Загружаем прогресс по задачам этого пользователя
+      await loadPuzzlesProgress(profileUser.id);
       
       // Загружаем текущего пользователя для проверки дружбы
       // Кнопка дружбы показывается только для авторизованных пользователей
@@ -1568,6 +2163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const friendsSection = document.getElementById('friends');
         if (friendsSection && friendsSection.classList.contains('active')) {
           await loadFriendsList();
+          initFriendsSearch();
         }
         
         if (friendRequestsSection) friendRequestsSection.style.removeProperty('display');
@@ -1597,6 +2193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     currentUser = await meRes.json();
+    window.profileUserId = null; // Сбрасываем, так как это свой профиль
 
     // Загружаем статистику игр
     await loadGameStats();
@@ -1616,6 +2213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const friendsSection = document.getElementById('friends');
     if (friendsSection && friendsSection.classList.contains('active')) {
       await loadFriendsList();
+      initFriendsSearch();
     }
 
     const [allRes, mineRes] = await Promise.all([window.apiFetch('/api/courses/'), window.apiFetch('/api/courses/me')]);

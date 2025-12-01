@@ -11,7 +11,7 @@ from common import configure_observability, setup_logging
 
 from .config import get_settings
 from .database import get_db, sync_engine
-from .routers import friendships_router, internal_users_router, users_router
+from .routers import friendships_router, internal_users_router, ratings_router, users_router
 from .routers.users import close_games_client
 
 
@@ -47,6 +47,19 @@ def _wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> No
 def apply_migrations() -> None:
 	logger.info("Applying database migrations...")
 	_wait_for_database()
+	
+	# Исправляем неправильную запись в alembic_version, если она существует
+	try:
+		from sqlalchemy import text
+		with sync_engine.begin() as conn:
+			result = conn.execute(
+				text("UPDATE alembic_version SET version_num = '0002_add_rating_history' WHERE version_num = '0002_add_gin_indexes'")
+			)
+			if result.rowcount > 0:
+				logger.info("Fixed incorrect alembic_version entry: '0002_add_gin_indexes' -> '0002_add_rating_history'")
+	except Exception as e:
+		logger.warning("Could not fix alembic_version (this is OK if the entry doesn't exist): %s", e)
+	
 	alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
 	alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
 	command.upgrade(alembic_cfg, "head")
@@ -81,5 +94,6 @@ configure_observability(
 app.include_router(users_router)
 app.include_router(friendships_router)
 app.include_router(internal_users_router)
+app.include_router(ratings_router)
 
 

@@ -7,6 +7,7 @@ import logging
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 
 from common import configure_observability, setup_logging
 
@@ -17,6 +18,9 @@ from .routers import attempts_router, importer_router, puzzles_router, stats_rou
 setup_logging()
 settings = get_settings()
 app = FastAPI(title=settings.app_name)
+
+# Оптимизация: добавляем Gzip сжатие для уменьшения размера ответов
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 logger = logging.getLogger(__name__)
 
 ALEMBIC_INI_PATH = Path(__file__).resolve().parent.parent / "alembic.ini"

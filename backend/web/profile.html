@@ -64,21 +64,9 @@
                 <nav class="nav">
                     <a href="/games" class="nav-link">Играть</a>
                     <a href="/tasks" class="nav-link">Задачи</a>
-                    <a href="/course" class="nav-link">Курсы</a>
-                    <a href="/couch" class="nav-link">Тренеры</a>
-                    <a href="#tournaments" class="nav-link">Турниры</a>
+                    <a href="/leaderboard" class="nav-link">Рейтинг</a>
                 </nav>
                 <div class="header-actions">
-                    <div id="authButtons">
-                        <button class="btn-login" id="gamesLoginBtn">
-                            <i class="fas fa-sign-in-alt"></i>
-                            Войти
-                        </button>
-                        <button class="btn-register" id="gamesRegisterBtn">
-                            <i class="fas fa-user-plus"></i>
-                            Регистрация
-                        </button>
-                    </div>
                     <div id="userActions">
                         <div id="gamesUserInfo">
                             <span></span>
@@ -87,6 +75,11 @@
                     <button class="theme-toggle" title="Переключить тему" id="themeToggleBtn">
                         <i class="fas fa-sun" id="themeIcon"></i>
                     </button>
+                    <div id="authButtons">
+                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtn" title="Войти / Регистрация">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </a>
+                    </div>
                     <button class="mobile-menu-btn" id="mobileMenuBtn">
                         <i class="fas fa-bars" id="menuIcon"></i>
                     </button>
@@ -100,20 +93,13 @@
                 <div>
                     <a href="/games" class="nav-link mobile-nav-link">Играть</a>
                     <a href="/tasks" class="nav-link mobile-nav-link">Задачи</a>
-                    <a href="/course" class="nav-link mobile-nav-link">Курсы</a>
-                    <a href="/couch" class="nav-link mobile-nav-link">Тренеры</a>
+                    <a href="/leaderboard" class="nav-link mobile-nav-link">Рейтинг</a>
                     <a href="/profile" class="nav-link mobile-nav-link active">Кабинет</a>
-                    <a href="#tournaments" class="nav-link mobile-nav-link">Турниры</a>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <button class="btn-login" id="gamesLoginBtnMobile">
+                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtnMobile" title="Войти / Регистрация">
                             <i class="fas fa-sign-in-alt"></i>
-                            Войти
-                        </button>
-                        <button class="btn-register" id="gamesRegisterBtnMobile">
-                            <i class="fas fa-user-plus"></i>
-                            Регистрация
-                        </button>
+                        </a>
                     </div>
                     <div id="mobileUserActions">
                         <div id="gamesUserInfoMobile">
@@ -158,6 +144,10 @@
                 <div class="sidebar-item" data-section="games">
                     <i class="fas fa-history"></i>
                     <span>История партий</span>
+                </div>
+                <div class="sidebar-item" data-section="ratingHistory">
+                    <i class="fas fa-chart-line"></i>
+                    <span>История рейтингов</span>
                 </div>
                 <div class="sidebar-item" data-section="favorites">
                     <i class="fas fa-star"></i>
@@ -339,6 +329,26 @@
                         <i class="fas fa-user-friends"></i>
                         Друзья
                     </h1>
+                    <button class="btn btn-primary" id="addFriendBtn" onclick="showAddFriendModal()">
+                        <i class="fas fa-user-plus"></i>
+                        Добавить друга
+                    </button>
+                </div>
+
+                <!-- Поиск друзей -->
+                <div class="friends-search-container" style="margin-bottom: 2rem;">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input 
+                            type="text" 
+                            id="friendsSearchInput" 
+                            placeholder="Поиск друзей по имени..."
+                            autocomplete="off"
+                        />
+                        <button class="search-clear" id="friendsSearchClear" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="friends-grid" id="friendsList">
@@ -346,6 +356,41 @@
                     <div style="text-align: center; padding: 2rem; color: var(--muted-foreground);">
                         <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
                         <div>Загрузка друзей...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RATING HISTORY -->
+            <section class="content-section" id="ratingHistory">
+                <div class="section-header">
+                    <h1 class="section-title">
+                        <i class="fas fa-chart-line"></i>
+                        История рейтингов
+                    </h1>
+                    <div class="rating-filter-tabs">
+                        <button class="filter-tab active" data-format="all">
+                            Все
+                        </button>
+                        <button class="filter-tab" data-format="blitz">
+                            Блиц
+                        </button>
+                        <button class="filter-tab" data-format="rapid">
+                            Рапид
+                        </button>
+                        <button class="filter-tab" data-format="bullet">
+                            Пуля
+                        </button>
+                        <button class="filter-tab" data-format="puzzle">
+                            Задачи
+                        </button>
+                    </div>
+                </div>
+
+                <div id="ratingHistoryList">
+                    <!-- История рейтингов будет загружена динамически -->
+                    <div style="text-align: center; padding: 2rem; color: var(--muted-foreground);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <div>Загрузка истории рейтингов...</div>
                     </div>
                 </div>
             </section>
@@ -692,12 +737,27 @@
             
             // Загружаем друзей при переключении на вкладку "Друзья"
             if (targetSection === 'friends' && typeof window.loadFriendsList === 'function') {
-                window.loadFriendsList();
+                window.loadFriendsList().then(() => {
+                    if (typeof initFriendsSearch === 'function') {
+                        initFriendsSearch();
+                    }
+                });
             }
 
             // Загружаем прогресс по задачам при переключении на вкладку "Прогресс по задачам"
             if (targetSection === 'puzzles' && typeof window.loadPuzzlesProgress === 'function') {
-                window.loadPuzzlesProgress();
+                // Используем сохраненный profileUserId, если он есть (для чужого профиля)
+                window.loadPuzzlesProgress(window.profileUserId || null);
+            }
+            
+            // Загружаем историю рейтингов при переключении на вкладку "История рейтингов"
+            if (targetSection === 'ratingHistory' && typeof window.loadRatingHistory === 'function') {
+                window.loadRatingHistory();
+                setTimeout(() => {
+                    if (typeof initRatingHistoryFilters === 'function') {
+                        initRatingHistoryFilters();
+                    }
+                }, 100);
             }
         });
     });
@@ -708,6 +768,13 @@
         if (hash) {
             const targetSection = document.getElementById(hash);
             const sidebarItem = document.querySelector(`[data-section="${hash}"]`);
+            
+            // Инициализация поиска друзей при переключении на вкладку друзей
+            if (hash === 'friends' && typeof initFriendsSearch === 'function') {
+                setTimeout(() => {
+                    initFriendsSearch();
+                }, 100);
+            }
             if (targetSection && sidebarItem) {
                 // Убираем активность со всех элементов
                 sidebarItems.forEach(i => i.classList.remove('active'));
@@ -726,6 +793,16 @@
                     const pathMatch = window.location.pathname.match(/^\/profile\/(.+)$/);
                     const profileUsername = pathMatch ? decodeURIComponent(pathMatch[1]) : null;
                     window.ensureMatchHistoryLoaded(false, profileUsername);
+                } else if (hash === 'puzzles' && typeof window.loadPuzzlesProgress === 'function') {
+                    // Используем сохраненный profileUserId, если он есть (для чужого профиля)
+                    window.loadPuzzlesProgress(window.profileUserId || null);
+                } else if (hash === 'ratingHistory' && typeof window.loadRatingHistory === 'function') {
+                    window.loadRatingHistory();
+                    setTimeout(() => {
+                        if (typeof initRatingHistoryFilters === 'function') {
+                            initRatingHistoryFilters();
+                        }
+                    }, 100);
                 }
             }
         }

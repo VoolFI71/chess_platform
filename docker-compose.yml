@@ -146,6 +146,8 @@ services:
     depends_on:
       db:
         condition: service_started
+      users:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -172,16 +174,26 @@ services:
   api:
     build: .
     depends_on:
-      - db
-      - minio
-      - auth
-      - enrollments
-      - courses
-      - lessons
-      - payments
-      - games
-      - notifications
-      - puzzles
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
+      auth:
+        condition: service_started
+      enrollments:
+        condition: service_started
+      courses:
+        condition: service_started
+      lessons:
+        condition: service_started
+      payments:
+        condition: service_started
+      games:
+        condition: service_started
+      notifications:
+        condition: service_started
+      puzzles:
+        condition: service_started
     env_file:
       - .env
     environment:

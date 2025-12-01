@@ -107,7 +107,7 @@
       
       TasksState.lastMoveSquares = [from, to];
       
-      if (animate) {
+      if (animate && window.TasksAnimations && window.TasksAnimations.animatePieceMove) {
         window.TasksAnimations.animatePieceMove(from, to);
       }
       

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone, timedelta
 from threading import Lock
@@ -50,6 +51,46 @@ class GameServiceError(Exception):
 
 def _utcnow() -> datetime:
 	return datetime.now(timezone.utc)
+
+
+def _calculate_elo_rating(
+	player_rating: int,
+	opponent_rating: int,
+	score: float,  # 1.0 for win, 0.5 for draw, 0.0 for loss
+	k_factor: int = 32,
+) -> int:
+	"""Calculate new Elo rating after a game.
+	
+	Args:
+		player_rating: Current rating of the player
+		opponent_rating: Current rating of the opponent
+		score: Game result (1.0 = win, 0.5 = draw, 0.0 = loss)
+		k_factor: K-factor for rating calculation (default 32)
+	
+	Returns:
+		New rating (minimum 400)
+	"""
+	expected_score = 1 / (1 + 10 ** ((opponent_rating - player_rating) / 400))
+	new_rating = player_rating + k_factor * (score - expected_score)
+	return max(400, round(new_rating))
+
+
+def _get_game_format(time_control: dict | None) -> str:
+	"""Determine game format from time control."""
+	if not time_control:
+		return "rapid"
+	
+	initial_ms = time_control.get("initial_ms", 0)
+	total_minutes = initial_ms / 60000
+	
+	if total_minutes <= 3:
+		return "bullet"
+	elif total_minutes <= 10:
+		return "blitz"
+	elif total_minutes <= 60:
+		return "rapid"
+	else:
+		return "rapid"  # классика тоже rapid для простоты
 
 
 def _board_from_fen(fen: str) -> chess.Board:
@@ -739,6 +780,117 @@ class GameService:
 				text("UPDATE users SET games_played = games_played + 1 WHERE id = :user_id"),
 				{"user_id": game.black_id}
 			)
+		
+		# Обновляем рейтинги, если игра завершена с двумя игроками
+		if game.white_id and game.black_id:
+			await self._update_ratings(game)
+
+	async def _update_ratings(self, game: Game) -> None:
+		"""Обновляет рейтинги игроков после завершения игры."""
+		# Определяем формат игры
+		tc_dict = None
+		if game.time_control:
+			if isinstance(game.time_control, dict):
+				tc_dict = game.time_control
+			elif isinstance(game.time_control, str):
+				try:
+					tc_dict = json.loads(game.time_control)
+				except:
+					pass
+		
+		format_type = _get_game_format(tc_dict)
+		
+		# Получаем текущие рейтинги игроков
+		white_stmt = text("SELECT {}_rating FROM users WHERE id = :user_id".format(format_type))
+		black_stmt = text("SELECT {}_rating FROM users WHERE id = :user_id".format(format_type))
+		
+		white_result = await self.db.execute(white_stmt, {"user_id": game.white_id})
+		black_result = await self.db.execute(black_stmt, {"user_id": game.black_id})
+		
+		white_row = white_result.first()
+		black_row = black_result.first()
+		
+		if not white_row or not black_row:
+			return  # Игроки не найдены
+		
+		white_rating_before = white_row[0] or 1200
+		black_rating_before = black_row[0] or 1200
+		
+		# Определяем результат игры
+		is_draw = game.result == GameResult.DRAW.value
+		white_won = game.result == GameResult.WHITE_WIN.value
+		
+		# Рассчитываем новые рейтинги
+		if is_draw:
+			white_score = 0.5
+			black_score = 0.5
+			white_result_str = "draw"
+			black_result_str = "draw"
+		elif white_won:
+			white_score = 1.0
+			black_score = 0.0
+			white_result_str = "win"
+			black_result_str = "loss"
+		else:
+			white_score = 0.0
+			black_score = 1.0
+			white_result_str = "loss"
+			black_result_str = "win"
+		
+		white_rating_after = _calculate_elo_rating(white_rating_before, black_rating_before, white_score)
+		black_rating_after = _calculate_elo_rating(black_rating_before, white_rating_before, black_score)
+		
+		# Обновляем рейтинги в таблице users
+		rating_column = f"{format_type}_rating"
+		await self.db.execute(
+			text(f"UPDATE users SET {rating_column} = :rating WHERE id = :user_id"),
+			{"rating": white_rating_after, "user_id": game.white_id}
+		)
+		await self.db.execute(
+			text(f"UPDATE users SET {rating_column} = :rating WHERE id = :user_id"),
+			{"rating": black_rating_after, "user_id": game.black_id}
+		)
+		
+		# Сохраняем историю рейтингов (если таблица существует)
+		# Используем raw SQL, чтобы не создавать зависимость от users_service
+		try:
+			await self.db.execute(
+				text("""
+					INSERT INTO rating_history 
+					(user_id, format_type, rating_before, rating_after, rating_change, game_id, result, opponent_id, created_at)
+					VALUES (:user_id, :format_type, :rating_before, :rating_after, :rating_change, :game_id, :result, :opponent_id, NOW())
+				"""),
+				{
+					"user_id": game.white_id,
+					"format_type": format_type,
+					"rating_before": white_rating_before,
+					"rating_after": white_rating_after,
+					"rating_change": white_rating_after - white_rating_before,
+					"game_id": str(game.id),
+					"result": white_result_str,
+					"opponent_id": game.black_id,
+				}
+			)
+			await self.db.execute(
+				text("""
+					INSERT INTO rating_history 
+					(user_id, format_type, rating_before, rating_after, rating_change, game_id, result, opponent_id, created_at)
+					VALUES (:user_id, :format_type, :rating_before, :rating_after, :rating_change, :game_id, :result, :opponent_id, NOW())
+				"""),
+				{
+					"user_id": game.black_id,
+					"format_type": format_type,
+					"rating_before": black_rating_before,
+					"rating_after": black_rating_after,
+					"rating_change": black_rating_after - black_rating_before,
+					"game_id": str(game.id),
+					"result": black_result_str,
+					"opponent_id": game.white_id,
+				}
+			)
+		except Exception as e:
+			# Если таблица rating_history не существует, просто логируем ошибку
+			LOGGER.warning("Failed to save rating history: %s", e)
 
 	async def _lock_game(self, game_id: UUID) -> Game:
 		# Используем populate_existing() чтобы гарантировать загрузку свежих данных из БД

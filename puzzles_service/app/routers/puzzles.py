@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,6 +43,7 @@ async def get_random_puzzle(
 	themes: Sequence[str] | None = Query(default=None),
 	opening_tags: Sequence[str] | None = Query(default=None),
 	db: AsyncSession = Depends(get_db),
+	response: Response = Response(),
 ) -> PuzzleResponse:
 	filters = PuzzleFilters(
 		rating_min=rating_min,
@@ -72,6 +73,12 @@ async def get_random_puzzle(
 			status_code=404,
 			detail=f"Пазл не найден под указанные фильтры. Всего пазлов в базе: {total_count}"
 		)
+	
+	# Оптимизация: устанавливаем заголовки для кеширования
+	# Задачи случайные, поэтому кешируем только на клиенте на короткое время
+	response.headers["Cache-Control"] = "private, max-age=30, stale-while-revalidate=60"
+	response.headers["Vary"] = "Accept-Encoding"
+	
 	return PuzzleResponse.model_validate(puzzle)
 
 

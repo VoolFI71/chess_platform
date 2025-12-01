@@ -21,7 +21,7 @@
       await window.TasksAPI.loadPuzzleStats();
     },
 
-    selectMode(id) {
+    async selectMode(id) {
       const next = TasksConstants.MODES.find((m) => m.id === id);
       if (!next) return;
       TasksState.selectedMode = next;
@@ -29,12 +29,23 @@
       
       const modeGrid = document.getElementById('modeGrid');
       if (modeGrid) {
-        modeGrid.style.display = 'none';
+        modeGrid.classList.add('hidden');
       }
       
       const tasksHeader = document.querySelector('.tasks-header');
       if (tasksHeader) {
-        tasksHeader.style.display = 'none';
+        tasksHeader.classList.add('hidden');
+      }
+      
+      // Ленивая загрузка модулей для работы с доской
+      try {
+        if (window.loadBoardModules && typeof window.loadBoardModules === 'function') {
+          await window.loadBoardModules();
+        }
+      } catch (error) {
+        console.error('Failed to load board modules:', error);
+        window.TasksUI.setPuzzleStatus('Ошибка загрузки модулей. Перезагрузите страницу.', true);
+        return;
       }
       
       window.TasksAPI.loadPuzzleForCurrentMode();
@@ -141,6 +152,23 @@
 
   // Инициализация при загрузке DOM
   document.addEventListener('DOMContentLoaded', () => {
+    // Загружаем тему из localStorage и обновляем иконку
+    if (window.loadTheme && typeof window.loadTheme === 'function') {
+      window.loadTheme();
+    } else {
+      // Fallback если auth.js еще не загружен
+      try {
+        const saved = localStorage.getItem('theme');
+        const isDark = saved === 'dark';
+        document.body.classList.toggle('dark', isDark);
+        document.documentElement.classList.toggle('dark', isDark);
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+      } catch (e) {
+        console.debug('Theme load error:', e);
+      }
+    }
+    
     window.TasksMain.bootstrapTasksPage();
     window.TasksMain.initBoardControls();
     window.TasksUI.updateStats();

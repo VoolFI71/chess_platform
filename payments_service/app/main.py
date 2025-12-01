@@ -51,7 +51,7 @@ async def run_startup_tasks() -> None:
 	logger.info("Payments service startup initiated")
 	try:
 		await asyncio.to_thread(apply_migrations)
-		logger.info("Payments service startup completed")
+	logger.info("Payments service startup completed")
 	except (SystemExit, Exception) as exc:
 		logger.exception("Error during startup tasks: %s", exc)
 		logger.error("Server will continue despite migration errors")

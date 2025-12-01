@@ -161,17 +161,31 @@
     const mobileMenuBtn = container.querySelector(SELECTORS.MOBILE_MENU_BTN);
     if (!mobileMenuBtn || btn.parentNode !== container) return;
     
-    // Check if logout button is already after mobile-menu-btn
+    // Кнопка выхода должна быть справа, после мобильного меню
+    // Порядок: userActions -> theme-toggle -> authButtons -> mobile-menu-btn -> logout-btn
+    
+    // Проверяем, находится ли кнопка выхода уже после мобильного меню
     let currentNext = mobileMenuBtn.nextSibling;
     while (currentNext && currentNext.nodeType !== 1) {
       currentNext = currentNext.nextSibling;
     }
     
-    // If logout button is not immediately after mobile-menu-btn, move it there
+    // Если кнопка выхода не находится сразу после мобильного меню, перемещаем её туда
     if (currentNext !== btn) {
+      // Если после mobile-menu-btn есть другие элементы, вставляем logout-btn после них
       if (mobileMenuBtn.nextSibling) {
-        container.insertBefore(btn, mobileMenuBtn.nextSibling);
+        // Находим последний элемент после mobile-menu-btn
+        let lastElement = mobileMenuBtn.nextSibling;
+        while (lastElement && lastElement.nextSibling && lastElement.nextSibling.nodeType === 1) {
+          lastElement = lastElement.nextSibling;
+        }
+        if (lastElement && lastElement !== btn) {
+          container.insertBefore(btn, lastElement.nextSibling);
+        } else {
+          container.appendChild(btn);
+        }
       } else {
+        // Если после mobile-menu-btn ничего нет, просто добавляем в конец
         container.appendChild(btn);
       }
     }
@@ -203,6 +217,13 @@
     // If gamesLogoutBtnMobile exists and we're in a mobile context, don't create a new one
     if (gamesBtns.mobile && isMobile) {
       return null; // Don't create a duplicate for mobile
+    }
+    
+    // Не создаем кнопку выхода в header-actions напрямую
+    // Кнопка должна создаваться только в userActions или mobileUserActions
+    const isHeaderActions = container.classList.contains('header-actions') || container.closest('.header-actions') === container;
+    if (isHeaderActions && !isMobile && !container.closest(SELECTORS.USER_ACTIONS)) {
+      return null; // Не создаем кнопку в header-actions напрямую
     }
     
     // Check if there's already a logout button in the container
@@ -331,14 +352,20 @@
     document.querySelectorAll(SELECTORS.HEADER_ACTIONS).forEach((container) => {
       if (!container) return;
       
-      if (!existingGamesLogoutBtn) {
-        const headerLogoutBtn = ensureLogoutButton(container, existingGamesLogoutBtn, existingGamesLogoutBtnMobile);
-        if (headerLogoutBtn) {
-          headerLogoutBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
-        }
-      } else {
+      if (existingGamesLogoutBtn) {
         existingGamesLogoutBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
         positionLogoutAfterMobileMenu(existingGamesLogoutBtn, container);
+      } else {
+        // Удаляем все кнопки выхода из header-actions, которые не находятся в userActions или mobileUserActions
+        container.querySelectorAll(SELECTORS.LOGOUT_BTN).forEach((btn) => {
+          if (btn) {
+            const isInUserActions = btn.closest(SELECTORS.USER_ACTIONS);
+            const isInMobileUserActions = btn.closest(SELECTORS.MOBILE_USER_ACTIONS);
+            if (!isInUserActions && !isInMobileUserActions) {
+              btn.remove();
+            }
+          }
+        });
       }
     });
   }
@@ -394,9 +421,8 @@
 
     const userActions = document.querySelector(SELECTORS.USER_ACTIONS);
     if (userActions) {
-      if (!existingGamesLogoutBtn && isLoggedIn && isDesktop) {
-        ensureLogoutButton(userActions, existingGamesLogoutBtn, existingGamesLogoutBtnMobile);
-      }
+      // Не создаем кнопку выхода в userActions, так как она будет создана в mobileUserActions
+      // или уже существует в header-actions
       userActions.style.display = isLoggedIn && isDesktop ? 'flex' : 'none';
     }
 
@@ -522,6 +548,7 @@
       const saved = localStorage.getItem(THEME_KEY);
       const isDark = saved === 'dark';
       document.body.classList.toggle('dark', isDark);
+      document.documentElement.classList.toggle('dark', isDark);
       const icon = document.getElementById('themeIcon');
       if (icon) icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
     } catch {

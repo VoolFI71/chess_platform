@@ -62,7 +62,7 @@ async def run_startup_tasks() -> None:
 	logger.info("Courses service startup initiated")
 	try:
 		await asyncio.to_thread(apply_migrations)
-		logger.info("Courses service startup completed")
+	logger.info("Courses service startup completed")
 	except (SystemExit, Exception) as exc:
 		logger.exception("Error during startup tasks: %s", exc)
 		logger.error("Server will continue despite migration errors")

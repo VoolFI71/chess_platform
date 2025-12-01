@@ -68,21 +68,9 @@
                 <nav class="nav">
                     <a href="/games" class="nav-link">Играть</a>
                     <a href="/tasks" class="nav-link">Задачи</a>
-                    <a href="/course" class="nav-link">Курсы</a>
-                    <a href="/couch" class="nav-link">Тренеры</a>
-                    <a href="#tournaments" class="nav-link">Турниры</a>
+                    <a href="/leaderboard" class="nav-link">Рейтинг</a>
                 </nav>
                 <div class="header-actions">
-                    <div id="authButtons">
-                        <button class="btn-login" id="gamesLoginBtn">
-                        <i class="fas fa-sign-in-alt"></i>
-                        Войти
-                    </button>
-                        <button class="btn-register" id="gamesRegisterBtn">
-                        <i class="fas fa-user-plus"></i>
-                        Регистрация
-                    </button>
-                    </div>
                     <div id="userActions">
                         <div id="gamesUserInfo">
                             <span></span>
@@ -91,6 +79,11 @@
                     <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()">
                         <i class="fas fa-sun" id="themeIcon"></i>
                     </button>
+                    <div id="authButtons">
+                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtn" title="Войти / Регистрация">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </a>
+                    </div>
                     <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
                         <i class="fas fa-bars" id="menuIcon"></i>
                     </button>
@@ -104,19 +97,12 @@
                 <div>
                     <a href="/games" class="nav-link" onclick="closeMobileMenu()">Играть</a>
                     <a href="/tasks" class="nav-link" onclick="closeMobileMenu()">Задачи</a>
-                    <a href="/course" class="nav-link" onclick="closeMobileMenu()">Курсы</a>
-                    <a href="/couch" class="nav-link" onclick="closeMobileMenu()">Тренеры</a>
-                    <a href="#tournaments" class="nav-link" onclick="closeMobileMenu()">Турниры</a>
+                    <a href="/leaderboard" class="nav-link" onclick="closeMobileMenu()">Рейтинг</a>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <button class="btn-login" id="gamesLoginBtnMobile" onclick="closeMobileMenu()">
+                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtnMobile" title="Войти / Регистрация" onclick="closeMobileMenu();">
                         <i class="fas fa-sign-in-alt"></i>
-                        Войти
-                    </button>
-                        <button class="btn-register" id="gamesRegisterBtnMobile" onclick="closeMobileMenu()">
-                        <i class="fas fa-user-plus"></i>
-                        Регистрация
-                    </button>
+                        </a>
                     </div>
                     <div id="mobileUserActions">
                         <div id="gamesUserInfoMobile">

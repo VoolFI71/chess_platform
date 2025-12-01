@@ -18,13 +18,29 @@
       const piece = fromSquare.querySelector('.piece');
       if (!piece) return;
       
+      // Получаем координаты для плавной анимации
+      const fromRect = fromSquare.getBoundingClientRect();
+      const toRect = toSquare.getBoundingClientRect();
+      const boardRect = grid.getBoundingClientRect();
+      
+      const deltaX = toRect.left - fromRect.left;
+      const deltaY = toRect.top - fromRect.top;
+      
+      // Сохраняем исходное положение
+      const originalTransform = piece.style.transform || '';
+      
+      // Применяем анимацию перемещения
+      piece.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      piece.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.1)`;
       piece.classList.add('piece-moving');
       
       window.TasksUtils.createTimer(() => {
         if (piece && piece.parentNode) {
+          piece.style.transform = originalTransform;
+          piece.style.transition = '';
           piece.classList.remove('piece-moving');
         }
-      }, 300);
+      }, 400);
     },
 
     highlightInvalidMove(squareName) {

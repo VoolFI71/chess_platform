@@ -6,6 +6,7 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
+from sqlalchemy import inspect
 
 from common import configure_observability, setup_logging
 
@@ -43,7 +44,22 @@ def _wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> No
     raise RuntimeError("Database is not reachable") from last_error
 
 
+def _wait_for_tables(tables: tuple[str, ...], timeout: float = 60.0) -> None:
+    if not tables:
+        return
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        inspector = inspect(sync_engine)
+        if all(inspector.has_table(name) for name in tables):
+            return
+        time.sleep(1)
+    logger.error("Required tables %s not available after %.1fs", tables, timeout)
+    raise RuntimeError(f"Dependent tables {tables} are not ready")
+
+
 def apply_migrations() -> None:
+    logger.info("Waiting for dependent tables before applying migrations...")
+    _wait_for_tables(("users",))
     logger.info("Applying database migrations...")
     _wait_for_database()
     alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))

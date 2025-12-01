@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рейтинговая таблица - PowerChess | Топ игроков</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Рейтинговая таблица PowerChess. Топ игроков по блицу, рапиду, пуле и задачам. Соревнуйтесь с лучшими шахматистами.">
+    <meta name="keywords" content="рейтинговая таблица, топ игроков, лидеры, рейтинг, блиц, рапид, пуля, шахматы">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://powerchess.org/leaderboard">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://powerchess.org/leaderboard">
+    <meta property="og:title" content="Рейтинговая таблица - PowerChess">
+    <meta property="og:description" content="Топ игроков по блицу, рапиду, пуле и задачам. Соревнуйтесь с лучшими шахматистами.">
+    <meta property="og:image" content="https://powerchess.org/og-image.jpg">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Рейтинговая таблица - PowerChess">
+    <meta name="twitter:description" content="Топ игроков по блицу, рапиду, пуле и задачам.">
+    <meta name="twitter:image" content="https://powerchess.org/og-image.jpg">
+    
+    <!-- Загрузка темы до отрисовки страницы -->
+    <script>
+      try {
+        if (localStorage.getItem('theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.body.classList.add('dark');
+        }
+      } catch {}
+    </script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Common Styles -->
+    <link rel="stylesheet" href="/styles/variables.css">
+    <link rel="stylesheet" href="/styles/common.css">
+    <link rel="stylesheet" href="/styles/header.css">
+    <link rel="stylesheet" href="/styles/notifications.css">
+    <link rel="stylesheet" href="/styles/cabinet.css">
+    <link rel="stylesheet" href="/styles/leaderboard.css">
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div class="logo-icon">
+                        <div class="chess-pattern"></div>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                            <defs>
+                                <linearGradient id="crown-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#ffd700" />
+                                    <stop offset="50%" stop-color="#ffffff" />
+                                    <stop offset="100%" stop-color="#ffd700" />
+                                </linearGradient>
+                            </defs>
+                            <rect x="3" y="16" width="18" height="3" fill="url(#crown-gradient)" stroke="#fff" stroke-width="0.5" rx="1.5"/>
+                            <path d="M4 16L3 6L6 11L12 3L18 11L21 6L20 16H4Z" fill="url(#crown-gradient)" stroke="#fff" stroke-width="1"/>
+                            <circle cx="12" cy="9" r="1.5" fill="#e11d48" stroke="#fff" stroke-width="0.5"/>
+                        </svg>
+                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                            <path d="M7 1L3 7H5L4 11L8 5H6L7 1Z" fill="#ffd700" stroke="#fff" stroke-width="0.8"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="gradient-text">PowerChess</div>
+                        <div>♔ Шахматная академия</div>
+                    </div>
+                </a>
+                <nav class="nav">
+                    <a href="/games" class="nav-link">Играть</a>
+                    <a href="/tasks" class="nav-link">Задачи</a>
+                    <a href="/leaderboard" class="nav-link active">Рейтинг</a>
+                </nav>
+                <div class="header-actions">
+                    <div id="userActions">
+                        <div id="leaderboardUserInfo">
+                            <span></span>
+                        </div>
+                    </div>
+                    <button class="theme-toggle" title="Переключить тему" id="themeToggleBtn" onclick="toggleTheme()">
+                        <i class="fas fa-sun" id="themeIcon"></i>
+                    </button>
+                    <div id="authButtons">
+                        <a href="/login" class="auth-icon-btn" id="leaderboardAuthBtn" title="Войти / Регистрация">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </a>
+                    </div>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn">
+                        <i class="fas fa-bars" id="menuIcon"></i>
+                    </button>
+                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Mobile Menu -->
+            <div class="mobile-menu" id="mobileMenu">
+                <div>
+                    <a href="/games" class="nav-link mobile-nav-link">Играть</a>
+                    <a href="/tasks" class="nav-link mobile-nav-link">Задачи</a>
+                    <a href="/leaderboard" class="nav-link mobile-nav-link active">Рейтинг</a>
+                    <hr>
+                    <div id="mobileAuthButtons">
+                        <a href="/login" class="auth-icon-btn" id="leaderboardAuthBtnMobile" title="Войти / Регистрация">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </a>
+                    </div>
+                    <div id="mobileUserActions">
+                        <div id="leaderboardUserInfoMobile">
+                            <span></span>
+                        </div>
+                        <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile" title="Выйти">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <div class="container">
+        <div class="leaderboard-container">
+            <div class="leaderboard-header">
+                <h1>
+                    <i class="fas fa-trophy"></i>
+                    Рейтинговая таблица
+                </h1>
+            </div>
+
+            <div class="format-selector">
+                <button class="format-btn active" data-format="blitz">
+                    <i class="fas fa-bolt"></i>
+                    Блиц
+                </button>
+                <button class="format-btn" data-format="rapid">
+                    <i class="fas fa-clock"></i>
+                    Рапид
+                </button>
+                <button class="format-btn" data-format="bullet">
+                    <i class="fas fa-bolt"></i>
+                    Пуля
+                </button>
+                <button class="format-btn" data-format="puzzle">
+                    <i class="fas fa-puzzle-piece"></i>
+                    Задачи
+                </button>
+            </div>
+
+            <div class="leaderboard-table" id="leaderboardTable">
+                <div class="leaderboard-header-row">
+                    <div>Место</div>
+                    <div>Игрок</div>
+                    <div style="text-align: right;">Рейтинг</div>
+                </div>
+                <div id="leaderboardRows">
+                    <div style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <div>Загрузка рейтинговой таблицы...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/scripts/auth.js"></script>
+    <script src="/scripts/notifications.js"></script>
+    <script>
+        (() => {
+            const state = {
+                currentFormat: 'blitz',
+                loading: false,
+                entries: [],
+            };
+
+            function getInitials(username) {
+                if (!username) return '?';
+                const parts = username.trim().split(/\s+/);
+                if (parts.length >= 2) {
+                    return (parts[0][0] + parts[1][0]).toUpperCase();
+                }
+                return username.substring(0, 2).toUpperCase();
+            }
+
+            function createLeaderboardRow(entry, rank) {
+                const row = document.createElement('div');
+                row.className = 'leaderboard-row';
+                
+                // Добавляем классы для топ-3 позиций
+                if (rank === 1) row.className += ' top-1';
+                else if (rank === 2) row.className += ' top-2';
+                else if (rank === 3) row.className += ' top-3';
+                
+                const rankDiv = document.createElement('div');
+                rankDiv.className = 'rank';
+                if (rank === 1) rankDiv.className += ' top-1';
+                else if (rank === 2) rankDiv.className += ' top-2';
+                else if (rank === 3) rankDiv.className += ' top-3';
+                rankDiv.textContent = rank;
+                
+                const userInfo = document.createElement('div');
+                userInfo.className = 'user-info';
+                
+                const avatar = document.createElement('div');
+                avatar.className = 'user-avatar';
+                avatar.textContent = getInitials(entry.user.username || entry.user.display_name);
+                
+                const details = document.createElement('div');
+                details.className = 'user-details';
+                
+                const name = document.createElement('div');
+                name.className = 'user-name';
+                const nameLink = document.createElement('a');
+                nameLink.href = `/profile/${encodeURIComponent(entry.user.username || entry.user.id)}`;
+                nameLink.textContent = entry.user.username || entry.user.display_name || 'Неизвестно';
+                name.appendChild(nameLink);
+                
+                const stats = document.createElement('div');
+                stats.className = 'user-stats';
+                const highestRating = Math.max(
+                    entry.user.blitz_rating || 0,
+                    entry.user.rapid_rating || 0,
+                    entry.user.bullet_rating || 0,
+                    entry.user.puzzle_rating || 0
+                );
+                stats.textContent = `Рейтинг: ${highestRating}`;
+                
+                details.appendChild(name);
+                details.appendChild(stats);
+                
+                userInfo.appendChild(avatar);
+                userInfo.appendChild(details);
+                
+                const rating = document.createElement('div');
+                rating.className = 'rating-value';
+                rating.textContent = entry.rating;
+                
+                row.appendChild(rankDiv);
+                row.appendChild(userInfo);
+                row.appendChild(rating);
+                
+                return row;
+            }
+
+            function renderLeaderboard(entries) {
+                const container = document.getElementById('leaderboardRows');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                
+                if (!entries || entries.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty-state';
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-trophy';
+                    empty.appendChild(icon);
+                    const text = document.createElement('div');
+                    text.textContent = 'Рейтинговая таблица пуста';
+                    text.style.fontSize = '1.125rem';
+                    empty.appendChild(text);
+                    container.appendChild(empty);
+                    return;
+                }
+                
+                entries.forEach((entry, index) => {
+                    const rank = (state.currentPage || 0) * 50 + index + 1;
+                    const row = createLeaderboardRow(entry, rank);
+                    container.appendChild(row);
+                });
+            }
+
+            async function loadLeaderboard(format = 'blitz') {
+                if (state.loading) return;
+                
+                state.loading = true;
+                state.currentFormat = format;
+                
+                const container = document.getElementById('leaderboardRows');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                const loadingDiv = document.createElement('div');
+                loadingDiv.style.cssText = 'text-align: center; padding: 3rem; color: var(--muted-foreground);';
+                const spinner = document.createElement('i');
+                spinner.className = 'fas fa-spinner fa-spin';
+                spinner.style.cssText = 'font-size: 2rem; margin-bottom: 1rem;';
+                loadingDiv.appendChild(spinner);
+                loadingDiv.appendChild(document.createTextNode('Загрузка рейтинговой таблицы...'));
+                container.appendChild(loadingDiv);
+                
+                try {
+                    const res = await fetch(`/api/ratings/leaderboard?format_type=${format}&limit=50`);
+                    if (!res.ok) {
+                        throw new Error('Failed to load leaderboard');
+                    }
+                    
+                    const data = await res.json();
+                    state.entries = data.entries || [];
+                    
+                    renderLeaderboard(state.entries);
+                } catch (e) {
+                    console.error('Failed to load leaderboard:', e);
+                    container.innerHTML = '';
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'empty-state';
+                    errorDiv.style.color = 'var(--danger)';
+                    const errorIcon = document.createElement('i');
+                    errorIcon.className = 'fas fa-exclamation-triangle';
+                    errorDiv.appendChild(errorIcon);
+                    const errorText = document.createElement('div');
+                    errorText.textContent = 'Не удалось загрузить рейтинговую таблицу';
+                    errorDiv.appendChild(errorText);
+                    const retryBtn = document.createElement('button');
+                    retryBtn.className = 'btn btn-primary';
+                    retryBtn.style.marginTop = '1rem';
+                    retryBtn.textContent = 'Попробовать снова';
+                    retryBtn.onclick = () => loadLeaderboard(format);
+                    errorDiv.appendChild(retryBtn);
+                    container.appendChild(errorDiv);
+                } finally {
+                    state.loading = false;
+                }
+            }
+
+            // Инициализация фильтров формата
+            document.addEventListener('DOMContentLoaded', () => {
+                // Инициализация темы
+                if (window.loadTheme && typeof window.loadTheme === 'function') {
+                    window.loadTheme();
+                }
+                
+                const formatButtons = document.querySelectorAll('.format-btn');
+                formatButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        formatButtons.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        const format = btn.dataset.format;
+                        loadLeaderboard(format);
+                    });
+                });
+                
+                // Загружаем блиц по умолчанию
+                loadLeaderboard('blitz');
+            });
+        })();
+    </script>
+</body>
+</html>
+

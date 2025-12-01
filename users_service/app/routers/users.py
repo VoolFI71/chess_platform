@@ -2,7 +2,8 @@ import asyncio
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,11 @@ from ..utils import build_user_public
 
 
 router = APIRouter(prefix="/api/users", tags=["users"])
+
+
+class UserSearchResponse(BaseModel):
+	users: list[UserPublic]
+	total: int
 
 
 @router.get("/me", response_model=UserPublic)
@@ -156,3 +162,39 @@ async def get_user_stats(
 		user_id = user_row[0]
 	
 	return await _get_user_stats_by_id(user_id, db)
+
+
+@router.get("/search", response_model=UserSearchResponse)
+async def search_users(
+	q: Annotated[str, Query(min_length=2, max_length=50, description="Поисковый запрос (username)")],
+	limit: Annotated[int, Query(ge=1, le=50)] = 20,
+	offset: Annotated[int, Query(ge=0)] = 0,
+	db: AsyncSession = Depends(get_db),
+) -> UserSearchResponse:
+	"""Поиск пользователей по username (case-insensitive, частичное совпадение)"""
+	search_term = q.strip().lower()
+	if len(search_term) < 2:
+		return UserSearchResponse(users=[], total=0)
+	
+	# Поиск по username (case-insensitive, частичное совпадение)
+	stmt = (
+		select(User, func.count(User.id).over().label("total"))
+		.where(
+			func.lower(User.username).contains(search_term),
+			User.is_active == True
+		)
+		.order_by(User.username)
+		.limit(limit)
+		.offset(offset)
+	)
+	
+	result = await db.execute(stmt)
+	rows = result.all()
+	
+	if not rows:
+		return UserSearchResponse(users=[], total=0)
+	
+	total = rows[0].total if rows else 0
+	users = [build_user_public(row.User) for row in rows]
+	
+	return UserSearchResponse(users=users, total=total)

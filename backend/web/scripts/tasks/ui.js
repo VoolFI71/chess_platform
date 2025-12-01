@@ -11,7 +11,14 @@
       const statusEl = document.getElementById('puzzleStatus');
       if (!statusEl) return;
       statusEl.textContent = message;
-      statusEl.style.color = isError ? '#dc2626' : 'var(--muted-foreground)';
+      // Удаляем все классы статуса
+      statusEl.classList.remove('error', 'success');
+      // Добавляем соответствующий класс
+      if (isError) {
+        statusEl.classList.add('error');
+      } else {
+        statusEl.classList.add('success');
+      }
     },
 
     renderModes() {
@@ -27,9 +34,7 @@
         const card = document.createElement('div');
         card.className = `mode-card ${isActive ? 'active' : ''}`;
         card.dataset.mode = mode.id;
-        if (isActive) {
-          card.style.background = mode.gradient;
-        }
+        // Фон устанавливается через CSS, не через инлайн-стиль
         card.addEventListener('click', () => window.TasksMain.selectMode(mode.id));
         
         const header = document.createElement('div');
@@ -81,7 +86,11 @@
       const movesLabel = document.getElementById('currentPuzzleMoves');
       
       if (headerCard) {
-        headerCard.style.display = puzzle ? 'block' : 'none';
+        if (puzzle) {
+          headerCard.classList.remove('hidden');
+        } else {
+          headerCard.classList.add('hidden');
+        }
       }
 
       if (modeLabel) {
@@ -135,11 +144,11 @@
       if (!infoCard) return;
 
       if (!puzzle) {
-        infoCard.style.display = 'none';
+        infoCard.classList.add('hidden');
         return;
       }
 
-      infoCard.style.display = 'block';
+      infoCard.classList.remove('hidden');
 
       if (themesValue) {
         if (puzzle.themes && Array.isArray(puzzle.themes) && puzzle.themes.length > 0) {
@@ -183,17 +192,34 @@
     updateStats() {
       const ratingValue = document.getElementById('currentRatingValue');
       const streakValue = document.getElementById('streakValue');
+      const streakIndicator = document.getElementById('streakIndicator');
       
       if (ratingValue) {
         const rating = window.TasksUtils.getCurrentPuzzleRating();
         ratingValue.textContent = rating;
       }
       
-      if (streakValue) {
+      if (streakValue && streakIndicator) {
         if (TasksState.selectedMode.id === 'survival') {
-          streakValue.textContent = TasksState.sessionStats.streak;
+          const streak = TasksState.sessionStats.streak;
+          streakValue.textContent = streak;
+          
+          // Визуальная индикация активной серии (более 3 решенных подряд)
+          if (streak >= 3) {
+            streakIndicator.classList.add('active');
+            // Анимация при увеличении серии
+            streakValue.style.animation = 'none';
+            setTimeout(() => {
+              streakValue.style.animation = 'streakIncrease 0.5s ease-out';
+            }, 10);
+          } else {
+            streakIndicator.classList.remove('active');
+          }
         } else {
           streakValue.textContent = '—';
+          if (streakIndicator) {
+            streakIndicator.classList.remove('active');
+          }
         }
       }
     },

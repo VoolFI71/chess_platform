@@ -12,14 +12,12 @@
         name: 'Выживание',
         description: 'Случайные задачи без рейтинга. Идеально для длинных марафонов и свободной практики.',
         icon: 'fa-heartbeat',
-        gradient: 'linear-gradient(135deg, #10b981, #059669)',
       },
       {
         id: 'rated',
         name: 'На рейтинг',
         description: 'Подбор задач по вашему puzzle rating. Ошибки и успехи влияют на статистику и серии.',
         icon: 'fa-trophy',
-        gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
       },
     ],
 

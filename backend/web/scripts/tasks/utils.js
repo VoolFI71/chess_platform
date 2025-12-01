@@ -30,6 +30,20 @@
       TasksState.activeTimers.clear();
     },
 
+    // Функция для очистки всех обработчиков событий
+    clearAllEventListeners() {
+      if (TasksState.eventListeners) {
+        TasksState.eventListeners.forEach((handlers, element) => {
+          if (element && element.parentNode) {
+            handlers.forEach(({ type, handler }) => {
+              element.removeEventListener(type, handler);
+            });
+          }
+        });
+        TasksState.eventListeners.clear();
+      }
+    },
+
     getCurrentPuzzleRating() {
       if (TasksState.puzzleStats && typeof TasksState.puzzleStats.puzzle_rating === 'number') {
         return TasksState.puzzleStats.puzzle_rating;

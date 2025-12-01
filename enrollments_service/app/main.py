@@ -52,7 +52,7 @@ async def run_startup_tasks() -> None:
 	logger.info("Enrollments service startup initiated")
 	try:
 		await asyncio.to_thread(apply_migrations)
-		logger.info("Enrollments service startup completed")
+	logger.info("Enrollments service startup completed")
 	except (SystemExit, Exception) as exc:
 		logger.exception("Error during startup tasks: %s", exc)
 		logger.error("Server will continue despite migration errors")

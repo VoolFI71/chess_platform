@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import PuzzleUserStats
@@ -59,6 +59,13 @@ class PuzzleStatsService:
 				provisional_games=stats.provisional_games,
 			)
 			rating_after = stats.puzzle_rating
+			
+			# Синхронизируем рейтинг с таблицей users
+			# Используем raw SQL, чтобы не создавать зависимость от users_service
+			await self.session.execute(
+				text("UPDATE users SET puzzle_rating = :rating WHERE id = :user_id"),
+				{"rating": rating_after, "user_id": user_id}
+			)
 
 		if time_spent_ms:
 			stats.total_time_ms += time_spent_ms
