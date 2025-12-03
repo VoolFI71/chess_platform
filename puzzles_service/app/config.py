@@ -5,7 +5,7 @@ class Settings(BaseServiceSettings):
 	app_name: str = "Puzzles Service"
 	puzzles_internal_token: str | None = None
 	import_chunk_size: int = 2000
-	random_pool_size: int = 5000  # Увеличено для базы с 1 млн задач: обеспечивает хорошее разнообразие (0.5% от общего количества)
+	random_pool_size: int = 15000  # Оптимальный размер для базы с 1 млн задач: обеспечивает хорошее разнообразие (1.5% от общего количества) и баланс между производительностью и памятью
 	max_moves_return: int = 12
 	default_page_size: int = 20
 	max_page_size: int = 100

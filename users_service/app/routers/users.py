@@ -198,3 +198,19 @@ async def search_users(
 	users = [build_user_public(row.User) for row in rows]
 	
 	return UserSearchResponse(users=users, total=total)
+
+
+@router.get("/stats/aggregate")
+async def get_aggregate_stats(
+	db: AsyncSession = Depends(get_db),
+) -> dict:
+	"""Получить общую статистику по всем пользователям (публичный endpoint)"""
+	# Общее количество активных пользователей
+	total_users_result = await db.execute(
+		select(func.count(User.id)).where(User.is_active == True)
+	)
+	total_users = total_users_result.scalar() or 0
+	
+	return {
+		"total_users": int(total_users),
+	}

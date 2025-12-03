@@ -10,6 +10,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
+from ..database import SessionLocal
 from ..models import Puzzle
 from ..schemas import PuzzleFilters
 
@@ -21,12 +22,12 @@ class PuzzleCache:
 
 	_cache: dict[str, list[Puzzle]] = {}
 	_cache_timestamps: dict[str, datetime] = {}
-	_cache_lock = asyncio.Lock()
+	_refresh_lock = asyncio.Lock()  # Блокировка только для обновления кеша
+	_refresh_tasks: dict[str, asyncio.Task] = {}  # Фоновые задачи обновления
 
-	def __init__(self, session: AsyncSession):
-		self.session = session
+	def __init__(self):
 		self.settings = get_settings()
-		self._cache_ttl = timedelta(minutes=5)
+		self._cache_ttl = timedelta(minutes=30)  # Увеличено до 30 минут для снижения нагрузки на БД
 
 	@classmethod
 	def _get_cache(cls, key: str) -> list[Puzzle] | None:
@@ -49,76 +50,75 @@ class PuzzleCache:
 
 	async def get_random_puzzle(
 		self,
+		session: AsyncSession,
 		filters: PuzzleFilters | None = None,
 	) -> Puzzle | None:
 		"""Получает случайную задачу, используя кэш или TABLESAMPLE."""
 		cache_key = self._build_cache_key(filters)
 
-		async with self._cache_lock:
-			if self._should_refresh(cache_key, self._cache_ttl):
-				await self._refresh_cache(cache_key, filters)
+		# Читаем из кеша без блокировки (чтение из dict атомарно в CPython)
+		cached = self._get_cache(cache_key)
+		
+		# Если кеш есть и свежий - возвращаем задачу сразу
+		if cached and not self._should_refresh(cache_key, self._cache_ttl):
+			return random.choice(cached)
 
-			cached = self._get_cache(cache_key)
-			if cached:
-				return random.choice(cached)
+		# Если кеш устарел или пуст - запускаем обновление в фоне (не блокируя)
+		if self._should_refresh(cache_key, self._cache_ttl):
+			# Запускаем обновление в фоне, если еще не запущено
+			# Создаем новую сессию для фоновой задачи, чтобы избежать конфликтов
+			if cache_key not in self._refresh_tasks or self._refresh_tasks[cache_key].done():
+				self._refresh_tasks[cache_key] = asyncio.create_task(
+					self._refresh_cache_async(cache_key, filters)
+				)
 
-		# Кэш пуст или фильтры сложные – используем прямую выборку
-		return await self._get_random_with_tablesample(filters)
+		# Если кеш есть, но устарел - используем его (stale-while-revalidate)
+		if cached:
+			return random.choice(cached)
+
+		# Кэш пуст – используем прямую выборку
+		return await self._get_random_with_tablesample(session, filters)
 
 	async def _get_random_with_tablesample(
 		self,
+		session: AsyncSession,
 		filters: PuzzleFilters | None = None,
 	) -> Puzzle | None:
-		"""Использует TABLESAMPLE/offset стратегии для выборки пазла."""
+		"""Использует простой запрос с ORDER BY random() для выборки пазла."""
 		conditions = self._build_filter_conditions(filters) if filters else []
-		try:
-			query = select(Puzzle).where(
-				text(
-					"puzzles.id IN ("
-					"SELECT id FROM puzzles TABLESAMPLE SYSTEM (0.5) LIMIT 200"
-					")"
-				)
-			)
-			if conditions:
-				query = query.where(*conditions)
-			query = query.order_by(func.random()).limit(1)
-			result = await self.session.execute(query)
-			puzzle = result.scalar_one_or_none()
-			if puzzle:
-				return puzzle
-		except Exception as e:  # pragma: no cover - fallback
-			logger.warning("TABLESAMPLE failed, fallback to index-based random: %s", e)
-
-		# Fallback: используем случайные значения первичного ключа
-		min_max_stmt = select(func.min(Puzzle.id), func.max(Puzzle.id)).select_from(Puzzle)
-		if conditions:
-			min_max_stmt = min_max_stmt.where(*conditions)
-		min_max_result = await self.session.execute(min_max_stmt)
-		min_id, max_id = min_max_result.one()
-		if min_id is None or max_id is None:
-			return None
-
-		for _ in range(10):
-			candidate = random.randint(min_id, max_id)
-			query = select(Puzzle)
-			if conditions:
-				query = query.where(*conditions)
-			query = query.where(Puzzle.id >= candidate).order_by(Puzzle.id).limit(1)
-			result = await self.session.execute(query)
-			puzzle = result.scalar_one_or_none()
-			if puzzle:
-				return puzzle
-
-		# Обход по кругу, если ничего не нашли
+		
+		# Простой и быстрый способ: ORDER BY random() LIMIT 1
+		# PostgreSQL оптимизирует это для больших таблиц с индексами
 		query = select(Puzzle)
 		if conditions:
 			query = query.where(*conditions)
-		query = query.order_by(Puzzle.id).limit(1)
-		result = await self.session.execute(query)
+		query = query.order_by(func.random()).limit(1)
+		
+		result = await session.execute(query)
 		return result.scalar_one_or_none()
+
+	async def _refresh_cache_async(
+		self,
+		cache_key: str,
+		filters: PuzzleFilters | None = None,
+	) -> None:
+		"""Асинхронно обновляет кэш в фоне, не блокируя читателей."""
+		# Используем блокировку только для предотвращения одновременных обновлений одного ключа
+		async with self._refresh_lock:
+			# Двойная проверка: возможно, кеш уже обновили
+			if not self._should_refresh(cache_key, self._cache_ttl):
+				return
+			
+			# Создаем новую сессию для фоновой задачи
+			async with SessionLocal() as session:
+				try:
+					await self._refresh_cache(session, cache_key, filters)
+				except Exception as e:
+					logger.error(f"Error refreshing cache for key '{cache_key}': {e}", exc_info=True)
 
 	async def _refresh_cache(
 		self,
+		session: AsyncSession,
 		cache_key: str,
 		filters: PuzzleFilters | None = None,
 	) -> None:
@@ -138,7 +138,7 @@ class PuzzleCache:
 			if conditions:
 				query = query.where(*conditions)
 			query = query.order_by(func.random()).limit(self.settings.random_pool_size)
-			result = await self.session.execute(query)
+			result = await session.execute(query)
 			items = list(result.scalars().all())
 		except Exception as e:  # pragma: no cover - fallback
 			logger.warning("TABLESAMPLE failed during cache refresh: %s", e)
@@ -148,7 +148,7 @@ class PuzzleCache:
 			min_max_stmt = select(func.min(Puzzle.id), func.max(Puzzle.id)).select_from(Puzzle)
 			if conditions:
 				min_max_stmt = min_max_stmt.where(*conditions)
-			min_max_result = await self.session.execute(min_max_stmt)
+			min_max_result = await session.execute(min_max_stmt)
 			min_id, max_id = min_max_result.one()
 			if min_id is None or max_id is None:
 				self._set_cache(cache_key, [])
@@ -165,14 +165,14 @@ class PuzzleCache:
 				if conditions:
 					query = query.where(*conditions)
 				query = query.where(Puzzle.id >= candidate).order_by(Puzzle.id).limit(batch_size)
-				result = await self.session.execute(query)
+				result = await session.execute(query)
 				batch = [row for row in result.scalars().all() if row.id not in seen_ids]
 				if not batch:
 					query = select(Puzzle)
 					if conditions:
 						query = query.where(*conditions)
 					query = query.order_by(Puzzle.id).limit(batch_size)
-					result = await self.session.execute(query)
+					result = await session.execute(query)
 					batch = [row for row in result.scalars().all() if row.id not in seen_ids]
 				for row in batch:
 					seen_ids.add(row.id)
@@ -181,6 +181,7 @@ class PuzzleCache:
 
 			items = results[: self.settings.random_pool_size]
 
+		# Атомарно обновляем кеш (запись в dict атомарна в CPython)
 		self._set_cache(cache_key, items or [])
 		logger.info("Refreshed cache for key '%s' with %d puzzles", cache_key, len(items or []))
 
@@ -209,4 +210,16 @@ class PuzzleCache:
 		if filters.opening_tags:
 			conditions.append(Puzzle.opening_tags.contains(filters.opening_tags))
 		return conditions
+
+
+# Singleton экземпляр кеша
+_puzzle_cache_instance: PuzzleCache | None = None
+
+
+def get_puzzle_cache() -> PuzzleCache:
+	"""Возвращает singleton экземпляр PuzzleCache."""
+	global _puzzle_cache_instance
+	if _puzzle_cache_instance is None:
+		_puzzle_cache_instance = PuzzleCache()
+	return _puzzle_cache_instance
 

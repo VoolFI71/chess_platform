@@ -10,6 +10,17 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  migrations:
+    build:
+      context: .
+      dockerfile: migrations_service/Dockerfile
+    depends_on:
+      db:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://chess:chess@db:5432/chess
+    restart: "no"
+
   api:
     build: .
     depends_on:
@@ -46,6 +57,8 @@ services:
     depends_on:
       db:
         condition: service_started
+      migrations:
+        condition: service_completed_successfully
       users:
         condition: service_started
     env_file:
@@ -61,6 +74,8 @@ services:
     depends_on:
       db:
         condition: service_started
+      migrations:
+        condition: service_completed_successfully
     env_file:
       - .env
     environment:
@@ -77,6 +92,8 @@ services:
     depends_on:
       db:
         condition: service_started
+      migrations:
+        condition: service_completed_successfully
     env_file:
       - .env
     environment:
@@ -91,6 +108,8 @@ services:
     depends_on:
       db:
         condition: service_started
+      migrations:
+        condition: service_completed_successfully
       enrollments:
         condition: service_started
     env_file:
@@ -108,6 +127,8 @@ services:
     depends_on:
       db:
         condition: service_started
+      migrations:
+        condition: service_completed_successfully
       enrollments:
         condition: service_started
     env_file:
@@ -125,6 +146,10 @@ services:
     depends_on:
       db:
         condition: service_started
+      migrations:
+        condition: service_completed_successfully
+      users:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -138,6 +163,8 @@ services:
     depends_on:
       db:
         condition: service_started
+      migrations:
+        condition: service_completed_successfully
       users:
         condition: service_started
     env_file:
@@ -153,6 +180,8 @@ services:
     depends_on:
       db:
         condition: service_started
+      migrations:
+        condition: service_completed_successfully
     env_file:
       - .env
     environment:
@@ -184,6 +213,8 @@ services:
     depends_on:
       db:
         condition: service_started
+      migrations:
+        condition: service_completed_successfully
     env_file:
       - .env
     environment:

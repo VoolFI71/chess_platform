@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru" class="scroll-smooth">
 <head>
+    <meta name="yandex-verification" content="423b2105f7ad40ad" />
+    <meta name="google-site-verification" content="fKYjBgD3rEnMS5_meTCbL_tQRcck2g0OhCEVYx9TIUk" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PowerChess - Шахматная академия нового поколения | Шахматы онлайн </title>
@@ -1577,7 +1579,7 @@
 
     <!-- Enhanced Header -->
     <!-- HEADER -->
-    <header class="header">
+    <header id="header" class="header">
         <div class="container">
             <div class="header-content">
                 <a href="/" class="logo">
@@ -1691,29 +1693,29 @@
                                 <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #3b82f6);">
                                     <i class="fas fa-users"></i>
                                 </div>
-                                <div class="stat-value">10,000+</div>
-                                <div class="stat-label">Активных учеников</div>
+                                <div class="stat-value" id="stat-users">0</div>
+                                <div class="stat-label">Активных пользователей</div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-                                    <i class="fas fa-book"></i>
+                                    <i class="fas fa-puzzle-piece"></i>
                                 </div>
-                                <div class="stat-value">50+</div>
-                                <div class="stat-label">Премиум курсов</div>
+                                <div class="stat-value" id="stat-puzzles-solved">0</div>
+                                <div class="stat-label">Решений задач</div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-                                    <i class="fas fa-chalkboard-teacher"></i>
+                                    <i class="fas fa-chess"></i>
                                 </div>
-                                <div class="stat-value">20+</div>
-                                <div class="stat-label">Эксперт-тренеров</div>
+                                <div class="stat-value" id="stat-games-played">0</div>
+                                <div class="stat-label">Сыгранных партий</div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-icon" style="background: linear-gradient(135deg, #ec4899, #be185d);">
-                                    <i class="fas fa-play-circle"></i>
+                                    <i class="fas fa-database"></i>
                                 </div>
-                                <div class="stat-value">500+</div>
-                                <div class="stat-label">Видео уроков</div>
+                                <div class="stat-value" id="stat-total-puzzles">0</div>
+                                <div class="stat-label">Задач в базе</div>
                             </div>
                         </div>
                     </div>
@@ -2267,6 +2269,7 @@
         // Header Scroll Effect
         function handleScroll() {
             const header = document.getElementById('header');
+            if (!header) return;
             if (window.scrollY > 50) {
                 header.classList.add('scrolled');
             } else {

@@ -8,6 +8,10 @@
   function getDisplayedClocks(applyRunning = true) {
     if (!state.game) return null;
     let { white_clock_ms: white, black_clock_ms: black, status, next_turn, move_count } = state.game;
+    // Сохраняем исходные значения из БД для логирования
+    const white_clock_db = white;
+    const black_clock_db = black;
+    
     if (!applyRunning) return { white, black };
     
     // ВАЖНО: Время не должно тикать до первого хода
@@ -26,30 +30,41 @@
     }
 
     const anchor = typeof state.clockAnchorTime === 'number' ? state.clockAnchorTime : Date.now();
-    const elapsed = Math.max(0, Date.now() - anchor);
+    const now = Date.now();
+    const elapsed = Math.max(0, now - anchor);
 
     if (next_turn === 'w') {
       white = Math.max(0, white - elapsed);
     } else if (next_turn === 'b') {
       black = Math.max(0, black - elapsed);
     }
-    if (window.__DEBUG_CLOCKS__) {
-      const now = Date.now();
-      console.log('[clock] getDisplayedClocks: TICKING', {
+    
+    // Логируем каждое вычисление времени (только каждую секунду, чтобы не засорять консоль)
+    const shouldLog = !state._lastClockLogTime || (now - state._lastClockLogTime) >= 1000;
+    if (shouldLog) {
+      console.log('[CLOCK DEBUG] getDisplayedClocks: TICKING', {
+        source: 'CLOCK_TICK',
         mode: applyRunning ? 'running' : 'static',
         status,
         move_count,
         next_turn,
         clockAnchorTime: anchor,
-        now,
+        client_now_ms: now,
         elapsed_ms: elapsed,
-        white_before: white_clock_ms,
-        black_before: black_clock_ms,
-        white_after: white,
-        black_after: black,
-        white_delta: white_clock_ms - white,
-        black_delta: black_clock_ms - black,
+        white_clock_db: white_clock_db,
+        black_clock_db: black_clock_db,
+        white_displayed: white,
+        black_displayed: black,
+        white_delta: white_clock_db - white,
+        black_delta: black_clock_db - black,
+        white_formatted: formatClock ? formatClock(white) : `${Math.floor(white / 60000)}:${String(Math.floor((white % 60000) / 1000)).padStart(2, '0')}`,
+        black_formatted: formatClock ? formatClock(black) : `${Math.floor(black / 60000)}:${String(Math.floor((black % 60000) / 1000)).padStart(2, '0')}`,
       });
+      if (!state._lastClockLogTime) {
+        state._lastClockLogTime = now;
+      } else {
+        state._lastClockLogTime = now;
+      }
     }
     return { white, black };
   }

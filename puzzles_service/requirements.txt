@@ -9,4 +9,5 @@ prometheus-client==0.20.0
 python-jose==3.3.0
 chess==1.11.2
 alembic==1.13.2
+orjson==3.10.7  # Быстрая JSON сериализация (в 2-3 раза быстрее стандартного json)
 

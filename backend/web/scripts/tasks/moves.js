@@ -286,13 +286,17 @@
         return;
       }
       
-      const moveApplied = window.TasksMoves.applyMoveToBoard(uci, true);
+      const moveApplied = window.TasksMoves && window.TasksMoves.applyMoveToBoard && window.TasksMoves.applyMoveToBoard(uci, true);
       if (!moveApplied) {
-        window.TasksMoves.clearSelection();
+        if (window.TasksMoves && window.TasksMoves.clearSelection) {
+          window.TasksMoves.clearSelection();
+        }
         return;
       }
       
-      window.TasksBoard.renderBoard();
+      if (window.TasksBoard && typeof window.TasksBoard.renderBoard === 'function') {
+        window.TasksBoard.renderBoard();
+      }
       
       // Массив moves начинается с хода противника (индекс 0)
       // Ходы противника: 0, 2, 4, 6, ...
@@ -358,21 +362,33 @@
     applyOpponentMove(uci) {
       if (!TasksState.currentFEN || !uci) return;
       
-      if (window.TasksMoves.applyMoveToBoard(uci, true)) {
+      if (window.TasksMoves && window.TasksMoves.applyMoveToBoard && window.TasksMoves.applyMoveToBoard(uci, true)) {
         TasksState.movesHistory.push({
           move: uci,
           fen: TasksState.currentFEN,
           isPlayer: false
         });
         TasksState.currentHistoryIndex = TasksState.movesHistory.length - 1;
-        window.TasksHistory.updateMovesHistory();
         
-        window.TasksUtils.createTimer(() => {
-          window.TasksBoard.renderBoard();
-        }, 100);
+        if (window.TasksHistory && typeof window.TasksHistory.updateMovesHistory === 'function') {
+          window.TasksHistory.updateMovesHistory();
+        }
+        
+        if (window.TasksUtils && typeof window.TasksUtils.createTimer === 'function') {
+          window.TasksUtils.createTimer(() => {
+            if (window.TasksBoard && typeof window.TasksBoard.renderBoard === 'function') {
+              window.TasksBoard.renderBoard();
+            }
+          }, 100);
+        }
         
         TasksState.selectedSquare = null;
         TasksState.availableTargets = new Set();
+        
+        // Проверяем наличие текущей задачи перед доступом к moves
+        if (!TasksState.currentPuzzle) {
+          return;
+        }
         
         const correctMoves = TasksState.currentPuzzle.moves || [];
         
@@ -383,9 +399,13 @@
           if (window.TasksUtils && typeof window.TasksUtils.playSound === 'function') {
             window.TasksUtils.playSound('success');
           }
-          window.TasksMain.handlePuzzleSolved();
+          if (window.TasksMain && typeof window.TasksMain.handlePuzzleSolved === 'function') {
+            window.TasksMain.handlePuzzleSolved();
+          }
         } else {
-          window.TasksUI.setPuzzleStatus('Противник сделал ход. Ваш ход!', false);
+          if (window.TasksUI && typeof window.TasksUI.setPuzzleStatus === 'function') {
+            window.TasksUI.setPuzzleStatus('Противник сделал ход. Ваш ход!', false);
+          }
         }
       }
     },

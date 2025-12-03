@@ -35,21 +35,6 @@ def _sanitize_username(raw: str, email: str) -> str:
 	return base
 
 
-async def _ensure_unique_username(base: str, db: AsyncSession) -> str:
-	"""Подбирает уникальный username, добавляя суффиксы при необходимости."""
-	candidate = base
-	suffix = 1
-	while True:
-		stmt = select(User.id).where(func.lower(User.username) == candidate.lower())
-		exists = await db.scalar(stmt)
-		if not exists:
-			return candidate
-		suffix += 1
-		suffix_str = f"-{suffix}"
-		max_len = 32 - len(suffix_str)
-		candidate = f"{base[:max_len]}{suffix_str}"
-
-
 @router.post(
 	"",
 	response_model=InternalUser,
@@ -60,12 +45,15 @@ async def create_user(data: InternalUserCreate, db: AsyncSession = Depends(get_d
 	email = data.email.lower()
 	username = _sanitize_username(data.username, email)
 
-	# Проверяем уникальность email и username
+	# Проверяем уникальность email
 	stmt_email = select(User.id).where(func.lower(User.email) == email)
 	if await db.scalar(stmt_email):
 		raise HTTPException(status.HTTP_409_CONFLICT, detail="Email уже зарегистрирован")
 
-	username = await _ensure_unique_username(username, db)
+	# Проверяем уникальность username (case-insensitive)
+	stmt_username = select(User.id).where(func.lower(User.username) == username.lower())
+	if await db.scalar(stmt_username):
+		raise HTTPException(status.HTTP_409_CONFLICT, detail="Имя пользователя уже занято")
 
 	user = User(
 		email=email,

@@ -8,20 +8,53 @@
 
   window.TasksMain = {
     async bootstrapTasksPage() {
+      // Проверяем авторизацию - если пользователь не авторизован, перенаправляем на страницу входа
       try {
         if (typeof window.authMe === 'function') {
           TasksState.currentUser = await window.authMe();
+        } else {
+          // Если функция authMe недоступна, проверяем токен напрямую
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            window.location.href = '/login';
+            return;
+          }
+          // Пытаемся получить пользователя через API
+          const res = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (!res.ok) {
+            window.location.href = '/login';
+            return;
+          }
+          TasksState.currentUser = await res.json();
+        }
+        
+        // Если пользователь не авторизован, перенаправляем на страницу входа
+        if (!TasksState.currentUser) {
+          window.location.href = '/login';
+          return;
         }
       } catch (err) {
-        // Тихо игнорируем ошибки авторизации (403 и т.д.)
+        // Если произошла ошибка при проверке авторизации, перенаправляем на страницу входа
         console.debug('Auth check failed', err);
-        TasksState.currentUser = null;
+        window.location.href = '/login';
+        return;
       }
-      // Загружаем статистику (может не загрузиться, если пользователь не авторизован)
+      
+      // Загружаем статистику (только для авторизованных пользователей)
       await window.TasksAPI.loadPuzzleStats();
     },
 
     async selectMode(id) {
+      // Проверяем авторизацию перед выбором режима
+      if (!TasksState.currentUser) {
+        window.location.href = '/login';
+        return;
+      }
+      
       const next = TasksConstants.MODES.find((m) => m.id === id);
       if (!next) return;
       TasksState.selectedMode = next;
@@ -106,7 +139,13 @@
         window.TasksUI.setPuzzleStatus('Неверный ход! Загружаем следующую задачу...', true);
       }
       
+      // Отправляем попытку и загружаем следующую задачу
       window.TasksAPI.submitAttempt(false).then(() => {
+        window.TasksUtils.createTimer(() => {
+          window.TasksAPI.loadPuzzleForCurrentMode();
+        }, 1000);
+      }).catch(() => {
+        // Если отправка не удалась, все равно загружаем следующую задачу
         window.TasksUtils.createTimer(() => {
           window.TasksAPI.loadPuzzleForCurrentMode();
         }, 1000);

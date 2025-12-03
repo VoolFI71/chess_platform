@@ -180,19 +180,33 @@ def build_game_detail(game: Game, moves: Sequence[Move | MoveOut] | None = None)
 	
 	# Логируем что отправляется клиенту
 	last_move_created_at = None
+	last_move_timestamp_ms = None
 	if moves and len(moves) > 0:
 		last_move = moves[-1]
 		if hasattr(last_move, 'created_at') and last_move.created_at:
 			last_move_created_at = last_move.created_at.isoformat() if isinstance(last_move.created_at, datetime) else str(last_move.created_at)
+			if isinstance(last_move.created_at, datetime):
+				last_move_timestamp_ms = int(last_move.created_at.timestamp() * 1000)
+			elif hasattr(last_move.created_at, 'timestamp'):
+				last_move_timestamp_ms = int(last_move.created_at.timestamp() * 1000)
+	
+	now_ms = int(_utcnow().timestamp() * 1000)
+	elapsed_since_last_move_ms = None
+	if last_move_timestamp_ms:
+		elapsed_since_last_move_ms = now_ms - last_move_timestamp_ms
 	
 	LOGGER.info(
 		"[BUILD GAME DETAIL] game_id=%s "
 		"white_clock_ms=%d black_clock_ms=%d next_turn=%s move_count=%d "
-		"last_move_created_at=%s auto_cancel_at=%s moves_count=%d",
+		"last_move_created_at=%s last_move_timestamp_ms=%s now_ms=%s elapsed_since_last_move_ms=%s "
+		"auto_cancel_at=%s moves_count=%d",
 		game.id,
 		data.get("white_clock_ms"), data.get("black_clock_ms"),
 		data.get("next_turn"), data.get("move_count"),
 		last_move_created_at,
+		last_move_timestamp_ms,
+		now_ms,
+		elapsed_since_last_move_ms,
 		data.get("auto_cancel_at"),
 		len(data.get("moves", [])),
 	)
@@ -853,44 +867,69 @@ class GameService:
 		
 		# Сохраняем историю рейтингов (если таблица существует)
 		# Используем raw SQL, чтобы не создавать зависимость от users_service
+		# Важно: используем отдельную транзакцию или savepoint, чтобы ошибка не откатила основную транзакцию
 		try:
-			await self.db.execute(
+			# Проверяем существование таблицы перед вставкой
+			check_result = await self.db.execute(
 				text("""
-					INSERT INTO rating_history 
-					(user_id, format_type, rating_before, rating_after, rating_change, game_id, result, opponent_id, created_at)
-					VALUES (:user_id, :format_type, :rating_before, :rating_after, :rating_change, :game_id, :result, :opponent_id, NOW())
-				"""),
-				{
-					"user_id": game.white_id,
-					"format_type": format_type,
-					"rating_before": white_rating_before,
-					"rating_after": white_rating_after,
-					"rating_change": white_rating_after - white_rating_before,
-					"game_id": str(game.id),
-					"result": white_result_str,
-					"opponent_id": game.black_id,
-				}
+					SELECT EXISTS (
+						SELECT FROM information_schema.tables 
+						WHERE table_schema = 'public' 
+						AND table_name = 'rating_history'
+					)
+				""")
 			)
-			await self.db.execute(
-				text("""
-					INSERT INTO rating_history 
-					(user_id, format_type, rating_before, rating_after, rating_change, game_id, result, opponent_id, created_at)
-					VALUES (:user_id, :format_type, :rating_before, :rating_after, :rating_change, :game_id, :result, :opponent_id, NOW())
-				"""),
-				{
-					"user_id": game.black_id,
-					"format_type": format_type,
-					"rating_before": black_rating_before,
-					"rating_after": black_rating_after,
-					"rating_change": black_rating_after - black_rating_before,
-					"game_id": str(game.id),
-					"result": black_result_str,
-					"opponent_id": game.white_id,
-				}
-			)
+			table_exists = check_result.scalar()
+			
+			if not table_exists:
+				LOGGER.warning("Table 'rating_history' does not exist, skipping rating history save")
+				return
+			
+			# Используем savepoint для изоляции ошибок вставки
+			await self.db.execute(text("SAVEPOINT rating_history_savepoint"))
+			try:
+				await self.db.execute(
+					text("""
+						INSERT INTO rating_history 
+						(user_id, format_type, rating_before, rating_after, rating_change, game_id, result, opponent_id, created_at)
+						VALUES (:user_id, :format_type, :rating_before, :rating_after, :rating_change, :game_id, :result, :opponent_id, NOW())
+					"""),
+					{
+						"user_id": game.white_id,
+						"format_type": format_type,
+						"rating_before": white_rating_before,
+						"rating_after": white_rating_after,
+						"rating_change": white_rating_after - white_rating_before,
+						"game_id": str(game.id),
+						"result": white_result_str,
+						"opponent_id": game.black_id,
+					}
+				)
+				await self.db.execute(
+					text("""
+						INSERT INTO rating_history 
+						(user_id, format_type, rating_before, rating_after, rating_change, game_id, result, opponent_id, created_at)
+						VALUES (:user_id, :format_type, :rating_before, :rating_after, :rating_change, :game_id, :result, :opponent_id, NOW())
+					"""),
+					{
+						"user_id": game.black_id,
+						"format_type": format_type,
+						"rating_before": black_rating_before,
+						"rating_after": black_rating_after,
+						"rating_change": black_rating_after - black_rating_before,
+						"game_id": str(game.id),
+						"result": black_result_str,
+						"opponent_id": game.white_id,
+					}
+				)
+				await self.db.execute(text("RELEASE SAVEPOINT rating_history_savepoint"))
+			except Exception as e:
+				# Откатываем только savepoint, основная транзакция продолжается
+				await self.db.execute(text("ROLLBACK TO SAVEPOINT rating_history_savepoint"))
+				LOGGER.warning("Failed to save rating history: %s", e)
 		except Exception as e:
-			# Если таблица rating_history не существует, просто логируем ошибку
-			LOGGER.warning("Failed to save rating history: %s", e)
+			# Если проверка таблицы или создание savepoint не удалось, просто логируем ошибку
+			LOGGER.warning("Failed to save rating history (check failed): %s", e)
 
 	async def _lock_game(self, game_id: UUID) -> Game:
 		# Используем populate_existing() чтобы гарантировать загрузку свежих данных из БД

@@ -6,6 +6,7 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 
 from common import configure_observability, setup_logging
 
@@ -20,6 +21,9 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
+
+# Оптимизация сетевой задержки: GZip сжатие для JSON ответов
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 ALEMBIC_INI_PATH = Path(__file__).resolve().parent.parent / "alembic.ini"
 
@@ -46,21 +50,24 @@ def _wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> No
 
 def apply_migrations() -> None:
     logger.info("Applying database migrations...")
-        _wait_for_database()
-        alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
-        alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
-        command.upgrade(alembic_cfg, "head")
-        logger.info("Database migrations applied successfully")
+    _wait_for_database()
+    alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
+    alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    alembic_cfg.set_main_option("version_table", "alembic_version_games")
+    command.upgrade(alembic_cfg, "head")
+    logger.info("Database migrations applied successfully")
 
 
 @app.on_event("startup")
 async def run_startup_tasks() -> None:
     logger.info("Games service startup initiated")
-    try:
-        await asyncio.to_thread(apply_migrations)
-    except (SystemExit, Exception) as exc:
-        logger.exception("Error during startup tasks: %s", exc)
-        logger.error("Server will continue despite migration errors")
+    # Migrations are now handled by the centralized migrations_service
+    # Uncomment the following lines if you need to run migrations here:
+    # try:
+    #     await asyncio.to_thread(apply_migrations)
+    # except (SystemExit, Exception) as exc:
+    #     logger.exception("Error during startup tasks: %s", exc)
+    #     logger.error("Server will continue despite migration errors")
     timeout_watchdog.start()
     logger.info("Games service startup completed")
 

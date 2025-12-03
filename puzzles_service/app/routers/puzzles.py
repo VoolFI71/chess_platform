@@ -8,7 +8,7 @@ from ..config import get_settings
 from ..database import get_db
 from ..models import Puzzle
 from ..schemas import PuzzleCountResponse, PuzzleFilters, PuzzleListResponse, PuzzleResponse
-from ..services.puzzle_cache import PuzzleCache
+from ..services.puzzle_cache import get_puzzle_cache
 
 puzzles_router = APIRouter(prefix="/puzzles", tags=["puzzles"])
 settings = get_settings()
@@ -36,7 +36,7 @@ def _apply_filters(query: Select, filters: PuzzleFilters | None) -> Select:
 	return query
 
 
-@puzzles_router.get("/random", response_model=PuzzleResponse)
+@puzzles_router.get("/random", response_model=PuzzleResponse, response_model_exclude_none=True)
 async def get_random_puzzle(
 	rating_min: int | None = Query(default=None, ge=400),
 	rating_max: int | None = Query(default=None, le=3500),
@@ -52,33 +52,23 @@ async def get_random_puzzle(
 		opening_tags=opening_tags,
 	)
 
-	# Используем кэш для получения случайной задачи
-	cache = PuzzleCache(db)
-	puzzle = await cache.get_random_puzzle(filters)
+	# Используем singleton кэш для получения случайной задачи
+	cache = get_puzzle_cache()
+	puzzle = await cache.get_random_puzzle(db, filters)
 
 	if not puzzle:
-		# Проверяем, есть ли вообще пазлы в базе
-		count_query = select(func.count()).select_from(Puzzle)
-		conditions = _build_filters(filters)
-		if conditions:
-			count_query = count_query.where(*conditions)
-		total_count = await db.scalar(count_query) or 0
-		
-		if total_count == 0:
-			raise HTTPException(
-				status_code=404,
-				detail="В базе данных нет пазлов. Необходимо импортировать данные из CSV."
-			)
+		# Просто возвращаем 404 без медленной проверки count
 		raise HTTPException(
 			status_code=404,
-			detail=f"Пазл не найден под указанные фильтры. Всего пазлов в базе: {total_count}"
+			detail="Задача не найдена. Попробуйте изменить фильтры."
 		)
 	
-	# Оптимизация: устанавливаем заголовки для кеширования
-	# Задачи случайные, поэтому кешируем только на клиенте на короткое время
-	response.headers["Cache-Control"] = "private, max-age=30, stale-while-revalidate=60"
-	response.headers["Vary"] = "Accept-Encoding"
+	# Оптимизация заголовков: минимизируем количество заголовков для снижения overhead
+	# Кеширование происходит на уровне приложения (PuzzleCache), HTTP кеш не нужен
+	response.headers["Cache-Control"] = "no-cache"
 	
+	# Оптимизация: response_model_exclude_none=True исключает None поля из JSON ответа
+	# ORJSONResponse автоматически использует быструю сериализацию orjson
 	return PuzzleResponse.model_validate(puzzle)
 
 

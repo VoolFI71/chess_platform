@@ -1,11 +1,11 @@
 import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db, sync_engine
-from ..models import PuzzleUserStats
+from ..models import Puzzle, PuzzleAttempt, PuzzleUserStats
 from ..schemas import PuzzleStatsResponse
 from ..security import get_current_user_id
 
@@ -69,6 +69,46 @@ async def get_my_stats(
 ) -> PuzzleStatsResponse:
 	"""Получить статистику текущего пользователя"""
 	return await _get_stats_by_user_id(current_user_id, db)
+
+
+@stats_router.get("/aggregate")
+async def get_aggregate_stats(
+	db: AsyncSession = Depends(get_db),
+) -> dict:
+	"""Получить общую статистику по всем задачам (публичный endpoint)"""
+	# Общее количество решений - считаем из таблицы PuzzleAttempt (более надежно)
+	# так как это источник истины для всех попыток решения
+	total_solutions_result = await db.execute(
+		select(func.count()).select_from(PuzzleAttempt).where(PuzzleAttempt.status == "success")
+	)
+	total_solutions = total_solutions_result.scalar()
+	if total_solutions is None:
+		total_solutions = 0
+	
+	# Альтернативный подсчет из PuzzleUserStats (для совместимости)
+	# Используем как fallback, если нужно
+	total_solutions_from_stats_result = await db.execute(
+		select(func.coalesce(func.sum(PuzzleUserStats.solved_count), 0))
+	)
+	total_solutions_from_stats = total_solutions_from_stats_result.scalar()
+	if total_solutions_from_stats is None:
+		total_solutions_from_stats = 0
+	
+	# Используем больший из двух значений (на случай рассинхронизации)
+	total_solutions = max(int(total_solutions), int(total_solutions_from_stats))
+	
+	# Общее количество задач в базе
+	total_puzzles_result = await db.execute(
+		select(func.count()).select_from(Puzzle)
+	)
+	total_puzzles = total_puzzles_result.scalar()
+	if total_puzzles is None:
+		total_puzzles = 0
+	
+	return {
+		"total_solutions": total_solutions,
+		"total_puzzles": int(total_puzzles),
+	}
 
 
 @stats_router.get("/{user_id}", response_model=PuzzleStatsResponse)

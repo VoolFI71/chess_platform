@@ -8,6 +8,7 @@ import logging
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import inspect
 
 from common import configure_observability, setup_logging
@@ -23,6 +24,9 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
+
+# Оптимизация сетевой задержки: GZip сжатие для JSON ответов
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 ALEMBIC_INI_PATH = Path(__file__).resolve().parent.parent / "alembic.ini"
 
@@ -44,8 +48,30 @@ def apply_migrations() -> None:
 	logger.info("Waiting for dependent tables before applying migrations...")
 	_wait_for_tables(("courses",))
 	logger.info("Applying database migrations...")
+	
 	alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
 	alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+	alembic_cfg.set_main_option("version_table", "alembic_version_lessons")
+	
+	# Проверяем, существует ли таблица lessons, но нет записи в alembic_version
+	try:
+		from sqlalchemy import inspect, text
+		inspector = inspect(sync_engine)
+		
+		if inspector.has_table("lessons"):
+			with sync_engine.begin() as conn:
+				result = conn.execute(
+					text("SELECT COUNT(*) FROM alembic_version_lessons")
+				)
+				count = result.scalar()
+				
+				if count == 0:
+					logger.info("Table 'lessons' exists but no version recorded. Stamping initial version...")
+					command.stamp(alembic_cfg, "0001_initial")
+					logger.info("Stamped version '0001_initial'")
+	except Exception as e:
+		logger.warning("Could not check/set initial version (this is OK for fresh database): %s", e)
+	
 	command.upgrade(alembic_cfg, "head")
 	logger.info("Database migrations applied successfully")
 
@@ -53,12 +79,15 @@ def apply_migrations() -> None:
 @app.on_event("startup")
 async def run_startup_tasks() -> None:
 	logger.info("Lessons service startup initiated")
-	try:
-		await asyncio.to_thread(apply_migrations)
+	# Migrations are now handled by the centralized migrations_service
+	# Uncomment the following lines if you need to run migrations here:
+	# try:
+	# 	await asyncio.to_thread(apply_migrations)
+	# 	logger.info("Lessons service startup completed")
+	# except (SystemExit, Exception) as exc:
+	# 	logger.exception("Error during startup tasks: %s", exc)
+	# 	logger.error("Server will continue despite migration errors")
 	logger.info("Lessons service startup completed")
-	except (SystemExit, Exception) as exc:
-		logger.exception("Error during startup tasks: %s", exc)
-		logger.error("Server will continue despite migration errors")
 
 
 @app.on_event("shutdown")

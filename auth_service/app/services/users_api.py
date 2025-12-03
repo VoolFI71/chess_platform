@@ -39,7 +39,11 @@ async def create_user(
 		response = await client.post("/internal/users", json=payload)
 		response.raise_for_status()
 	except httpx.HTTPStatusError as exc:
-		if exc.response.status_code in (status.HTTP_400_BAD_REQUEST, status.HTTP_409_CONFLICT):
+		if exc.response.status_code == status.HTTP_409_CONFLICT:
+			# Сохраняем код 409 для конфликтов (дубликаты email/username)
+			detail = exc.response.json().get("detail", "Имя пользователя или email уже заняты")
+			raise HTTPException(status.HTTP_409_CONFLICT, detail=detail) from exc
+		if exc.response.status_code == status.HTTP_400_BAD_REQUEST:
 			detail = exc.response.json().get("detail", "Не удалось создать пользователя")
 			raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=detail) from exc
 		raise HTTPException(

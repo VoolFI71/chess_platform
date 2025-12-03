@@ -6,6 +6,7 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import inspect
 
 from common import configure_observability, setup_logging
@@ -20,6 +21,9 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
+
+# Оптимизация сетевой задержки: GZip сжатие для JSON ответов
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 ALEMBIC_INI_PATH = Path(__file__).resolve().parent.parent / "alembic.ini"
 
@@ -43,6 +47,7 @@ def apply_migrations() -> None:
 	logger.info("Applying database migrations...")
 	alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
 	alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+	alembic_cfg.set_main_option("version_table", "alembic_version_enrollments")
 	command.upgrade(alembic_cfg, "head")
 	logger.info("Database migrations applied successfully")
 
@@ -50,12 +55,15 @@ def apply_migrations() -> None:
 @app.on_event("startup")
 async def run_startup_tasks() -> None:
 	logger.info("Enrollments service startup initiated")
-	try:
-		await asyncio.to_thread(apply_migrations)
+	# Migrations are now handled by the centralized migrations_service
+	# Uncomment the following lines if you need to run migrations here:
+	# try:
+	# 	await asyncio.to_thread(apply_migrations)
+	# 	logger.info("Enrollments service startup completed")
+	# except (SystemExit, Exception) as exc:
+	# 	logger.exception("Error during startup tasks: %s", exc)
+	# 	logger.error("Server will continue despite migration errors")
 	logger.info("Enrollments service startup completed")
-	except (SystemExit, Exception) as exc:
-		logger.exception("Error during startup tasks: %s", exc)
-		logger.error("Server will continue despite migration errors")
 
 
 configure_observability(app, settings=settings, get_db=get_db)

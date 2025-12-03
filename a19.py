@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.integrate import solve_ivp
 
 class NonlinearSystem:
     def __init__(self):
@@ -13,7 +12,7 @@ class NonlinearSystem:
         self.b1 = 15
         self.b0 = 0
         self.A = 1.8
-        self.B = 0.12  # можно изменить на -0.12 для другого случая
+        self.B = 0.12  
         self.Tmod = 25
         self.h = 1e-2
         
@@ -86,13 +85,6 @@ def runge_kutta_2nd_order(system, t_span, y0, h):
     
     return t_values, y_values
 
-def solve_with_scipy(system, t_span, y0, method='RK45'):
-    """
-    Решение с использованием scipy для сравнения
-    """
-    sol = solve_ivp(system.system_equations, t_span, y0, method=method, 
-                   t_eval=np.arange(t_span[0], t_span[1], system.h))
-    return sol.t, sol.y.T
 
 def main():
     # Создаем объект системы
@@ -107,12 +99,8 @@ def main():
     # Решение методом Рунге-Кутты 2-го порядка
     t_rk2, x_rk2 = runge_kutta_2nd_order(system, t_span, y0, system.h)
     
-    # Решение с использованием scipy для сравнения (опционально)
-    t_scipy, x_scipy = solve_with_scipy(system, t_span, y0)
-    
     # Вычисление выходной величины y
     y_rk2 = np.array([system.output_equation(x) for x in x_rk2])
-    y_scipy = np.array([system.output_equation(x) for x in x_scipy])
     
     # Создание файла с результатами
     print("Создание файла с результатами...")
@@ -123,56 +111,28 @@ def main():
             f.write(f"{t_rk2[i]:.4f}\t{x_rk2[i,0]:.6f}\t{x_rk2[i,1]:.6f}\t"
                    f"{x_rk2[i,2]:.6f}\t{y_rk2[i]:.6f}\n")
     
-    # Построение графиков
-    print("Построение графиков...")
+    # Чтение данных из файла для построения графика
+    print("Чтение данных из файла...")
+    t_data = []
+    y_data = []
+    with open('results.txt', 'r', encoding='utf-8') as f:
+        lines = f.readlines()[2:]  # пропускаем заголовок и разделитель
+        for line in lines:
+            parts = line.strip().split('\t')
+            if len(parts) == 5:
+                t_data.append(float(parts[0]))
+                y_data.append(float(parts[4]))
     
-    plt.figure(figsize=(15, 10))
+    # Построение графика по данным из файла
+    print("Построение графика...")
     
-    # График 1: Фазовые координаты
-    plt.subplot(2, 2, 1)
-    plt.plot(t_rk2, x_rk2[:, 0], label='x1(t)')
-    plt.plot(t_rk2, x_rk2[:, 1], label='x2(t)')
-    plt.plot(t_rk2, x_rk2[:, 2], label='x3(t)')
-    plt.xlabel('Время, с')
-    plt.ylabel('Фазовые координаты')
-    plt.title('Фазовые координаты системы')
-    plt.legend()
-    plt.grid(True)
-    
-    # График 2: Выходная величина y(t) - метод Рунге-Кутты 2-го порядка
-    plt.subplot(2, 2, 2)
-    plt.plot(t_rk2, y_rk2, 'b-', linewidth=2, label='Метод Рунге-Кутты 2-го порядка')
+    plt.figure(figsize=(10, 6))
+    plt.plot(t_data, y_data, 'b-', linewidth=2)
     plt.xlabel('Время, с')
     plt.ylabel('y(t)')
-    plt.title('Выходная величина системы (метод Рунге-Кутты 2-го порядка)')
-    plt.legend()
+    plt.title('Выходная величина системы')
     plt.grid(True)
-    
-    # График 3: Сравнение методов
-    plt.subplot(2, 2, 3)
-    plt.plot(t_rk2, y_rk2, 'b-', linewidth=2, label='Рунге-Кутты 2-го порядка')
-    plt.plot(t_scipy, y_scipy, 'r--', linewidth=1, alpha=0.7, label='Scipy RK45')
-    plt.xlabel('Время, с')
-    plt.ylabel('y(t)')
-    plt.title('Сравнение методов решения')
-    plt.legend()
-    plt.grid(True)
-    
-    # График 4: Нелинейность насыщения
-    plt.subplot(2, 2, 4)
-    delta_range = np.linspace(-0.2, 0.2, 100)
-    f_delta = [system.saturation_nonlinearity(d) for d in delta_range]
-    plt.plot(delta_range, f_delta, 'g-', linewidth=2)
-    plt.axvline(x=system.B, color='r', linestyle='--', alpha=0.7, label=f'B = {system.B}')
-    plt.axvline(x=-system.B, color='r', linestyle='--', alpha=0.7)
-    plt.xlabel('Δ')
-    plt.ylabel('f(Δ)')
-    plt.title('Нелинейность насыщения')
-    plt.legend()
-    plt.grid(True)
-    
-    plt.tight_layout()
-    plt.savefig('system_analysis.png', dpi=300, bbox_inches='tight')
+    plt.savefig('output_y.png', dpi=300, bbox_inches='tight')
     plt.show()
     
     # Вывод информации о системе
@@ -194,7 +154,7 @@ def main():
     
     print(f"\nРезультаты сохранены в файлы:")
     print(f"- results.txt - таблица с данными")
-    print(f"- system_analysis.png - графики")
+    print(f"- output_y.png - график выходной величины")
     
     # Анализ установившегося значения
     steady_state_y = y_rk2[-100:].mean()  # среднее за последние 100 точек

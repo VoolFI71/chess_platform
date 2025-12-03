@@ -18,19 +18,31 @@
       
       if (TasksState.currentHistoryIndex === -1) {
         // Возвращаемся к начальной позиции (до первого хода противника)
-        if (TasksState.initialFEN) {
+        if (TasksState.initialFEN && window.TasksBoard) {
           TasksState.currentFEN = TasksState.initialFEN;
-          TasksState.board = window.TasksBoard.parseFEN(TasksState.currentFEN);
-          window.TasksBoard.renderBoard();
+          if (typeof window.TasksBoard.parseFEN === 'function') {
+            TasksState.board = window.TasksBoard.parseFEN(TasksState.currentFEN);
+          }
+          if (typeof window.TasksBoard.renderBoard === 'function') {
+            window.TasksBoard.renderBoard();
+          }
         }
       } else {
         const historyItem = TasksState.movesHistory[TasksState.currentHistoryIndex];
-        TasksState.currentFEN = historyItem.fen;
-        TasksState.board = window.TasksBoard.parseFEN(TasksState.currentFEN);
-        window.TasksBoard.renderBoard();
+        if (historyItem && historyItem.fen && window.TasksBoard) {
+          TasksState.currentFEN = historyItem.fen;
+          if (typeof window.TasksBoard.parseFEN === 'function') {
+            TasksState.board = window.TasksBoard.parseFEN(TasksState.currentFEN);
+          }
+          if (typeof window.TasksBoard.renderBoard === 'function') {
+            window.TasksBoard.renderBoard();
+          }
+        }
       }
       
-      window.TasksHistory.updateHistoryNavigation();
+      if (window.TasksHistory && typeof window.TasksHistory.updateHistoryNavigation === 'function') {
+        window.TasksHistory.updateHistoryNavigation();
+      }
     },
 
     updateHistoryNavigation() {
@@ -72,11 +84,17 @@
       if (navEl) navEl.classList.remove('hidden');
       
       // Очищаем старые обработчики событий перед перерисовкой
+      // innerHTML = '' автоматически удалит все обработчики, но мы удаляем их явно для безопасности
       const oldMoveElements = historyEl.querySelectorAll('.move-item');
       oldMoveElements.forEach(el => {
-        // Клонируем элемент без обработчиков событий
-        const newEl = el.cloneNode(true);
-        el.parentNode?.replaceChild(newEl, el);
+        // Удаляем обработчики из TasksState.eventListeners
+        if (TasksState.eventListeners && TasksState.eventListeners.has(el)) {
+          const handlers = TasksState.eventListeners.get(el);
+          handlers.forEach(({ type, handler }) => {
+            el.removeEventListener(type, handler);
+          });
+          TasksState.eventListeners.delete(el);
+        }
       });
       
       historyEl.innerHTML = '';
@@ -98,14 +116,26 @@
         // Сохраняем обработчик для последующей очистки
         const clickHandler = () => {
           TasksState.currentHistoryIndex = index;
-          TasksState.currentFEN = item.fen;
-          TasksState.board = window.TasksBoard.parseFEN(TasksState.currentFEN);
+          if (item && item.fen && window.TasksBoard) {
+            TasksState.currentFEN = item.fen;
+            if (typeof window.TasksBoard.parseFEN === 'function') {
+              TasksState.board = window.TasksBoard.parseFEN(TasksState.currentFEN);
+            }
+          }
           // Очищаем выбор при клике на элемент истории
           TasksState.selectedSquare = null;
           TasksState.availableTargets = new Set();
-          window.TasksBoard.renderBoard();
-          window.TasksHistory.updateHistoryNavigation();
-          window.TasksHistory.updateMovesHistory();
+          if (window.TasksBoard && typeof window.TasksBoard.renderBoard === 'function') {
+            window.TasksBoard.renderBoard();
+          }
+          if (window.TasksHistory) {
+            if (typeof window.TasksHistory.updateHistoryNavigation === 'function') {
+              window.TasksHistory.updateHistoryNavigation();
+            }
+            if (typeof window.TasksHistory.updateMovesHistory === 'function') {
+              window.TasksHistory.updateMovesHistory();
+            }
+          }
         };
         
         moveEl.addEventListener('click', clickHandler);

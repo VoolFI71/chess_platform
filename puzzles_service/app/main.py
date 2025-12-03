@@ -8,6 +8,7 @@ from alembic import command
 from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import ORJSONResponse
 
 from common import configure_observability, setup_logging
 
@@ -17,10 +18,18 @@ from .routers import attempts_router, importer_router, puzzles_router, stats_rou
 
 setup_logging()
 settings = get_settings()
-app = FastAPI(title=settings.app_name)
+# Используем orjson для быстрой JSON сериализации (в 2-3 раза быстрее стандартного json)
+app = FastAPI(
+	title=settings.app_name,
+	default_response_class=ORJSONResponse,  # Используем orjson вместо стандартного json
+)
 
-# Оптимизация: добавляем Gzip сжатие для уменьшения размера ответов
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+# Оптимизация сетевой задержки:
+# 1. Gzip сжатие с оптимизированным порогом для баланса между сжатием и производительностью
+#    - Порог 300 байт: оптимальный для JSON ответов (~360 байт), обеспечивает сжатие большинства ответов
+#    - Стандартный GZipMiddleware использует уровень сжатия 6 (компромисс между скоростью и сжатием)
+#    - Это уменьшает вариативность времени ответа и улучшает пропускную способность
+app.add_middleware(GZipMiddleware, minimum_size=300)
 logger = logging.getLogger(__name__)
 
 ALEMBIC_INI_PATH = Path(__file__).resolve().parent.parent / "alembic.ini"
@@ -51,6 +60,7 @@ def apply_migrations() -> None:
     _wait_for_database()
     alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
     alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    alembic_cfg.set_main_option("version_table", "alembic_version_puzzles")
     command.upgrade(alembic_cfg, "head")
     logger.info("Database migrations applied successfully")
 
@@ -58,12 +68,15 @@ def apply_migrations() -> None:
 @app.on_event("startup")
 async def on_startup() -> None:
     logger.info("Puzzles service startup initiated")
-    try:
-        await asyncio.to_thread(apply_migrations)
-        logger.info("Puzzles service startup completed")
-    except (SystemExit, Exception) as exc:
-        logger.exception("Error during startup tasks: %s", exc)
-        logger.error("Server will continue despite migration errors")
+    # Migrations are now handled by the centralized migrations_service
+    # Uncomment the following lines if you need to run migrations here:
+    # try:
+    #     await asyncio.to_thread(apply_migrations)
+    #     logger.info("Puzzles service startup completed")
+    # except (SystemExit, Exception) as exc:
+    #     logger.exception("Error during startup tasks: %s", exc)
+    #     logger.error("Server will continue despite migration errors")
+    logger.info("Puzzles service startup completed")
 
 
 configure_observability(

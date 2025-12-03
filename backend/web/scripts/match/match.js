@@ -1004,19 +1004,9 @@
       setState({ analysisCursor: null }, 'applyGameDetail:clampAnalysis');
     }
 
-    // Обновляем clockAnchorTime только если игра изменилась
-    let lastStateTimestamp = state.clockAnchorTime || Date.now();
+    // Обновляем clockAnchorTime
     const now = Date.now();
-    
-    // Если игра не изменилась, не обновляем clockAnchorTime
-    if (!gameChanged && !isRealtimeMove) {
-      if (window.__DEBUG_CLOCKS__) {
-        console.log('[clock] applyGameDetail: game not changed, keeping clockAnchorTime', {
-          clockAnchorTime: lastStateTimestamp,
-        });
-      }
-      return;
-    }
+    let lastStateTimestamp;
     
     // ВАЖНО: При получении move_made события (isRealtimeMove):
     // - Время игрока, который сделал ход: вычтено прошедшее время + добавлен инкремент
@@ -1030,64 +1020,116 @@
       // Для move_made используем Date.now(), так как время в БД уже обновлено
       // и соответствует моменту после хода. Время следующего игрока должно тикать с момента получения события.
       lastStateTimestamp = now;
-      if (window.__DEBUG_CLOCKS__) {
-        console.log('[clock] applyGameDetail: move_made, using Date.now()', {
-          clockAnchorTime: lastStateTimestamp,
-          moveTimestamp: moveTimestamp,
-          next_turn: detail.next_turn,
-          white_clock: detail.white_clock_ms,
-          black_clock: detail.black_clock_ms,
-          now,
-          delay_ms: moveTimestamp !== null ? now - moveTimestamp : null,
-        });
-      }
-    } else if (detail.moves && detail.moves.length > 0) {
-      const lastMove = detail.moves[detail.moves.length - 1];
-      // Для загрузки через HTTP используем created_at последнего хода
-      // Это гарантирует правильное вычисление прошедшего времени
-      if (lastMove.created_at) {
+      console.log('[CLOCK DEBUG] applyGameDetail: move_made, using Date.now()', {
+        source: 'WS_MOVE_MADE',
+        clockAnchorTime: lastStateTimestamp,
+        moveTimestamp: moveTimestamp,
+        next_turn: detail.next_turn,
+        white_clock_db: detail.white_clock_ms,
+        black_clock_db: detail.black_clock_ms,
+        client_now_ms: now,
+        delay_ms: moveTimestamp !== null ? now - moveTimestamp : null,
+        note: 'DB time is updated after move, so we use Date.now() as anchor',
+      });
+    } else if ((detail.moves && detail.moves.length > 0) || (detail.move_count && detail.move_count > 0)) {
+      // Для загрузки через HTTP время в БД - это время на момент последнего хода
+      // Нужно установить clockAnchorTime на время последнего хода, чтобы правильно вычесть прошедшее время
+      const lastMove = detail.moves && detail.moves.length > 0 ? detail.moves[detail.moves.length - 1] : null;
+      if (lastMove && lastMove.created_at) {
         lastStateTimestamp = new Date(lastMove.created_at).getTime();
         const elapsed = now - lastStateTimestamp;
-        if (window.__DEBUG_CLOCKS__) {
-          console.log('[clock] applyGameDetail: HTTP load, using lastMove.created_at', {
-            lastMove_created_at: lastMove.created_at,
-            clockAnchorTime: lastStateTimestamp,
-            now,
-            elapsed_ms: elapsed,
-            next_turn: detail.next_turn,
-            white_clock: detail.white_clock_ms,
-            black_clock: detail.black_clock_ms,
-            move_count: detail.move_count,
-          });
-        }
+        console.log('[CLOCK DEBUG] applyGameDetail: HTTP load, using lastMove.created_at as anchor', {
+          source: 'HTTP_LOAD',
+          lastMove_created_at: lastMove.created_at,
+          lastMove_timestamp_ms: lastStateTimestamp,
+          client_now_ms: now,
+          elapsed_ms: elapsed,
+          next_turn: detail.next_turn,
+          white_clock_db: detail.white_clock_ms,
+          black_clock_db: detail.black_clock_ms,
+          move_count: detail.move_count,
+          moves_length: detail.moves ? detail.moves.length : 0,
+          calculated_white: detail.next_turn === 'w' ? Math.max(0, detail.white_clock_ms - elapsed) : detail.white_clock_ms,
+          calculated_black: detail.next_turn === 'b' ? Math.max(0, detail.black_clock_ms - elapsed) : detail.black_clock_ms,
+          note: 'DB time is at last move moment, so we use lastMove.created_at to calculate elapsed',
+        });
       } else {
-        lastStateTimestamp = now;
-        if (window.__DEBUG_CLOCKS__) {
-          console.log('[clock] applyGameDetail: HTTP load, no lastMove.created_at, using Date.now()', {
+        // Fallback: если нет created_at или moves, но есть move_count > 0, нужно загрузить moves
+        // Или использовать started_at если игра началась
+        if (detail.move_count > 0 && detail.started_at) {
+          // Игра началась, но moves не загружены - используем started_at как приближение
+          lastStateTimestamp = new Date(detail.started_at).getTime();
+          console.log('[CLOCK DEBUG] applyGameDetail: HTTP load, move_count > 0 but no moves, using started_at', {
+            source: 'HTTP_LOAD_STARTED_AT_FALLBACK',
+            clockAnchorTime: lastStateTimestamp,
+            started_at: detail.started_at,
+            move_count: detail.move_count,
+            next_turn: detail.next_turn,
+            white_clock_db: detail.white_clock_ms,
+            black_clock_db: detail.black_clock_ms,
+            note: 'WARNING: Using started_at as approximation, should load moves to get accurate lastMove.created_at',
+          });
+        } else {
+          // Fallback: используем текущее время
+          lastStateTimestamp = now;
+          console.log('[CLOCK DEBUG] applyGameDetail: HTTP load, no lastMove.created_at, using Date.now()', {
+            source: 'HTTP_LOAD_FALLBACK',
             clockAnchorTime: lastStateTimestamp,
             next_turn: detail.next_turn,
+            move_count: detail.move_count,
+            moves_length: detail.moves ? detail.moves.length : 0,
+            white_clock_db: detail.white_clock_ms,
+            black_clock_db: detail.black_clock_ms,
           });
         }
       }
     } else if (detail.started_at) {
       lastStateTimestamp = new Date(detail.started_at).getTime();
-      if (window.__DEBUG_CLOCKS__) {
-        console.log('[clock] applyGameDetail: using started_at', {
-          started_at: detail.started_at,
-          clockAnchorTime: lastStateTimestamp,
-        });
-      }
+      console.log('[CLOCK DEBUG] applyGameDetail: using started_at', {
+        source: 'HTTP_LOAD_STARTED_AT',
+        started_at: detail.started_at,
+        clockAnchorTime: lastStateTimestamp,
+        next_turn: detail.next_turn,
+      });
     } else if (detail.created_at) {
       lastStateTimestamp = new Date(detail.created_at).getTime();
-      if (window.__DEBUG_CLOCKS__) {
-        console.log('[clock] applyGameDetail: using created_at', {
-          created_at: detail.created_at,
+      console.log('[CLOCK DEBUG] applyGameDetail: using created_at', {
+        source: 'HTTP_LOAD_CREATED_AT',
+        created_at: detail.created_at,
+        clockAnchorTime: lastStateTimestamp,
+        next_turn: detail.next_turn,
+      });
+    } else {
+      // Если игра не изменилась и нет ходов, сохраняем текущий clockAnchorTime
+      if (!gameChanged) {
+        lastStateTimestamp = state.clockAnchorTime || now;
+        console.log('[CLOCK DEBUG] applyGameDetail: game not changed, keeping clockAnchorTime', {
+          source: 'NO_CHANGE',
           clockAnchorTime: lastStateTimestamp,
+          next_turn: detail.next_turn,
+        });
+      } else {
+        // Fallback: используем текущее время
+        lastStateTimestamp = now;
+        console.log('[CLOCK DEBUG] applyGameDetail: fallback to Date.now()', {
+          source: 'FALLBACK',
+          clockAnchorTime: lastStateTimestamp,
+          next_turn: detail.next_turn,
         });
       }
     }
     // Синхронизируем clockAnchorTime с lastStateTimestamp для правильной работы часов
     setState({ lastStateTimestamp, clockAnchorTime: lastStateTimestamp }, 'applyGameDetail:timestamp');
+    
+    console.log('[CLOCK DEBUG] applyGameDetail: clockAnchorTime set', {
+      source: 'APPLY_GAME_DETAIL_FINAL',
+      clockAnchorTime: lastStateTimestamp,
+      lastStateTimestamp,
+      next_turn: detail.next_turn,
+      white_clock_db: detail.white_clock_ms,
+      black_clock_db: detail.black_clock_ms,
+      isRealtimeMove,
+    });
 
     setState({ pendingMove: false }, 'applyGameDetail:pending');
     if (state.timeoutAutoRequested && detail.status !== 'ACTIVE') {
@@ -1327,6 +1369,20 @@
       const moveTimestamp = isRealtimeMove && payload.move?.created_at 
         ? new Date(payload.move.created_at).getTime() 
         : null;
+      
+      if (isRealtimeMove) {
+        console.log('[CLOCK DEBUG] handleWsMessage: move_made received', {
+          source: 'WS_MOVE_MADE_RECEIVED',
+          move_created_at: payload.move?.created_at,
+          move_timestamp_ms: moveTimestamp,
+          client_now_ms: Date.now(),
+          white_clock_db: payload.game.white_clock_ms,
+          black_clock_db: payload.game.black_clock_ms,
+          next_turn: payload.game.next_turn,
+          move_count: payload.game.move_count,
+        });
+      }
+      
       applyGameDetail(payload.game, { isRealtimeMove, moveTimestamp });
       // Загружаем имена игроков после обновления состояния игры
       ensurePlayerUsernames(payload.game).then(() => {

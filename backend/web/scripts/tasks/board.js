@@ -97,18 +97,24 @@
       }
       
       // Устанавливаем делегирование событий на контейнер доски (один раз, при первом рендере)
-      if (!TasksState.boardClickHandler) {
-        TasksState.boardClickHandler = (e) => {
-          if (TasksState.isPuzzleSolved || TasksState.isPuzzleFailed || !TasksState.currentFEN) return;
-          const square = e.target.closest('.square');
-          if (!square) return;
-          const squareName = square.dataset.square;
-          if (squareName && square.classList.contains('clickable')) {
-            if (window.TasksMoves && window.TasksMoves.handleSquareClick) {
-              window.TasksMoves.handleSquareClick(squareName);
-            }
+      // Удаляем старый обработчик, если он существует (на случай пересоздания grid)
+      if (TasksState.boardClickHandler && grid) {
+        grid.removeEventListener('click', TasksState.boardClickHandler);
+      }
+      
+      TasksState.boardClickHandler = (e) => {
+        if (TasksState.isPuzzleSolved || TasksState.isPuzzleFailed || !TasksState.currentFEN) return;
+        const square = e.target.closest('.square');
+        if (!square) return;
+        const squareName = square.dataset.square;
+        if (squareName && square.classList.contains('clickable')) {
+          if (window.TasksMoves && window.TasksMoves.handleSquareClick) {
+            window.TasksMoves.handleSquareClick(squareName);
           }
-        };
+        }
+      };
+      
+      if (grid) {
         grid.addEventListener('click', TasksState.boardClickHandler);
       }
 

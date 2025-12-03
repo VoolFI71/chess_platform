@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import or_, select, text
+from sqlalchemy import or_, select, text, func
 
 from ..database import get_db
 from ..models import Game, GameStatus, GameResult, SideToMove
@@ -134,20 +134,36 @@ async def get_game(
 		raise _handle_error(exc)
 	
 	# Логируем что отправляется при HTTP запросе (обновление страницы)
+	from datetime import datetime, timezone
 	last_move_created_at = None
+	last_move_timestamp_ms = None
 	if moves and len(moves) > 0:
 		last_move = moves[-1]
 		if hasattr(last_move, 'created_at') and last_move.created_at:
 			last_move_created_at = last_move.created_at.isoformat() if hasattr(last_move.created_at, 'isoformat') else str(last_move.created_at)
+			if isinstance(last_move.created_at, datetime):
+				last_move_timestamp_ms = int(last_move.created_at.timestamp() * 1000)
+			elif hasattr(last_move.created_at, 'timestamp'):
+				last_move_timestamp_ms = int(last_move.created_at.timestamp() * 1000)
+	
+	now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+	elapsed_since_last_move_ms = None
+	if last_move_timestamp_ms:
+		elapsed_since_last_move_ms = now_ms - last_move_timestamp_ms
 	
 	LOGGER.info(
 		"[HTTP GET GAME] game_id=%s "
 		"white_clock_ms=%d black_clock_ms=%d next_turn=%s move_count=%d "
-		"last_move_created_at=%s moves_count=%d limit=%d",
+		"last_move_created_at=%s last_move_timestamp_ms=%s now_ms=%s elapsed_since_last_move_ms=%s "
+		"moves_count=%d limit=%d "
+		"NOTE: DB time is at last move moment, client should use lastMove.created_at as anchor",
 		game_id,
 		game.white_clock_ms, game.black_clock_ms,
 		game.next_turn, game.move_count,
 		last_move_created_at,
+		last_move_timestamp_ms,
+		now_ms,
+		elapsed_since_last_move_ms,
 		len(moves) if moves else 0, limit,
 	)
 	
@@ -224,4 +240,20 @@ async def declare_timeout(
 	game_detail = await _build_detail(service, game)
 	await _broadcast_finished(game_detail)
 	return game_detail
+
+
+@router.get("/stats/aggregate")
+async def get_aggregate_stats(
+	db: AsyncSession = Depends(get_db),
+) -> dict:
+	"""Получить общую статистику по всем играм (публичный endpoint)"""
+	# Общее количество сыгранных партий (игры со статусом FINISHED)
+	total_games_result = await db.execute(
+		select(func.count(Game.id)).where(Game.status == GameStatus.FINISHED)
+	)
+	total_games = total_games_result.scalar() or 0
+	
+	return {
+		"total_games": int(total_games),
+	}
 

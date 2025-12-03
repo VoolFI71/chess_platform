@@ -14,20 +14,38 @@
       return fetch(path, options);
     },
 
-    buildPuzzleRequestUrl() {
-      if (TasksState.selectedMode.id !== 'rated') {
-        return TasksConstants.API_ENDPOINTS.randomPuzzle;
-      }
-      const rating = window.TasksUtils.getCurrentPuzzleRating();
-      const spread = 150;
+    buildPuzzleRequestUrl(excludePuzzleId = null) {
       const params = new URLSearchParams();
-      params.set('rating_min', Math.max(400, rating - spread));
-      params.set('rating_max', Math.min(3500, rating + spread));
+      
+      // Добавляем случайный параметр для предотвращения кеширования
+      params.set('_t', Date.now().toString());
+      params.set('_r', Math.random().toString(36).substring(7));
+      
+      if (TasksState.selectedMode.id === 'rated') {
+        const rating = window.TasksUtils.getCurrentPuzzleRating();
+        const spread = 150;
+        params.set('rating_min', Math.max(400, rating - spread));
+        params.set('rating_max', Math.min(3500, rating + spread));
+      }
+      
+      // Если нужно исключить задачу, добавляем параметр (если API поддерживает)
+      if (excludePuzzleId) {
+        params.set('exclude', excludePuzzleId);
+      }
+      
       return `${TasksConstants.API_ENDPOINTS.randomPuzzle}?${params.toString()}`;
     },
 
     async loadPuzzleForCurrentMode() {
-      if (TasksState.isPuzzleLoading) return;
+      if (TasksState.isPuzzleLoading) {
+        return;
+      }
+      
+      // Проверяем авторизацию перед загрузкой задачи
+      if (!TasksState.currentUser) {
+        window.location.href = '/login';
+        return;
+      }
 
       const section = document.getElementById('puzzleSection');
       if (section) section.classList.remove('hidden');
@@ -37,6 +55,9 @@
 
       window.TasksUtils.clearAllTimers();
       window.TasksUI.stopTimeTracking();
+      
+      // Сохраняем puzzle_id текущей задачи для исключения (если есть)
+      const previousPuzzleId = TasksState.currentPuzzle?.puzzle_id || null;
       
       // Очистка памяти: удаляем старые обработчики событий
       if (TasksState.eventListeners) {
@@ -48,6 +69,17 @@
           }
         });
         TasksState.eventListeners.clear();
+      }
+      
+      // Очищаем текущую задачу перед загрузкой новой (но puzzle_id уже сохранен выше)
+      TasksState.currentPuzzle = null;
+      TasksState.currentFEN = null;
+      TasksState.initialFEN = null;
+      TasksState.board = [];
+      
+      // Очищаем кеш позиций при загрузке новой задачи
+      if (TasksState.positionCache) {
+        TasksState.positionCache.clear();
       }
       
       TasksState.userMoves = [];
@@ -64,7 +96,9 @@
       // Очистка кеша позиций (WeakMap очистится автоматически, но можно явно очистить ссылки)
       // WeakMap не требует явной очистки, но мы можем очистить другие кеши
       
-      window.TasksHistory.updateMovesHistory();
+      if (window.TasksHistory && typeof window.TasksHistory.updateMovesHistory === 'function') {
+        window.TasksHistory.updateMovesHistory();
+      }
 
       // Показываем скелетон доски и скрываем реальную доску
       const skeleton = document.getElementById('boardSkeleton');
@@ -120,28 +154,63 @@
       }
 
       try {
-        const url = window.TasksAPI.buildPuzzleRequestUrl();
-        const res = await window.TasksAPI.authorizedFetch(url);
+        // Загружаем новую задачу с параметрами для предотвращения кеширования
+        let puzzle = null;
+        let attempts = 0;
+        const maxAttempts = 3; // Максимум попыток получить другую задачу
         
-        if (!res.ok) {
-          let errorMessage = 'Не удалось получить задачу. Попробуйте позже.';
+        while (attempts < maxAttempts) {
+          const url = window.TasksAPI.buildPuzzleRequestUrl(previousPuzzleId);
+          const res = await window.TasksAPI.authorizedFetch(url, {
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
           
-          if (res.status === 403) {
-            errorMessage = 'Доступ запрещён. Возможно, требуется авторизация.';
-          } else if (res.status === 502 || res.status === 503) {
-            errorMessage = 'Сервис временно недоступен. Попробуйте позже.';
-          } else if (res.status === 500) {
-            errorMessage = 'Ошибка сервера. Попробуйте позже.';
+          if (!res.ok) {
+            let errorMessage = 'Не удалось получить задачу. Попробуйте позже.';
+            
+            if (res.status === 403) {
+              errorMessage = 'Доступ запрещён. Возможно, требуется авторизация.';
+            } else if (res.status === 502 || res.status === 503) {
+              errorMessage = 'Сервис временно недоступен. Попробуйте позже.';
+            } else if (res.status === 500) {
+              errorMessage = 'Ошибка сервера. Попробуйте позже.';
+            }
+            
+            throw new Error(errorMessage);
           }
           
-          throw new Error(errorMessage);
+          puzzle = await res.json();
+          
+          // Если это та же задача, что была раньше - пробуем еще раз
+          if (previousPuzzleId && puzzle.puzzle_id === previousPuzzleId) {
+            attempts++;
+            // Увеличиваем задержку с каждой попыткой
+            await new Promise(resolve => setTimeout(resolve, 200 * attempts));
+            continue;
+          }
+          
+          // Получили другую задачу - выходим из цикла
+          break;
         }
         
-        const puzzle = await res.json();
+        if (!puzzle) {
+          throw new Error('Не удалось получить новую задачу');
+        }
+        
         TasksState.currentPuzzle = puzzle;
         TasksState.currentFEN = puzzle.fen || '';
         TasksState.initialFEN = puzzle.fen || '';
-        TasksState.board = window.TasksBoard.parseFEN(TasksState.currentFEN);
+        
+        // Безопасный парсинг FEN
+        if (window.TasksBoard && typeof window.TasksBoard.parseFEN === 'function') {
+          TasksState.board = window.TasksBoard.parseFEN(TasksState.currentFEN);
+        } else {
+          console.error('TasksBoard.parseFEN not available');
+          throw new Error('Модули доски не загружены');
+        }
         
         // Определяем и сохраняем ориентацию доски из начальной позиции
         const fenParts = TasksState.currentFEN.split(' ');
@@ -154,7 +223,7 @@
         
         // Применяем первый ход противника (moves[0]) вручную и устанавливаем индекс игрока в 0
         const correctMoves = puzzle.moves || [];
-        if (correctMoves.length > 0) {
+        if (correctMoves.length > 0 && window.TasksMoves) {
           const firstOpponentMove = correctMoves[0];
           // Применяем ход напрямую без увеличения индекса
           if (window.TasksMoves.applyMoveToBoard(firstOpponentMove, true)) {
@@ -164,9 +233,13 @@
               isPlayer: false
             });
             TasksState.currentHistoryIndex = TasksState.movesHistory.length - 1;
-            window.TasksHistory.updateMovesHistory();
+            if (window.TasksHistory) {
+              window.TasksHistory.updateMovesHistory();
+            }
             // Устанавливаем индекс в 0 (первый ход игрока будет в moves[0*2+1] = moves[1])
             TasksState.currentMoveIndex = 0;
+          } else {
+            console.warn('Failed to apply first opponent move');
           }
         }
         
@@ -181,25 +254,37 @@
         
         if (boardWrapper && boardWrapper.classList.contains('hidden')) {
           // Первая загрузка - рендерим и показываем с анимацией
-          window.TasksBoard.renderBoard();
+          if (window.TasksBoard && typeof window.TasksBoard.renderBoard === 'function') {
+            window.TasksBoard.renderBoard();
+          }
           boardWrapper.classList.remove('hidden');
           boardWrapper.classList.add('board-fade-in');
-          window.TasksUtils.createTimer(() => {
-            boardWrapper.classList.remove('board-fade-in');
-          }, 400);
-        } else if (boardWrapper) {
-          // Переход между задачами - плавное исчезновение и появление
-          boardWrapper.classList.add('board-fade-out');
-          window.TasksUtils.createTimer(() => {
-            window.TasksBoard.renderBoard();
-            boardWrapper.classList.remove('board-fade-out');
-            boardWrapper.classList.add('board-fade-in');
+          if (window.TasksUtils && typeof window.TasksUtils.createTimer === 'function') {
             window.TasksUtils.createTimer(() => {
               boardWrapper.classList.remove('board-fade-in');
             }, 400);
-          }, 200);
+          }
+        } else if (boardWrapper) {
+          // Переход между задачами - плавное исчезновение и появление
+          boardWrapper.classList.add('board-fade-out');
+          if (window.TasksUtils && typeof window.TasksUtils.createTimer === 'function') {
+            window.TasksUtils.createTimer(() => {
+              if (window.TasksBoard && typeof window.TasksBoard.renderBoard === 'function') {
+                window.TasksBoard.renderBoard();
+              }
+              boardWrapper.classList.remove('board-fade-out');
+              boardWrapper.classList.add('board-fade-in');
+              if (window.TasksUtils && typeof window.TasksUtils.createTimer === 'function') {
+                window.TasksUtils.createTimer(() => {
+                  boardWrapper.classList.remove('board-fade-in');
+                }, 400);
+              }
+            }, 200);
+          }
         } else {
-          window.TasksBoard.renderBoard();
+          if (window.TasksBoard && typeof window.TasksBoard.renderBoard === 'function') {
+            window.TasksBoard.renderBoard();
+          }
         }
         
         window.TasksUI.updatePuzzleHeader(puzzle);
@@ -259,8 +344,13 @@
           boardWrapper.classList.add('hidden');
         }
         
-        window.TasksBoard.renderBoard();
-        window.TasksHistory.updateMovesHistory();
+        // Безопасный вызов renderBoard и updateMovesHistory
+        if (window.TasksBoard && typeof window.TasksBoard.renderBoard === 'function') {
+          window.TasksBoard.renderBoard();
+        }
+        if (window.TasksHistory && typeof window.TasksHistory.updateMovesHistory === 'function') {
+          window.TasksHistory.updateMovesHistory();
+        }
       } finally {
         TasksState.isPuzzleLoading = false;
       }
@@ -295,7 +385,15 @@
     },
 
     async submitAttempt(success) {
-      if (!TasksState.currentPuzzle || TasksState.isSubmittingAttempt) return;
+      // Проверяем авторизацию перед отправкой попытки
+      if (!TasksState.currentUser) {
+        window.location.href = '/login';
+        return Promise.resolve();
+      }
+      
+      if (!TasksState.currentPuzzle || TasksState.isSubmittingAttempt) {
+        return Promise.resolve();
+      }
       
       TasksState.isSubmittingAttempt = true;
       
@@ -323,8 +421,14 @@
           }
         }
         
+        // Сохраняем puzzle_id до использования, так как currentPuzzle может быть очищен
+        const puzzleId = TasksState.currentPuzzle?.puzzle_id;
+        if (!puzzleId) {
+          throw new Error('Текущая задача не найдена');
+        }
+        
         const payload = {
-          puzzle_id: TasksState.currentPuzzle.puzzle_id,
+          puzzle_id: puzzleId,
           mode: TasksState.selectedMode.id,
           success: success,
           time_spent_ms: timeSpentMs,
@@ -353,17 +457,8 @@
           TasksState.sessionStats.bestStreak = TasksState.puzzleStats.best_streak || 0;
         }
         
+        // Автоматически загружаем следующую задачу после успешного решения
         if (success) {
-          // Оптимизация: предзагружаем следующую задачу в фоне
-          const nextPuzzleUrl = window.TasksAPI.buildPuzzleRequestUrl();
-          // Используем link prefetch для предзагрузки следующей задачи
-          const link = document.createElement('link');
-          link.rel = 'prefetch';
-          link.href = nextPuzzleUrl;
-          link.as = 'fetch';
-          link.crossOrigin = 'anonymous';
-          document.head.appendChild(link);
-          
           await new Promise(resolve => {
             window.TasksUtils.createTimer(resolve, 1500);
           });

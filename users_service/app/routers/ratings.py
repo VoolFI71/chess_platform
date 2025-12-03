@@ -1,8 +1,8 @@
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import desc, func, select, text
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -58,8 +58,15 @@ async def get_my_rating_history(
 	db: AsyncSession = Depends(get_db),
 ) -> RatingHistoryResponse:
 	"""Получить историю рейтингов текущего пользователя"""
+	# Сначала получаем общее количество записей
+	count_stmt = select(func.count()).select_from(RatingHistory).where(RatingHistory.user_id == current_user_id)
+	if format_type:
+		count_stmt = count_stmt.where(RatingHistory.format_type == format_type)
+	total = await db.scalar(count_stmt) or 0
+	
+	# Затем получаем данные с пагинацией
 	stmt = (
-		select(RatingHistory, text("COUNT(*) OVER()").label("total"))
+		select(RatingHistory)
 		.where(RatingHistory.user_id == current_user_id)
 		.order_by(desc(RatingHistory.created_at))
 		.limit(limit)
@@ -70,23 +77,19 @@ async def get_my_rating_history(
 		stmt = stmt.where(RatingHistory.format_type == format_type)
 	
 	result = await db.execute(stmt)
-	rows = result.all()
+	rows = result.scalars().all()
 	
-	if not rows:
-		return RatingHistoryResponse(entries=[], total=0)
-	
-	total = rows[0].total if rows else 0
 	entries = [
 		RatingHistoryEntry(
-			id=row.RatingHistory.id,
-			format_type=row.RatingHistory.format_type,
-			rating_before=row.RatingHistory.rating_before,
-			rating_after=row.RatingHistory.rating_after,
-			rating_change=row.RatingHistory.rating_change,
-			game_id=row.RatingHistory.game_id,
-			result=row.RatingHistory.result,
-			opponent_id=row.RatingHistory.opponent_id,
-			created_at=row.RatingHistory.created_at.isoformat(),
+			id=row.id,
+			format_type=row.format_type,
+			rating_before=row.rating_before,
+			rating_after=row.rating_after,
+			rating_change=row.rating_change,
+			game_id=row.game_id,
+			result=row.result,
+			opponent_id=row.opponent_id,
+			created_at=row.created_at.isoformat(),
 		)
 		for row in rows
 	]
@@ -106,8 +109,15 @@ async def get_user_rating_history(
 	db: AsyncSession = Depends(get_db),
 ) -> RatingHistoryResponse:
 	"""Получить историю рейтингов пользователя (публичный доступ)"""
+	# Сначала получаем общее количество записей
+	count_stmt = select(func.count()).select_from(RatingHistory).where(RatingHistory.user_id == user_id)
+	if format_type:
+		count_stmt = count_stmt.where(RatingHistory.format_type == format_type)
+	total = await db.scalar(count_stmt) or 0
+	
+	# Затем получаем данные с пагинацией
 	stmt = (
-		select(RatingHistory, text("COUNT(*) OVER()").label("total"))
+		select(RatingHistory)
 		.where(RatingHistory.user_id == user_id)
 		.order_by(desc(RatingHistory.created_at))
 		.limit(limit)
@@ -118,23 +128,19 @@ async def get_user_rating_history(
 		stmt = stmt.where(RatingHistory.format_type == format_type)
 	
 	result = await db.execute(stmt)
-	rows = result.all()
+	rows = result.scalars().all()
 	
-	if not rows:
-		return RatingHistoryResponse(entries=[], total=0)
-	
-	total = rows[0].total if rows else 0
 	entries = [
 		RatingHistoryEntry(
-			id=row.RatingHistory.id,
-			format_type=row.RatingHistory.format_type,
-			rating_before=row.RatingHistory.rating_before,
-			rating_after=row.RatingHistory.rating_after,
-			rating_change=row.RatingHistory.rating_change,
-			game_id=row.RatingHistory.game_id,
-			result=row.RatingHistory.result,
-			opponent_id=row.RatingHistory.opponent_id,
-			created_at=row.RatingHistory.created_at.isoformat(),
+			id=row.id,
+			format_type=row.format_type,
+			rating_before=row.rating_before,
+			rating_after=row.rating_after,
+			rating_change=row.rating_change,
+			game_id=row.game_id,
+			result=row.result,
+			opponent_id=row.opponent_id,
+			created_at=row.created_at.isoformat(),
 		)
 		for row in rows
 	]
@@ -158,14 +164,23 @@ async def get_leaderboard(
 	# Получаем пользователей с рейтингом, отсортированных по убыванию
 	rating_attr = getattr(User, rating_column)
 	
+	# Сначала получаем общее количество активных пользователей с рейтингом
+	count_stmt = select(func.count()).select_from(User).where(
+		User.is_active == True,
+		rating_attr.isnot(None)
+	)
+	total = await db.scalar(count_stmt) or 0
+	
+	# Затем получаем данные с пагинацией
 	stmt = (
 		select(
 			User,
 			rating_attr.label("rating"),
-			func.row_number().over(order_by=rating_attr.desc()).label("rank"),
-			func.count().over().label("total"),
 		)
-		.where(User.is_active == True)
+		.where(
+			User.is_active == True,
+			rating_attr.isnot(None)
+		)
 		.order_by(desc(rating_attr))
 		.limit(limit)
 		.offset(offset)
@@ -174,16 +189,15 @@ async def get_leaderboard(
 	result = await db.execute(stmt)
 	rows = result.all()
 	
-	if not rows:
-		return LeaderboardResponse(entries=[], total=0, format_type=format_type)
-	
-	total = rows[0].total if rows else 0
 	entries = []
 	
-	for row in rows:
+	# Вычисляем ранг в Python, добавляя offset к индексу строки
+	for idx, row in enumerate(rows):
 		user_public = build_user_public(row.User)
 		rating = row.rating or 1200
-		rank = row.rank
+		# Ранг = offset + индекс в результате (начиная с 1)
+		rank = offset + idx + 1
+		
 		entries.append(
 			LeaderboardEntry(
 				user=user_public,

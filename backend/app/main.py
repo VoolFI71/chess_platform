@@ -2,18 +2,27 @@ from mimetypes import guess_type
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
 from common.observability import configure_observability
 
 from .config import get_settings
+from .routers import stats
 
 
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
 
+# Оптимизация сетевой задержки: GZip сжатие для статических файлов и JSON ответов
+# Порог 1000 байт оптимален для статических файлов (HTML, CSS, JS)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 configure_observability(app, settings=settings, get_db=None)
+
+# Include routers
+app.include_router(stats.router)
 
 
 # Frontend serving
@@ -121,6 +130,10 @@ def serve_profile_page_with_username(username: str):
 
 @app.get("/{full_path:path}")
 def serve_frontend(full_path: str):
+    # Don't serve API routes as static files
+    if full_path.startswith("api/"):
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    
     resolved = _resolve_web_path(full_path)
     if resolved is None:
         return JSONResponse({"detail": "Not Found"}, status_code=404)
