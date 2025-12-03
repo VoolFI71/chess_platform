@@ -13,18 +13,27 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_index(
-        "ix_puzzles_themes_gin",
-        "puzzles",
-        ["themes"],
-        postgresql_using="gin",
-    )
-    op.create_index(
-        "ix_puzzles_opening_tags_gin",
-        "puzzles",
-        ["opening_tags"],
-        postgresql_using="gin",
-    )
+    # Проверяем существование индексов перед созданием
+    from sqlalchemy import inspect
+    inspector = inspect(op.get_bind())
+    
+    indexes = [idx["name"] for idx in inspector.get_indexes("puzzles")]
+    
+    if "ix_puzzles_themes_gin" not in indexes:
+        op.create_index(
+            "ix_puzzles_themes_gin",
+            "puzzles",
+            ["themes"],
+            postgresql_using="gin",
+        )
+    
+    if "ix_puzzles_opening_tags_gin" not in indexes:
+        op.create_index(
+            "ix_puzzles_opening_tags_gin",
+            "puzzles",
+            ["opening_tags"],
+            postgresql_using="gin",
+        )
 
 
 def downgrade() -> None:

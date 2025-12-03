@@ -11,31 +11,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 # Copy common package
 COPY common ./common
 
-# Copy all service directories (for alembic configs and migrations)
-COPY users_service/alembic.ini ./users_service/alembic.ini
-COPY users_service/alembic ./users_service/alembic
-COPY auth_service/alembic.ini ./auth_service/alembic.ini
-COPY auth_service/alembic ./auth_service/alembic
-COPY courses_service/alembic.ini ./courses_service/alembic.ini
-COPY courses_service/alembic ./courses_service/alembic
-COPY lessons_service/alembic.ini ./lessons_service/alembic.ini
-COPY lessons_service/alembic ./lessons_service/alembic
-COPY enrollments_service/alembic.ini ./enrollments_service/alembic.ini
-COPY enrollments_service/alembic ./enrollments_service/alembic
-COPY payments_service/alembic.ini ./payments_service/alembic.ini
-COPY payments_service/alembic ./payments_service/alembic
-COPY games_service/alembic.ini ./games_service/alembic.ini
-COPY games_service/alembic ./games_service/alembic
-COPY notifications_service/alembic.ini ./notifications_service/alembic.ini
-COPY notifications_service/alembic ./notifications_service/alembic
-COPY puzzles_service/alembic.ini ./puzzles_service/alembic.ini
-COPY puzzles_service/alembic ./puzzles_service/alembic
+# Copy all service directories (for alembic configs, migrations, and app code)
+COPY users_service ./users_service
+COPY auth_service ./auth_service
+COPY courses_service ./courses_service
+COPY lessons_service ./lessons_service
+COPY enrollments_service ./enrollments_service
+COPY payments_service ./payments_service
+COPY games_service ./games_service
+COPY notifications_service ./notifications_service
+COPY puzzles_service ./puzzles_service
 
 # Copy migrations service
 COPY migrations_service ./migrations_service
 
-# Install dependencies
-RUN pip install --no-cache-dir alembic sqlalchemy psycopg2-binary
+# Install only dependencies needed for migrations
+# Мы импортируем Base напрямую из common.database, минуя app.config,
+# поэтому нужны только базовые зависимости для работы с БД
+RUN pip install --no-cache-dir \
+    alembic==1.13.2 \
+    sqlalchemy==2.0.36 \
+    psycopg2-binary==2.9.9
 
 ENV PYTHONPATH=/app
 

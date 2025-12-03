@@ -13,19 +13,26 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Проверяем существование индексов перед созданием
+    from sqlalchemy import inspect
+    inspector = inspect(op.get_bind())
+    indexes = [idx["name"] for idx in inspector.get_indexes("puzzles")]
+    
     # Индекс на rating для быстрой фильтрации по рейтингу
-    op.create_index(
-        "ix_puzzles_rating",
-        "puzzles",
-        ["rating"],
-    )
+    if "ix_puzzles_rating" not in indexes:
+        op.create_index(
+            "ix_puzzles_rating",
+            "puzzles",
+            ["rating"],
+        )
     
     # Индекс на popularity для сортировки и фильтрации популярных задач
-    op.create_index(
-        "ix_puzzles_popularity",
-        "puzzles",
-        ["popularity"],
-    )
+    if "ix_puzzles_popularity" not in indexes:
+        op.create_index(
+            "ix_puzzles_popularity",
+            "puzzles",
+            ["popularity"],
+        )
 
 
 def downgrade() -> None:

@@ -9,5 +9,5 @@ Disallow: /login
 Disallow: /register
 
 # Sitemap
-Sitemap: https://powerchess.org/sitemap.xml
+Sitemap: https://power-chess.ru/sitemap.xml
 
