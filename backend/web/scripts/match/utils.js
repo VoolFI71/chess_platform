@@ -65,6 +65,12 @@
       return role === 'white' ? 'Белые' : 'Чёрные';
     },
 
+    titleName(id) {
+      if (!id) return '—';
+      const username = window.MatchPlayerNamesUtils?.usernameFromCache(id);
+      return username || `ID ${id}`;
+    },
+
     describeWinner(game) {
       if (!game || game.status !== 'FINISHED') return '—';
       const { TERMINATION_REASON_LABELS } = window.MatchConstants || {};
@@ -77,16 +83,9 @@
       const winnerIsWhite = game.result === '1-0';
       const colorLabel = winnerIsWhite ? 'Белые' : 'Чёрные';
       const winnerId = winnerIsWhite ? game.white_id : game.black_id;
-      const winnerName = this.titleName(winnerId);
+      const winnerName = window.MatchUtils.titleName(winnerId);
       const suffix = reasonLabel ? ` (${reasonLabel})` : '';
       return `${colorLabel}: ${winnerName} победили${suffix}`;
-    },
-
-    titleName(id) {
-      if (!id) return '—';
-      // Используем usernameFromCache из MatchPlayerNamesUtils для правильной нормализации ключа
-      const username = window.MatchPlayerNamesUtils?.usernameFromCache(id);
-      return username || `ID ${id}`;
     },
   };
 })();

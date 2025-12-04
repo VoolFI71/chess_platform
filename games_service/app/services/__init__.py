@@ -6,7 +6,6 @@ from .games import (
 	build_move_out,
 	cancel_auto_cancel,
 	extract_move_data,
-	schedule_auto_cancel,
 )
 
 __all__ = [
@@ -16,7 +15,6 @@ __all__ = [
 	"build_game_summary",
 	"build_move_out",
 	"extract_move_data",
-	"schedule_auto_cancel",
 	"cancel_auto_cancel",
 ]
 

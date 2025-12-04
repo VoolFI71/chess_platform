@@ -1,5 +1,4 @@
 (() => {
-  // Используем константы из MatchConstants
   const MatchConstants = window.MatchConstants;
   if (!MatchConstants) {
     throw new Error('MatchConstants module is not loaded. Ensure match.constants.js is included before match.js');
@@ -9,15 +8,9 @@
     PIECES,
     FILES,
     RANKS,
-    TERMINATION_REASON_LABELS,
-    AUTO_CANCEL_TIMEOUT_MS,
-    WS_BASE_DELAY_MS,
-    WS_MAX_DELAY_MS,
-    WS_MAX_RETRY_ATTEMPTS,
     AUTH_CLOSE_CODES,
   } = MatchConstants;
 
-  // Используем утилиты из MatchUtils
   const MatchUtils = window.MatchUtils;
   if (!MatchUtils) {
     throw new Error('MatchUtils module is not loaded. Ensure match.utils.js is included before match.js');
@@ -27,36 +20,26 @@
     statusClass,
     describeTimeControl,
     formatClock,
-    normalizeUserId,
-    formatCountdown,
     getRoleLabel: utilsGetRoleLabel,
     titleName: utilsTitleName,
     describeWinner: utilsDescribeWinner,
   } = MatchUtils;
 
-  // Используем функции таймеров из MatchTimers
   const MatchTimers = window.MatchTimers;
   if (!MatchTimers) {
     throw new Error('MatchTimers module is not loaded. Ensure match.timers.js is included before match.js');
   }
   const {
-    clearAutoCancelTimer: timersClearAutoCancelTimer,
-    updateAutoCancelTimerDisplay: timersUpdateAutoCancelTimerDisplay,
-    setAutoCancelDeadline: timersSetAutoCancelDeadline,
-    syncAutoCancelDeadline: timersSyncAutoCancelDeadline,
     clearWsReconnectTimer: timersClearWsReconnectTimer,
     resetWsRetryState: timersResetWsRetryState,
     scheduleWsReconnect: timersScheduleWsReconnect,
   } = MatchTimers;
 
-  // Используем функции работы с именами из MatchPlayerNamesUtils
   const MatchPlayerNamesUtils = window.MatchPlayerNamesUtils;
   if (!MatchPlayerNamesUtils) {
     throw new Error('MatchPlayerNamesUtils module is not loaded. Ensure match.player-names.js is included before match.js');
   }
   const {
-    usernameFromCache,
-    storeUsername,
     fetchUsername: playerNamesFetchUsername,
     ensurePlayerUsernames: playerNamesEnsurePlayerUsernames,
   } = MatchPlayerNamesUtils;
@@ -107,19 +90,6 @@
     }, 4000);
   }
 
-  // Обёртки для функций таймеров с вызовом updateClockDisplays
-  function clearAutoCancelTimer() {
-    timersClearAutoCancelTimer(updateClockDisplays);
-  }
-
-  function updateAutoCancelTimerDisplay() {
-    timersUpdateAutoCancelTimerDisplay(updateClockDisplays);
-  }
-
-  function setAutoCancelDeadline(deadlineMs) {
-    timersSetAutoCancelDeadline(deadlineMs, updateClockDisplays);
-  }
-
   function clearWsReconnectTimer() {
     timersClearWsReconnectTimer();
   }
@@ -135,85 +105,46 @@
   function shouldAttemptWsReconnect(event) {
     if (!state.matchId) return false;
     if (!event) return true;
-    // 1000 Normal closure, 1001 Going away
     if (event.code === 1000 || event.code === 1001) return false;
     return true;
   }
 
   async function handleWsClose(event) {
-    wsLog('info', 'Handling WebSocket close', {
-      code: event?.code,
-      reason: event?.reason,
-      wasClean: event?.wasClean,
-      willReconnect: shouldAttemptWsReconnect(event)
-    });
     updateWsIndicator('offline');
     setState({ ws: null }, 'handleWsClose');
-    if (!shouldAttemptWsReconnect(event)) {
-      wsLog('info', 'Not attempting WebSocket reconnect');
-      return;
-    }
+    if (!shouldAttemptWsReconnect(event)) return;
 
     if (AUTH_CLOSE_CODES.has(event?.code)) {
-      wsLog('info', 'Authentication close code detected, refreshing token');
       const refreshed = await refreshAccessToken();
       if (!refreshed) {
         wsLog('error', 'Failed to refresh access token');
         showToast('Сессия истекла. Войдите снова, чтобы продолжить партию', 'error');
         return;
       }
-      wsLog('info', 'Access token refreshed successfully');
     }
-    wsLog('info', 'Scheduling WebSocket reconnect');
     scheduleWsReconnect();
   }
 
-  // Используем syncAutoCancelDeadline из MatchTimers
-  // Но сначала конвертируем auto_cancel_at (ISO строка) в auto_cancel_deadline_ms (число)
-  function syncAutoCancelDeadline(detail) {
-    if (!detail) {
-      timersSyncAutoCancelDeadline(detail, updateClockDisplays);
-      return;
-    }
-    // Backend отправляет auto_cancel_at как ISO строку, нужно конвертировать в миллисекунды
-    let deadlineMs = null;
-    if (detail.auto_cancel_at) {
-      const parsed = Date.parse(detail.auto_cancel_at);
-      if (!isNaN(parsed)) {
-        deadlineMs = parsed;
-      }
-    }
-    // Создаем объект с auto_cancel_deadline_ms для MatchTimers
-    const detailWithMs = deadlineMs !== null ? { ...detail, auto_cancel_deadline_ms: deadlineMs } : detail;
-    timersSyncAutoCancelDeadline(detailWithMs, updateClockDisplays);
-  }
-
-  // Используем функции из модулей
   const titleName = utilsTitleName;
 
-  // Обёртка для fetchUsername с обновлением UI
   async function fetchUsername(userId) {
     const result = await playerNamesFetchUsername(userId);
-    // Обновляем UI после получения имени
     updatePlayerLabelsAndTitle();
     updateWinnerDisplay();
     return result;
   }
 
-  // Обёртка для ensurePlayerUsernames с обновлением UI
   async function ensurePlayerUsernames(game) {
     await playerNamesEnsurePlayerUsernames(game);
     updatePlayerLabelsAndTitle();
   }
 
-  // Используем describeWinner из MatchUtils
   const describeWinner = utilsDescribeWinner;
   const labelPlayer = (id) => {
     if (id === null || id === undefined) return '—';
     if (state.currentUser && state.currentUser.id === id) {
       return state.currentUser.username ? `Вы (${state.currentUser.username})` : 'Вы';
     }
-    // Используем titleName из MatchUtils
     return titleName(id);
   };
 
@@ -533,35 +464,23 @@
     }
   }
 
-  // Используем функции из MatchClocks
   const MatchClocksModule = window.MatchClocks;
   if (!MatchClocksModule) {
     throw new Error('MatchClocks module is not loaded. Ensure match.clocks.js is included before match.js');
   }
   const {
     getDisplayedClocks: clocksGetDisplayedClocks,
-    getAutoCancelCountdownSeconds: clocksGetAutoCancelCountdownSeconds,
     updateClockDisplays: clocksUpdateClockDisplays,
   } = MatchClocksModule;
 
-  // Обёртки для использования функций из MatchClocks
   function getDisplayedClocks(applyRunning = true) {
     return clocksGetDisplayedClocks(applyRunning);
   }
 
-  function getAutoCancelCountdownSeconds() {
-    return clocksGetAutoCancelCountdownSeconds();
-  }
-
   function updateClockDisplays(resetTimer = false) {
-    // Используем MatchClocks.updateClockDisplays с нужными параметрами
-    // Передаём дополнительный колбэк для вызова renderActions после каждого обновления
-    const maybeRenderActions = (clocks) => {
-      renderActions();
-    };
     clocksUpdateClockDisplays(resetTimer, getPanelRoles, (clocks) => {
       maybeAutoDeclareTimeout(clocks);
-      maybeRenderActions(clocks);
+      renderActions();
     });
   }
 
@@ -579,15 +498,25 @@
       }
       return;
     }
-    const snapshot = clocks || getDisplayedClocks(true);
-    if (!snapshot) return;
-    const opponentClock = role === 'white' ? snapshot.black : snapshot.white;
-    if (opponentClock > 0) {
+    
+    const white_finish = state.game.white_finish_ms || state.game.time_control?.white_finish_ms || state.game.time_control?.initial_ms || 0;
+    const black_finish = state.game.black_finish_ms || state.game.time_control?.black_finish_ms || state.game.time_control?.initial_ms || 0;
+    if (white_finish === 0 || black_finish === 0) {
       if (state.timeoutAutoRequested) {
-        setState({ timeoutAutoRequested: false }, 'autoTimeout:clockPositive');
+        setState({ timeoutAutoRequested: false }, 'autoTimeout:noTimeControl');
       }
       return;
     }
+    
+    const opponentPast = role === 'white' ? state.game.black_clock_ms : state.game.white_clock_ms;
+    const opponentFinish = role === 'white' ? black_finish : white_finish;
+    if (opponentPast < opponentFinish) {
+      if (state.timeoutAutoRequested) {
+        setState({ timeoutAutoRequested: false }, 'autoTimeout:clockNotExpired');
+      }
+      return;
+    }
+    
     if (state.timeoutAutoRequested) return;
     setState({ timeoutAutoRequested: true }, 'autoTimeout:trigger');
     submitTimeoutClaim({ autoTriggered: true });
@@ -827,17 +756,18 @@
   };
 
   const canDeclareTimeout = (role) => {
-    const clocks = getDisplayedClocks(false);
-    if (!clocks) return false;
-    if (role === 'white') return clocks.black <= 0;
-    if (role === 'black') return clocks.white <= 0;
+    if (!state.game) return false;
+    const white_finish = state.game.white_finish_ms || state.game.time_control?.white_finish_ms || state.game.time_control?.initial_ms || 0;
+    const black_finish = state.game.black_finish_ms || state.game.time_control?.black_finish_ms || state.game.time_control?.initial_ms || 0;
+    if (white_finish === 0 || black_finish === 0) return false;
+    if (role === 'white') {
+      return state.game.black_clock_ms >= black_finish;
+    }
+    if (role === 'black') {
+      return state.game.white_clock_ms >= white_finish;
+    }
     return false;
   };
-
-  const gameDetailPath = (id) => `/api/games/${id}`;
-  const gameJoinPath = (id) => `/api/games/${id}/join`;
-  const gameResignPath = (id) => `/api/games/${id}/resign`;
-  const gameTimeoutPath = (id) => `/api/games/${id}/timeout`;
 
   function renderActions() {
     const container = document.getElementById('gameActions');
@@ -958,30 +888,6 @@
     const previousGame = state.game;
     const previousRole = getCurrentUserRole();
     
-    // Проверяем, изменилась ли игра (для предотвращения лишних обновлений clockAnchorTime)
-    const gameChanged = !previousGame || 
-      previousGame.status !== detail?.status ||
-      previousGame.move_count !== detail?.move_count ||
-      previousGame.next_turn !== detail?.next_turn ||
-      previousGame.white_clock_ms !== detail?.white_clock_ms ||
-      previousGame.black_clock_ms !== detail?.black_clock_ms;
-    
-    // Логируем состояние ДО обновления
-    if (window.__DEBUG_CLOCKS__) {
-      console.log('[clock] applyGameDetail: BEFORE', {
-        previous_status: previousGame?.status,
-        previous_move_count: previousGame?.move_count,
-        previous_next_turn: previousGame?.next_turn,
-        detail_status: detail?.status,
-        detail_move_count: detail?.move_count,
-        detail_moves_length: detail?.moves?.length || 0,
-        detail_next_turn: detail?.next_turn,
-        isRealtimeMove,
-        gameChanged,
-        current_clockAnchorTime: state.clockAnchorTime,
-      });
-    }
-    
     setState(
       {
         game: detail,
@@ -991,145 +897,26 @@
     );
     const moveCount = detail?.moves?.length || 0;
     
-    // Логируем состояние ПОСЛЕ обновления
-    if (window.__DEBUG_CLOCKS__) {
-      console.log('[clock] applyGameDetail: AFTER', {
-        state_status: state.game?.status,
-        state_move_count: state.game?.move_count,
-        state_next_turn: state.game?.next_turn,
-        moves_length: moveCount,
-      });
-    }
     if (typeof state.analysisCursor === 'number' && state.analysisCursor > moveCount) {
       setState({ analysisCursor: null }, 'applyGameDetail:clampAnalysis');
     }
 
-    // Обновляем clockAnchorTime
     const now = Date.now();
-    let lastStateTimestamp;
+    const isFirstMove = detail.move_count === 1;
+    let clockAnchorTime;
     
-    // ВАЖНО: При получении move_made события (isRealtimeMove):
-    // - Время игрока, который сделал ход: вычтено прошедшее время + добавлен инкремент
-    // - next_turn уже изменен на следующего игрока
-    // - Время следующего игрока в БД правильное (не вычтено, так как он только начал ход)
-    // - Время в БД уже обновлено и соответствует моменту после хода
-    // Поэтому clockAnchorTime должен быть установлен на Date.now(),
-    // чтобы время следующего игрока начало тикать с момента получения события, а не с момента хода на сервере
-    // Если использовать move.created_at, то elapsed будет включать задержку сети, и время будет вычитаться дважды
-    if (isRealtimeMove) {
-      // Для move_made используем Date.now(), так как время в БД уже обновлено
-      // и соответствует моменту после хода. Время следующего игрока должно тикать с момента получения события.
-      lastStateTimestamp = now;
-      console.log('[CLOCK DEBUG] applyGameDetail: move_made, using Date.now()', {
-        source: 'WS_MOVE_MADE',
-        clockAnchorTime: lastStateTimestamp,
-        moveTimestamp: moveTimestamp,
-        next_turn: detail.next_turn,
-        white_clock_db: detail.white_clock_ms,
-        black_clock_db: detail.black_clock_ms,
-        client_now_ms: now,
-        delay_ms: moveTimestamp !== null ? now - moveTimestamp : null,
-        note: 'DB time is updated after move, so we use Date.now() as anchor',
-      });
-    } else if ((detail.moves && detail.moves.length > 0) || (detail.move_count && detail.move_count > 0)) {
-      // Для загрузки через HTTP время в БД - это время на момент последнего хода
-      // Нужно установить clockAnchorTime на время последнего хода, чтобы правильно вычесть прошедшее время
-      const lastMove = detail.moves && detail.moves.length > 0 ? detail.moves[detail.moves.length - 1] : null;
-      if (lastMove && lastMove.created_at) {
-        lastStateTimestamp = new Date(lastMove.created_at).getTime();
-        const elapsed = now - lastStateTimestamp;
-        console.log('[CLOCK DEBUG] applyGameDetail: HTTP load, using lastMove.created_at as anchor', {
-          source: 'HTTP_LOAD',
-          lastMove_created_at: lastMove.created_at,
-          lastMove_timestamp_ms: lastStateTimestamp,
-          client_now_ms: now,
-          elapsed_ms: elapsed,
-          next_turn: detail.next_turn,
-          white_clock_db: detail.white_clock_ms,
-          black_clock_db: detail.black_clock_ms,
-          move_count: detail.move_count,
-          moves_length: detail.moves ? detail.moves.length : 0,
-          calculated_white: detail.next_turn === 'w' ? Math.max(0, detail.white_clock_ms - elapsed) : detail.white_clock_ms,
-          calculated_black: detail.next_turn === 'b' ? Math.max(0, detail.black_clock_ms - elapsed) : detail.black_clock_ms,
-          note: 'DB time is at last move moment, so we use lastMove.created_at to calculate elapsed',
-        });
-      } else {
-        // Fallback: если нет created_at или moves, но есть move_count > 0, нужно загрузить moves
-        // Или использовать started_at если игра началась
-        if (detail.move_count > 0 && detail.started_at) {
-          // Игра началась, но moves не загружены - используем started_at как приближение
-          lastStateTimestamp = new Date(detail.started_at).getTime();
-          console.log('[CLOCK DEBUG] applyGameDetail: HTTP load, move_count > 0 but no moves, using started_at', {
-            source: 'HTTP_LOAD_STARTED_AT_FALLBACK',
-            clockAnchorTime: lastStateTimestamp,
-            started_at: detail.started_at,
-            move_count: detail.move_count,
-            next_turn: detail.next_turn,
-            white_clock_db: detail.white_clock_ms,
-            black_clock_db: detail.black_clock_ms,
-            note: 'WARNING: Using started_at as approximation, should load moves to get accurate lastMove.created_at',
-          });
-        } else {
-          // Fallback: используем текущее время
-          lastStateTimestamp = now;
-          console.log('[CLOCK DEBUG] applyGameDetail: HTTP load, no lastMove.created_at, using Date.now()', {
-            source: 'HTTP_LOAD_FALLBACK',
-            clockAnchorTime: lastStateTimestamp,
-            next_turn: detail.next_turn,
-            move_count: detail.move_count,
-            moves_length: detail.moves ? detail.moves.length : 0,
-            white_clock_db: detail.white_clock_ms,
-            black_clock_db: detail.black_clock_ms,
-          });
-        }
-      }
-    } else if (detail.started_at) {
-      lastStateTimestamp = new Date(detail.started_at).getTime();
-      console.log('[CLOCK DEBUG] applyGameDetail: using started_at', {
-        source: 'HTTP_LOAD_STARTED_AT',
-        started_at: detail.started_at,
-        clockAnchorTime: lastStateTimestamp,
-        next_turn: detail.next_turn,
-      });
-    } else if (detail.created_at) {
-      lastStateTimestamp = new Date(detail.created_at).getTime();
-      console.log('[CLOCK DEBUG] applyGameDetail: using created_at', {
-        source: 'HTTP_LOAD_CREATED_AT',
-        created_at: detail.created_at,
-        clockAnchorTime: lastStateTimestamp,
-        next_turn: detail.next_turn,
-      });
+    if (isFirstMove) {
+      clockAnchorTime = now;
+    } else if (isRealtimeMove && moveTimestamp !== null) {
+      clockAnchorTime = moveTimestamp;
+    } else if (detail.moves && detail.moves.length > 0) {
+      const lastMove = detail.moves[detail.moves.length - 1];
+      clockAnchorTime = lastMove.created_at ? new Date(lastMove.created_at).getTime() : now;
     } else {
-      // Если игра не изменилась и нет ходов, сохраняем текущий clockAnchorTime
-      if (!gameChanged) {
-        lastStateTimestamp = state.clockAnchorTime || now;
-        console.log('[CLOCK DEBUG] applyGameDetail: game not changed, keeping clockAnchorTime', {
-          source: 'NO_CHANGE',
-          clockAnchorTime: lastStateTimestamp,
-          next_turn: detail.next_turn,
-        });
-      } else {
-        // Fallback: используем текущее время
-        lastStateTimestamp = now;
-        console.log('[CLOCK DEBUG] applyGameDetail: fallback to Date.now()', {
-          source: 'FALLBACK',
-          clockAnchorTime: lastStateTimestamp,
-          next_turn: detail.next_turn,
-        });
-      }
+      clockAnchorTime = state.clockAnchorTime || now;
     }
-    // Синхронизируем clockAnchorTime с lastStateTimestamp для правильной работы часов
-    setState({ lastStateTimestamp, clockAnchorTime: lastStateTimestamp }, 'applyGameDetail:timestamp');
     
-    console.log('[CLOCK DEBUG] applyGameDetail: clockAnchorTime set', {
-      source: 'APPLY_GAME_DETAIL_FINAL',
-      clockAnchorTime: lastStateTimestamp,
-      lastStateTimestamp,
-      next_turn: detail.next_turn,
-      white_clock_db: detail.white_clock_ms,
-      black_clock_db: detail.black_clock_ms,
-      isRealtimeMove,
-    });
+    setState({ clockAnchorTime }, 'applyGameDetail:timestamp');
 
     setState({ pendingMove: false }, 'applyGameDetail:pending');
     if (state.timeoutAutoRequested && detail.status !== 'ACTIVE') {
@@ -1141,12 +928,10 @@
       userSetOrientation = false;
     }
 
-    syncAutoCancelDeadline(detail);
     updateLegalMoves();
     computeOrientationFromRole();
     updateUI();
     maybeAutoJoin();
-    // Загружаем имена игроков асинхронно и обновляем UI после загрузки
     ensurePlayerUsernames(detail).then(() => {
       updatePlayerLabelsAndTitle();
       updateWinnerDisplay();
@@ -1233,12 +1018,11 @@
   async function loadMatch() {
     if (!state.matchId) {
       setState({ game: null }, 'loadMatch:noMatch');
-      clearAutoCancelTimer();
       updateUI();
       return;
     }
     try {
-      const res = await fetch(buildUrl(`${gameDetailPath(state.matchId)}?moves_limit=200`));
+      const res = await fetch(buildUrl(`/api/games/${state.matchId}?moves_limit=200`));
       if (!res.ok) throw new Error(await res.text());
       const detail = await res.json();
       applyGameDetail(detail);
@@ -1247,23 +1031,13 @@
       console.error(err);
       showToast('Не удалось загрузить партию', 'error');
       setState({ game: null, moves: [] }, 'loadMatch:error');
-      clearAutoCancelTimer();
       updateUI();
     }
   }
 
-  const WS_DEBUG = false;
-
   function wsLog(level, message, data = null) {
-    if (!WS_DEBUG && level !== 'error') return;
-    const timestamp = new Date().toISOString();
-    const logMessage = `[WS ${timestamp}] ${message}`;
     if (level === 'error') {
-      console.error(logMessage, data || '');
-    } else if (level === 'warn') {
-      console.warn(logMessage, data || '');
-    } else {
-      console.log(logMessage, data || '');
+      console.error(`[WS] ${message}`, data || '');
     }
   }
 
@@ -1275,7 +1049,6 @@
     }
     clearWsReconnectTimer();
     if (state.ws) {
-      wsLog('debug', 'Closing existing WebSocket connection');
       state.ws.onopen = null;
       state.ws.onclose = null;
       state.ws.onmessage = null;
@@ -1286,22 +1059,14 @@
     const token = getAccessToken();
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const url = `${protocol}://${window.location.host}/ws/games/${gameId}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
-    wsLog('debug', `Connecting to WebSocket: ${url.replace(/\?token=[^&]+/, '?token=***')}`);
     try {
       const ws = new WebSocket(url);
       setState({ ws }, 'connectWebSocket:init');
       ws.onopen = () => {
-        wsLog('info', 'WebSocket connection opened', { gameId, isReconnect });
         updateWsIndicator('online');
         resetWsRetryState();
       };
       ws.onclose = (event) => {
-        wsLog('info', 'WebSocket connection closed', {
-          code: event.code,
-          reason: event.reason || 'No reason provided',
-          wasClean: event.wasClean,
-          gameId
-        });
         handleWsClose(event);
       };
       ws.onerror = (error) => {
@@ -1311,7 +1076,6 @@
       ws.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data);
-          wsLog('debug', 'WebSocket message received', { type: payload.type, payload });
           handleWsPayload(payload);
         } catch (err) {
           wsLog('error', 'WebSocket parse error', { error: err, rawData: event.data });
@@ -1324,21 +1088,10 @@
   }
 
   function handleWsPayload(payload) {
-    if (!payload) {
-      wsLog('warn', 'Received empty or null WebSocket payload');
-      return;
-    }
-    wsLog('debug', `Handling WebSocket payload: ${payload.type}`, {
-      type: payload.type,
-      gameStatus: payload.game?.status,
-      moveCount: payload.game?.move_count,
-      nextTurn: payload.game?.next_turn
-    });
+    if (!payload) return;
 
     if (payload.type === 'game_cancelled') {
-      wsLog('info', 'Game cancelled via WebSocket');
       setState({ pendingMove: false }, 'handleWsPayload:cancelled');
-      clearAutoCancelTimer();
       showToast('Партия отменена: никто не сделал ход', 'error');
       setTimeout(() => {
         window.location.href = '/games';
@@ -1346,11 +1099,6 @@
       return;
     }
     if (payload.type === 'move_rejected' || payload.type === 'error') {
-      wsLog('warn', 'Move rejected or error received', {
-        type: payload.type,
-        message: payload.message,
-        client_move_id: payload.client_move_id
-      });
       setState({ pendingMove: false }, 'handleWsPayload:rejected');
       requestAnimationFrame(() => {
         updateLegalMoves();
@@ -1364,27 +1112,11 @@
       const previousWhiteId = state.game?.white_id;
       const previousBlackId = state.game?.black_id;
       const isRealtimeMove = payload.type === 'move_made';
-      // Для move_made используем move.created_at для правильной синхронизации времени
-      // Это гарантирует, что время следующего игрока начинает тикать с момента хода на сервере, а не с момента получения события
       const moveTimestamp = isRealtimeMove && payload.move?.created_at 
         ? new Date(payload.move.created_at).getTime() 
         : null;
       
-      if (isRealtimeMove) {
-        console.log('[CLOCK DEBUG] handleWsMessage: move_made received', {
-          source: 'WS_MOVE_MADE_RECEIVED',
-          move_created_at: payload.move?.created_at,
-          move_timestamp_ms: moveTimestamp,
-          client_now_ms: Date.now(),
-          white_clock_db: payload.game.white_clock_ms,
-          black_clock_db: payload.game.black_clock_ms,
-          next_turn: payload.game.next_turn,
-          move_count: payload.game.move_count,
-        });
-      }
-      
       applyGameDetail(payload.game, { isRealtimeMove, moveTimestamp });
-      // Загружаем имена игроков после обновления состояния игры
       ensurePlayerUsernames(payload.game).then(() => {
         updatePlayerLabelsAndTitle();
         updateWinnerDisplay();
@@ -1426,7 +1158,7 @@
     }
     setState({ autoJoinAttempted: true }, 'joinGame:attempt');
     try {
-      const res = await authedFetch(gameJoinPath(state.matchId), { method: 'POST' });
+      const res = await authedFetch(`/api/games/${state.matchId}/join`, { method: 'POST' });
       if (!res.ok) throw new Error(await res.text());
       const detail = await res.json();
       applyGameDetail(detail);
@@ -1446,7 +1178,7 @@
     }
     if (!confirm('Подтвердите сдачу партии')) return;
     try {
-      const res = await authedFetch(gameResignPath(state.matchId), { method: 'POST' });
+      const res = await authedFetch(`/api/games/${state.matchId}/resign`, { method: 'POST' });
       if (!res.ok) throw new Error(await res.text());
       const detail = await res.json();
       applyGameDetail(detail);
@@ -1474,7 +1206,7 @@
     }
     const loser = role === 'white' ? 'black' : 'white';
     try {
-      const res = await authedFetch(gameTimeoutPath(state.matchId), {
+      const res = await authedFetch(`/api/games/${state.matchId}/timeout`, {
         method: 'POST',
         body: JSON.stringify({ loser_color: loser }),
       });
@@ -1501,26 +1233,6 @@
       event.preventDefault();
     }
     await submitTimeoutClaim({ autoTriggered: false });
-  }
-
-  function computeClocksAfterMove() {
-    if (!state.game) return null;
-    const base = getDisplayedClocks(false);
-    if (!base) return null;
-    const increment = state.game.time_control?.increment_ms || 0;
-
-    let { white_clock_ms: white, black_clock_ms: black, next_turn } = state.game;
-
-    if (next_turn === 'w') {
-      return {
-        white: Math.max(0, white),
-        black: Math.max(0, black) + increment,
-      };
-    }
-    return {
-      white: Math.max(0, white) + increment,
-      black: Math.max(0, black),
-    };
   }
 
   function attemptMove(baseUci, promotion) {
@@ -1570,26 +1282,13 @@
         return false;
       }
     }
-    const clocks = getDisplayedClocks(true);
-    if (!clocks) {
-      showToast('Не удалось вычислить время', 'error');
-      return false;
-    }
     const payload = {
       type: 'make_move',
       uci: normalizedUci,
       promotion: normalizedPromotion,
-      white_clock_ms: state.game.next_turn === 'w' ? clocks.white : state.game.white_clock_ms,
-      black_clock_ms: state.game.next_turn === 'b' ? clocks.black : state.game.black_clock_ms,
       client_move_id: `web-${Date.now()}`,
     };
-    wsLog('debug', 'Sending move via WebSocket', {
-      uci: normalizedUci,
-      promotion: normalizedPromotion,
-      white_clock_ms: payload.white_clock_ms,
-      black_clock_ms: payload.black_clock_ms,
-      client_move_id: payload.client_move_id
-    });
+    
     state.ws.send(JSON.stringify(payload));
     setState({ pendingMove: true }, 'attemptMove:pending');
     resetSelection();

@@ -29,7 +29,6 @@ from ..services import (
 	build_game_detail,
 	build_game_summary,
 	extract_move_data,
-	schedule_auto_cancel,
 )
 
 router = APIRouter(prefix="/api/games", tags=["games"])
@@ -133,41 +132,22 @@ async def get_game(
 	except GameServiceError as exc:
 		raise _handle_error(exc)
 	
-	# Логируем что отправляется при HTTP запросе (обновление страницы)
-	from datetime import datetime, timezone
-	last_move_created_at = None
-	last_move_timestamp_ms = None
-	if moves and len(moves) > 0:
-		last_move = moves[-1]
-		if hasattr(last_move, 'created_at') and last_move.created_at:
-			last_move_created_at = last_move.created_at.isoformat() if hasattr(last_move.created_at, 'isoformat') else str(last_move.created_at)
-			if isinstance(last_move.created_at, datetime):
-				last_move_timestamp_ms = int(last_move.created_at.timestamp() * 1000)
-			elif hasattr(last_move.created_at, 'timestamp'):
-				last_move_timestamp_ms = int(last_move.created_at.timestamp() * 1000)
-	
-	now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
-	elapsed_since_last_move_ms = None
-	if last_move_timestamp_ms:
-		elapsed_since_last_move_ms = now_ms - last_move_timestamp_ms
-	
+	# При HTTP запросе отправляем current_time из БД как есть
+	# Клиент сам вычислит остаток как finish_time - current_time
+	# и вычтет прошедшее время с момента последнего хода из остатка текущего игрока
 	LOGGER.info(
 		"[HTTP GET GAME] game_id=%s "
-		"white_clock_ms=%d black_clock_ms=%d next_turn=%s move_count=%d "
-		"last_move_created_at=%s last_move_timestamp_ms=%s now_ms=%s elapsed_since_last_move_ms=%s "
+		"white_clock_db=%d black_clock_db=%d next_turn=%s move_count=%d "
 		"moves_count=%d limit=%d "
-		"NOTE: DB time is at last move moment, client should use lastMove.created_at as anchor",
+		"NOTE: Returning current_time from DB, client will calculate remaining = finish_time - current_time",
 		game_id,
 		game.white_clock_ms, game.black_clock_ms,
 		game.next_turn, game.move_count,
-		last_move_created_at,
-		last_move_timestamp_ms,
-		now_ms,
-		elapsed_since_last_move_ms,
 		len(moves) if moves else 0, limit,
 	)
 	
-	return build_game_detail(game, moves=moves)
+	result = build_game_detail(game, moves=moves)
+	return result
 
 
 @router.get("/{game_id}/moves", response_model=MoveListResponse)
@@ -195,7 +175,6 @@ async def join_game(
 	except GameServiceError as exc:
 		raise _handle_error(exc)
 
-	await schedule_auto_cancel(game)
 	game_detail = await _build_detail(service, game)
 	await _broadcast_state(game_detail)
 	return game_detail

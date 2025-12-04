@@ -65,8 +65,10 @@ class GameDetail(GameSummary):
 	current_pos: str
 	time_control: dict[str, Any] | None = None
 	metadata: dict[str, Any] | None = None
-	white_clock_ms: int
-	black_clock_ms: int
+	white_clock_ms: int  # past_time белых (прошедшее время)
+	black_clock_ms: int  # past_time черных (прошедшее время)
+	white_finish_ms: int | None = Field(default=None, description="finish_time белых. Остаток времени = white_finish_ms - white_clock_ms")
+	black_finish_ms: int | None = Field(default=None, description="finish_time черных. Остаток времени = black_finish_ms - black_clock_ms")
 	pgn: str | None = None
 	moves: list[MoveOut] = Field(default_factory=list)
 	auto_cancel_at: datetime | None = None
@@ -91,8 +93,8 @@ class TimeoutRequest(BaseModel):
 class MakeMovePayload(BaseModel):
 	type: Literal["make_move"]
 	uci: str
-	white_clock_ms: int | None = Field(default=None, ge=0, description="Текущее время белых (после вычитания прошедшего времени). Если не указано, сервер вычисляет время.")
-	black_clock_ms: int | None = Field(default=None, ge=0, description="Текущее время черных (после вычитания прошедшего времени). Если не указано, сервер вычисляет время.")
+	white_clock_ms: int | None = Field(default=None, ge=0, description="Игнорируется. Сервер сам вычисляет время.")
+	black_clock_ms: int | None = Field(default=None, ge=0, description="Игнорируется. Сервер сам вычисляет время.")
 	promotion: str | None = Field(default=None, max_length=1)
 	client_move_id: str | None = Field(
 		default=None, description="Клиентский идентификатор для сопоставления ответов"

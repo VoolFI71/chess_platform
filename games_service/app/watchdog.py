@@ -54,18 +54,32 @@ class TimeoutWatchdog:
 			active_games = result.scalars().all()
 			for game in active_games:
 				try:
-					white_clock, black_clock = await service._compute_effective_clocks(game)
+					white_past, black_past = await service._compute_effective_clocks(game)
 				except Exception:
 					LOGGER.exception("Failed to compute clocks for game %s", game.id)
 					continue
 
+				# Получаем finish_time из time_control
+				white_finish = 0
+				black_finish = 0
+				if game.time_control and isinstance(game.time_control, dict):
+					white_finish = game.time_control.get("white_finish_ms", 0) or 0
+					black_finish = game.time_control.get("black_finish_ms", 0) or 0
+					# Если finish_time не установлен, используем initial_ms
+					if white_finish == 0:
+						white_finish = game.time_control.get("initial_ms", 0) or 0
+					if black_finish == 0:
+						black_finish = game.time_control.get("initial_ms", 0) or 0
+
+				# Проверяем, достиг ли past_time finish_time (past_time >= finish_time)
 				loser: SideToMove | None = None
-				if white_clock <= 0 and black_clock > 0:
+				if white_finish > 0 and white_past >= white_finish and black_past < black_finish:
 					loser = SideToMove.WHITE
-				elif black_clock <= 0 and white_clock > 0:
+				elif black_finish > 0 and black_past >= black_finish and white_past < white_finish:
 					loser = SideToMove.BLACK
-				elif white_clock <= 0 and black_clock <= 0:
-					loser = SideToMove.WHITE
+				elif white_finish > 0 and black_finish > 0 and white_past >= white_finish and black_past >= black_finish:
+					# Оба игрока закончили время - проигрывает тот, чей ход
+					loser = SideToMove.WHITE if game.next_turn == SideToMove.WHITE.value else SideToMove.BLACK
 
 				if not loser:
 					continue

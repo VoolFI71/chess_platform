@@ -112,6 +112,14 @@ async def game_socket(
 					)
 					continue
 
+				# Логируем что приходит от клиента
+				LOGGER.info(
+					"[WS RECEIVE MOVE] game_id=%s player_id=%s client_move_id=%s "
+					"payload_white_clock_ms=%s payload_black_clock_ms=%s uci=%s",
+					game_id, user_id, payload.client_move_id,
+					payload.white_clock_ms, payload.black_clock_ms, payload.uci,
+				)
+				
 				# Используем ту же сессию db и service, что были созданы выше
 				try:
 					game, move = await service.make_move(

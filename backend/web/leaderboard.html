@@ -156,17 +156,27 @@
                 </button>
             </div>
 
-            <div class="leaderboard-table" id="leaderboardTable">
-                <div class="leaderboard-header-row">
-                    <div>Место</div>
-                    <div>Игрок</div>
-                    <div style="text-align: right;">Рейтинг</div>
+            <!-- Search and Filter -->
+            <div class="leaderboard-controls">
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="leaderboardSearch" class="search-input" placeholder="Поиск игрока...">
+                    <button class="search-clear" id="searchClear" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <div id="leaderboardRows">
-                    <div style="text-align: center; padding: 3rem; color: var(--muted-foreground);">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                        <div>Загрузка рейтинговой таблицы...</div>
-                    </div>
+            </div>
+
+            <!-- Podium for Top-3 -->
+            <div class="podium-container" id="podiumContainer" style="display: none;">
+                <!-- Top-3 will be rendered here -->
+            </div>
+
+            <!-- Leaderboard Cards -->
+            <div class="leaderboard-cards-container" id="leaderboardCardsContainer">
+                <div class="leaderboard-loading" id="leaderboardLoading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <div>Загрузка рейтинговой таблицы...</div>
                 </div>
             </div>
         </div>
@@ -181,7 +191,30 @@
                 currentFormat: 'blitz',
                 loading: false,
                 entries: [],
+                currentUserId: null,
+                searchQuery: '',
             };
+
+            // Получаем ID текущего пользователя
+            async function getCurrentUserId() {
+                try {
+                    const token = localStorage.getItem('access_token');
+                    if (!token) return null;
+                    
+                    const res = await fetch('/api/auth/me', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (res.ok) {
+                        const user = await res.json();
+                        return user.id || null;
+                    }
+                } catch (e) {
+                    console.error('Failed to get current user:', e);
+                }
+                return null;
+            }
 
             function getInitials(username) {
                 if (!username) return '?';
@@ -192,71 +225,182 @@
                 return username.substring(0, 2).toUpperCase();
             }
 
-            function createLeaderboardRow(entry, rank) {
-                const row = document.createElement('div');
-                row.className = 'leaderboard-row';
+            async function loadUserStats(userId) {
+                try {
+                    const res = await fetch(`/api/users/${userId}/stats`);
+                    if (res.ok) {
+                        return await res.json();
+                    }
+                } catch (e) {
+                    console.error('Failed to load user stats:', e);
+                }
+                return null;
+            }
+
+            function getFormatStats(userStats, format) {
+                if (!userStats || !userStats.by_format) return null;
+                return userStats.by_format.find(f => f.format === format) || null;
+            }
+
+            function createPodiumCard(entry, position, userStats = null) {
+                const card = document.createElement('div');
+                card.className = `podium-card top-${position}`;
+                card.dataset.rank = position;
                 
-                // Добавляем классы для топ-3 позиций
-                if (rank === 1) row.className += ' top-1';
-                else if (rank === 2) row.className += ' top-2';
-                else if (rank === 3) row.className += ' top-3';
-                
-                const rankDiv = document.createElement('div');
-                rankDiv.className = 'rank';
-                if (rank === 1) rankDiv.className += ' top-1';
-                else if (rank === 2) rankDiv.className += ' top-2';
-                else if (rank === 3) rankDiv.className += ' top-3';
-                rankDiv.textContent = rank;
-                
-                const userInfo = document.createElement('div');
-                userInfo.className = 'user-info';
+                const medal = document.createElement('div');
+                medal.className = 'podium-medal';
+                if (position === 1) medal.innerHTML = '<i class="fas fa-crown"></i>';
+                else if (position === 2) medal.innerHTML = '<i class="fas fa-medal"></i>';
+                else medal.innerHTML = '<i class="fas fa-medal"></i>';
                 
                 const avatar = document.createElement('div');
-                avatar.className = 'user-avatar';
+                avatar.className = 'podium-avatar';
                 avatar.textContent = getInitials(entry.user.username || entry.user.display_name);
                 
-                const details = document.createElement('div');
-                details.className = 'user-details';
-                
                 const name = document.createElement('div');
-                name.className = 'user-name';
+                name.className = 'podium-name';
                 const nameLink = document.createElement('a');
                 nameLink.href = `/profile/${encodeURIComponent(entry.user.username || entry.user.id)}`;
                 nameLink.textContent = entry.user.username || entry.user.display_name || 'Неизвестно';
                 name.appendChild(nameLink);
                 
-                const stats = document.createElement('div');
-                stats.className = 'user-stats';
-                const highestRating = Math.max(
-                    entry.user.blitz_rating || 0,
-                    entry.user.rapid_rating || 0,
-                    entry.user.bullet_rating || 0,
-                    entry.user.puzzle_rating || 0
-                );
-                stats.textContent = `Рейтинг: ${highestRating}`;
-                
-                details.appendChild(name);
-                details.appendChild(stats);
-                
-                userInfo.appendChild(avatar);
-                userInfo.appendChild(details);
-                
                 const rating = document.createElement('div');
-                rating.className = 'rating-value';
+                rating.className = 'podium-rating';
                 rating.textContent = entry.rating;
                 
-                row.appendChild(rankDiv);
-                row.appendChild(userInfo);
-                row.appendChild(rating);
+                const stats = document.createElement('div');
+                stats.className = 'podium-stats';
                 
-                return row;
+                const formatStats = getFormatStats(userStats, state.currentFormat);
+                if (formatStats) {
+                    stats.innerHTML = `
+                        <div class="stat-item">
+                            <i class="fas fa-trophy"></i>
+                            <span>Побед: ${formatStats.wins || 0}</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-chess"></i>
+                            <span>Партий: ${formatStats.games || 0}</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-percentage"></i>
+                            <span>Побед: ${Math.round(formatStats.win_rate || 0)}%</span>
+                        </div>
+                    `;
+                } else {
+                    stats.innerHTML = `
+                        <div class="stat-item">
+                            <i class="fas fa-star"></i>
+                            <span>Рейтинг: ${entry.rating}</span>
+                        </div>
+                    `;
+                }
+                
+                card.appendChild(medal);
+                card.appendChild(avatar);
+                card.appendChild(name);
+                card.appendChild(rating);
+                card.appendChild(stats);
+                
+                // Добавляем класс для текущего пользователя
+                if (state.currentUserId && entry.user.id === state.currentUserId) {
+                    card.classList.add('current-user');
+                }
+                
+                return card;
+            }
+
+            function createLeaderboardCard(entry, rank) {
+                const card = document.createElement('div');
+                card.className = 'leaderboard-card';
+                card.dataset.rank = rank;
+                card.dataset.username = (entry.user.username || '').toLowerCase();
+                
+                // Добавляем классы для позиций
+                if (rank <= 10) card.classList.add('top-10');
+                if (rank <= 50) card.classList.add('top-50');
+                
+                // Добавляем класс для текущего пользователя
+                if (state.currentUserId && entry.user.id === state.currentUserId) {
+                    card.classList.add('current-user');
+                }
+                
+                const rankDiv = document.createElement('div');
+                rankDiv.className = 'card-rank';
+                rankDiv.textContent = `#${rank}`;
+                
+                const avatar = document.createElement('div');
+                avatar.className = 'card-avatar';
+                avatar.textContent = getInitials(entry.user.username || entry.user.display_name);
+                
+                const content = document.createElement('div');
+                content.className = 'card-content';
+                
+                const header = document.createElement('div');
+                header.className = 'card-header';
+                
+                const name = document.createElement('div');
+                name.className = 'card-name';
+                const nameLink = document.createElement('a');
+                nameLink.href = `/profile/${encodeURIComponent(entry.user.username || entry.user.id)}`;
+                nameLink.textContent = entry.user.username || entry.user.display_name || 'Неизвестно';
+                name.appendChild(nameLink);
+                
+                if (state.currentUserId && entry.user.id === state.currentUserId) {
+                    const youBadge = document.createElement('span');
+                    youBadge.className = 'you-badge';
+                    youBadge.textContent = 'Вы';
+                    name.appendChild(youBadge);
+                }
+                
+                const rating = document.createElement('div');
+                rating.className = 'card-rating';
+                rating.textContent = entry.rating;
+                
+                header.appendChild(name);
+                header.appendChild(rating);
+                
+                const stats = document.createElement('div');
+                stats.className = 'card-stats';
+                stats.innerHTML = `
+                    <div class="stat-item">
+                        <i class="fas fa-star"></i>
+                        <span>Рейтинг: ${entry.rating}</span>
+                    </div>
+                `;
+                
+                content.appendChild(header);
+                content.appendChild(stats);
+                
+                card.appendChild(rankDiv);
+                card.appendChild(avatar);
+                card.appendChild(content);
+                
+                // Анимация появления
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, rank * 30);
+                
+                return card;
             }
 
             function renderLeaderboard(entries) {
-                const container = document.getElementById('leaderboardRows');
-                if (!container) return;
+                const podiumContainer = document.getElementById('podiumContainer');
+                const cardsContainer = document.getElementById('leaderboardCardsContainer');
+                const loadingEl = document.getElementById('leaderboardLoading');
                 
-                container.innerHTML = '';
+                if (!cardsContainer) return;
+                
+                // Скрываем загрузку
+                if (loadingEl) loadingEl.style.display = 'none';
+                
+                // Очищаем контейнеры
+                if (podiumContainer) podiumContainer.innerHTML = '';
+                cardsContainer.innerHTML = '';
                 
                 if (!entries || entries.length === 0) {
                     const empty = document.createElement('div');
@@ -268,15 +412,78 @@
                     text.textContent = 'Рейтинговая таблица пуста';
                     text.style.fontSize = '1.125rem';
                     empty.appendChild(text);
-                    container.appendChild(empty);
+                    cardsContainer.appendChild(empty);
                     return;
                 }
                 
-                entries.forEach((entry, index) => {
-                    const rank = (state.currentPage || 0) * 50 + index + 1;
-                    const row = createLeaderboardRow(entry, rank);
-                    container.appendChild(row);
+                // Фильтрация по поисковому запросу
+                let filteredEntries = entries;
+                if (state.searchQuery) {
+                    const query = state.searchQuery.toLowerCase();
+                    filteredEntries = entries.filter(entry => {
+                        const username = (entry.user.username || '').toLowerCase();
+                        const displayName = (entry.user.display_name || '').toLowerCase();
+                        return username.includes(query) || displayName.includes(query);
+                    });
+                }
+                
+                // Рендерим пьедестал для топ-3
+                if (podiumContainer && filteredEntries.length >= 3) {
+                    podiumContainer.style.display = 'grid';
+                    const top3 = filteredEntries.slice(0, 3);
+                    // Порядок: 2-й, 1-й, 3-й (для визуального пьедестала)
+                    const podiumOrder = [top3[1], top3[0], top3[2]];
+                    
+                    // Загружаем статистику для топ-3 параллельно
+                    Promise.all(top3.map(entry => loadUserStats(entry.user.id)))
+                        .then(statsArray => {
+                            podiumContainer.innerHTML = '';
+                            podiumOrder.forEach((entry, idx) => {
+                                const position = idx === 0 ? 2 : idx === 1 ? 1 : 3;
+                                const statsIndex = idx === 0 ? 1 : idx === 1 ? 0 : 2;
+                                const card = createPodiumCard(entry, position, statsArray[statsIndex]);
+                                podiumContainer.appendChild(card);
+                            });
+                        })
+                        .catch(() => {
+                            // Если не удалось загрузить статистику, рендерим без неё
+                            podiumContainer.innerHTML = '';
+                            podiumOrder.forEach((entry, idx) => {
+                                const position = idx === 0 ? 2 : idx === 1 ? 1 : 3;
+                                const card = createPodiumCard(entry, position);
+                                podiumContainer.appendChild(card);
+                            });
+                        });
+                } else if (podiumContainer) {
+                    podiumContainer.style.display = 'none';
+                }
+                
+                // Рендерим карточки (начиная с 4-го места, если есть топ-3)
+                const startIndex = filteredEntries.length >= 3 ? 3 : 0;
+                const cardsToRender = filteredEntries.slice(startIndex);
+                
+                if (cardsToRender.length === 0 && filteredEntries.length > 0) {
+                    // Все результаты в топ-3
+                    return;
+                }
+                
+                cardsToRender.forEach((entry, index) => {
+                    const rank = startIndex + index + 1;
+                    const card = createLeaderboardCard(entry, rank);
+                    cardsContainer.appendChild(card);
                 });
+                
+                // Прокрутка к текущему пользователю, если он есть
+                if (state.currentUserId) {
+                    setTimeout(() => {
+                        const userCard = cardsContainer.querySelector('.current-user');
+                        if (userCard) {
+                            userCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // Подсветка
+                            userCard.style.animation = 'highlightPulse 2s ease-in-out';
+                        }
+                    }, 500);
+                }
             }
 
             async function loadLeaderboard(format = 'blitz') {
@@ -285,18 +492,13 @@
                 state.loading = true;
                 state.currentFormat = format;
                 
-                const container = document.getElementById('leaderboardRows');
-                if (!container) return;
+                const loadingEl = document.getElementById('leaderboardLoading');
+                const cardsContainer = document.getElementById('leaderboardCardsContainer');
+                const podiumContainer = document.getElementById('podiumContainer');
                 
-                container.innerHTML = '';
-                const loadingDiv = document.createElement('div');
-                loadingDiv.style.cssText = 'text-align: center; padding: 3rem; color: var(--muted-foreground);';
-                const spinner = document.createElement('i');
-                spinner.className = 'fas fa-spinner fa-spin';
-                spinner.style.cssText = 'font-size: 2rem; margin-bottom: 1rem;';
-                loadingDiv.appendChild(spinner);
-                loadingDiv.appendChild(document.createTextNode('Загрузка рейтинговой таблицы...'));
-                container.appendChild(loadingDiv);
+                if (loadingEl) loadingEl.style.display = 'flex';
+                if (cardsContainer) cardsContainer.innerHTML = '';
+                if (podiumContainer) podiumContainer.style.display = 'none';
                 
                 try {
                     const res = await fetch(`/api/ratings/leaderboard?format_type=${format}&limit=50`);
@@ -310,35 +512,80 @@
                     renderLeaderboard(state.entries);
                 } catch (e) {
                     console.error('Failed to load leaderboard:', e);
-                    container.innerHTML = '';
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'empty-state';
-                    errorDiv.style.color = 'var(--danger)';
-                    const errorIcon = document.createElement('i');
-                    errorIcon.className = 'fas fa-exclamation-triangle';
-                    errorDiv.appendChild(errorIcon);
-                    const errorText = document.createElement('div');
-                    errorText.textContent = 'Не удалось загрузить рейтинговую таблицу';
-                    errorDiv.appendChild(errorText);
-                    const retryBtn = document.createElement('button');
-                    retryBtn.className = 'btn btn-primary';
-                    retryBtn.style.marginTop = '1rem';
-                    retryBtn.textContent = 'Попробовать снова';
-                    retryBtn.onclick = () => loadLeaderboard(format);
-                    errorDiv.appendChild(retryBtn);
-                    container.appendChild(errorDiv);
+                    const cardsContainer = document.getElementById('leaderboardCardsContainer');
+                    if (cardsContainer) {
+                        cardsContainer.innerHTML = '';
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'empty-state';
+                        errorDiv.style.color = 'var(--danger)';
+                        const errorIcon = document.createElement('i');
+                        errorIcon.className = 'fas fa-exclamation-triangle';
+                        errorDiv.appendChild(errorIcon);
+                        const errorText = document.createElement('div');
+                        errorText.textContent = 'Не удалось загрузить рейтинговую таблицу';
+                        errorDiv.appendChild(errorText);
+                        const retryBtn = document.createElement('button');
+                        retryBtn.className = 'btn btn-primary';
+                        retryBtn.style.marginTop = '1rem';
+                        retryBtn.textContent = 'Попробовать снова';
+                        retryBtn.onclick = () => loadLeaderboard(format);
+                        errorDiv.appendChild(retryBtn);
+                        cardsContainer.appendChild(errorDiv);
+                    }
                 } finally {
                     state.loading = false;
+                    const loadingEl = document.getElementById('leaderboardLoading');
+                    if (loadingEl) loadingEl.style.display = 'none';
                 }
             }
 
-            // Инициализация фильтров формата
-            document.addEventListener('DOMContentLoaded', () => {
+            // Поиск
+            function setupSearch() {
+                const searchInput = document.getElementById('leaderboardSearch');
+                const searchClear = document.getElementById('searchClear');
+                
+                if (!searchInput) return;
+                
+                let searchTimeout;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(searchTimeout);
+                    state.searchQuery = e.target.value.trim();
+                    
+                    if (state.searchQuery) {
+                        if (searchClear) searchClear.style.display = 'flex';
+                    } else {
+                        if (searchClear) searchClear.style.display = 'none';
+                    }
+                    
+                    searchTimeout = setTimeout(() => {
+                        renderLeaderboard(state.entries);
+                    }, 300);
+                });
+                
+                if (searchClear) {
+                    searchClear.addEventListener('click', () => {
+                        searchInput.value = '';
+                        state.searchQuery = '';
+                        searchClear.style.display = 'none';
+                        renderLeaderboard(state.entries);
+                    });
+                }
+            }
+
+            // Инициализация
+            document.addEventListener('DOMContentLoaded', async () => {
                 // Инициализация темы
                 if (window.loadTheme && typeof window.loadTheme === 'function') {
                     window.loadTheme();
                 }
                 
+                // Получаем ID текущего пользователя
+                state.currentUserId = await getCurrentUserId();
+                
+                // Настройка поиска
+                setupSearch();
+                
+                // Инициализация фильтров формата
                 const formatButtons = document.querySelectorAll('.format-btn');
                 formatButtons.forEach(btn => {
                     btn.addEventListener('click', () => {

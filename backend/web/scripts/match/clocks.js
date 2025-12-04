@@ -3,32 +3,52 @@
   const matchStateModule = window.MatchState;
   const { state, setState, haveBothPlayersJoined } = matchStateModule;
   const { formatClock } = window.MatchUtils || {};
-  const { AUTO_CANCEL_TIMEOUT_MS } = window.MatchConstants || {};
 
   function getDisplayedClocks(applyRunning = true) {
     if (!state.game) return null;
-    let { white_clock_ms: white, black_clock_ms: black, status, next_turn, move_count } = state.game;
-    // Сохраняем исходные значения из БД для логирования
-    const white_clock_db = white;
-    const black_clock_db = black;
+    let { white_clock_ms: white_past, black_clock_ms: black_past, status, next_turn, move_count, time_control, white_finish_ms, black_finish_ms } = state.game;
+    // Сохраняем исходные значения из БД для логирования (это past_time - прошедшее время)
+    const white_past_db = white_past;
+    const black_past_db = black_past;
+    
+    // Получаем finish_time из time_control или из поля white_finish_ms/black_finish_ms
+    let white_finish = white_finish_ms || 0;
+    let black_finish = black_finish_ms || 0;
+    if (white_finish === 0 && time_control) {
+      white_finish = time_control.white_finish_ms || time_control.initial_ms || 0;
+    }
+    if (black_finish === 0 && time_control) {
+      black_finish = time_control.black_finish_ms || time_control.initial_ms || 0;
+    }
+    
+    // Вычисляем остаток времени: finish_time - past_time
+    // past_time - прошедшее время в миллисекундах (начинается с 0)
+    // finish_time - время окончания в миллисекундах (например, 180000 мс = 3 минуты)
+    let white = white_finish > 0 ? Math.max(0, white_finish - white_past) : 0;
+    let black = black_finish > 0 ? Math.max(0, black_finish - black_past) : 0;
     
     if (!applyRunning) return { white, black };
     
-    // ВАЖНО: Время не должно тикать до первого хода
-    const shouldTick = status === 'ACTIVE' && move_count > 0;
+    // Время тикает когда игра активна (оба игрока присоединились)
+    const shouldTick = status === 'ACTIVE';
     if (!shouldTick) {
       if (window.__DEBUG_CLOCKS__) {
         console.log('[clock] getDisplayedClocks: NOT TICKING', {
           status,
           move_count,
           shouldTick: false,
-          white,
-          black,
+          white_past_db: white_past_db,
+          black_past_db: black_past_db,
+          white_finish,
+          black_finish,
+          white_remaining: white,
+          black_remaining: black,
         });
       }
       return { white, black };
     }
 
+    // Вычитаем прошедшее время с момента последнего хода из остатка текущего игрока
     const anchor = typeof state.clockAnchorTime === 'number' ? state.clockAnchorTime : Date.now();
     const now = Date.now();
     const elapsed = Math.max(0, now - anchor);
@@ -51,63 +71,43 @@
         clockAnchorTime: anchor,
         client_now_ms: now,
         elapsed_ms: elapsed,
-        white_clock_db: white_clock_db,
-        black_clock_db: black_clock_db,
-        white_displayed: white,
-        black_displayed: black,
-        white_delta: white_clock_db - white,
-        black_delta: black_clock_db - black,
+        white_past_db: white_past_db,
+        black_past_db: black_past_db,
+        white_finish,
+        black_finish,
+        white_remaining_displayed: white,
+        black_remaining_displayed: black,
         white_formatted: formatClock ? formatClock(white) : `${Math.floor(white / 60000)}:${String(Math.floor((white % 60000) / 1000)).padStart(2, '0')}`,
         black_formatted: formatClock ? formatClock(black) : `${Math.floor(black / 60000)}:${String(Math.floor((black % 60000) / 1000)).padStart(2, '0')}`,
       });
-      if (!state._lastClockLogTime) {
-        state._lastClockLogTime = now;
-      } else {
-        state._lastClockLogTime = now;
-      }
+      state._lastClockLogTime = now;
     }
     return { white, black };
-  }
-
-  function getAutoCancelCountdownSeconds() {
-    if (!state.autoCancelDeadline || !state.game) return null;
-    const waitingForFirstMove =
-      state.game.status === 'CREATED' && state.game.move_count === 0 && haveBothPlayersJoined();
-    if (!waitingForFirstMove) return null;
-    const remainingMs = state.autoCancelDeadline - Date.now();
-    if (remainingMs <= 0) return 0;
-    return Math.max(0, Math.ceil(remainingMs / 1000));
   }
 
   function updateClockDisplays(resetTimer = false, getPanelRoles, maybeAutoDeclareTimeout) {
     const clocks = getDisplayedClocks(true);
     if (!clocks) return;
     
-    const autoCountdownSeconds = getAutoCancelCountdownSeconds();
-    const countdownTargetRole =
-      autoCountdownSeconds !== null && state.game ? (state.game.next_turn === 'w' ? 'white' : 'black') : null;
-    const formatWithCountdown = (role, baseMs) => {
-      if (countdownTargetRole && countdownTargetRole === role && autoCountdownSeconds !== null) {
-        return formatClock ? formatClock(autoCountdownSeconds * 1000) : `${Math.floor(autoCountdownSeconds / 60)}:${String(autoCountdownSeconds % 60).padStart(2, '0')}`;
-      }
+    const formatTime = (baseMs) => {
       return formatClock ? formatClock(baseMs) : `${Math.floor(baseMs / 60000)}:${String(Math.floor((baseMs % 60000) / 1000)).padStart(2, '0')}`;
     };
 
     const whiteEl = document.getElementById('whiteClock');
     const blackEl = document.getElementById('blackClock');
-    if (whiteEl) whiteEl.textContent = formatWithCountdown('white', clocks.white);
-    if (blackEl) blackEl.textContent = formatWithCountdown('black', clocks.black);
+    if (whiteEl) whiteEl.textContent = formatTime(clocks.white);
+    if (blackEl) blackEl.textContent = formatTime(clocks.black);
     const topClockEl = document.getElementById('topClock');
     const bottomClockEl = document.getElementById('bottomClock');
     if (topClockEl || bottomClockEl) {
       const { topRole, bottomRole } = getPanelRoles();
       if (topClockEl) {
         const topValue = topRole === 'white' ? clocks.white : clocks.black;
-        topClockEl.textContent = formatWithCountdown(topRole, topValue);
+        topClockEl.textContent = formatTime(topValue);
       }
       if (bottomClockEl) {
         const bottomValue = bottomRole === 'white' ? clocks.white : clocks.black;
-        bottomClockEl.textContent = formatWithCountdown(bottomRole, bottomValue);
+        bottomClockEl.textContent = formatTime(bottomValue);
       }
     }
     if (maybeAutoDeclareTimeout) maybeAutoDeclareTimeout(clocks);
@@ -117,26 +117,17 @@
       const timerId = setInterval(() => {
         const tick = getDisplayedClocks(true);
         if (!tick) return;
-        const tickCountdownSeconds = getAutoCancelCountdownSeconds();
-        const tickCountdownTarget =
-          tickCountdownSeconds !== null && state.game ? (state.game.next_turn === 'w' ? 'white' : 'black') : null;
-        const formatTick = (role, baseMs) => {
-          if (tickCountdownTarget && tickCountdownTarget === role && tickCountdownSeconds !== null) {
-            return formatClock ? formatClock(tickCountdownSeconds * 1000) : `${Math.floor(tickCountdownSeconds / 60)}:${String(tickCountdownSeconds % 60).padStart(2, '0')}`;
-          }
-          return formatClock ? formatClock(baseMs) : `${Math.floor(baseMs / 60000)}:${String(Math.floor((baseMs % 60000) / 1000)).padStart(2, '0')}`;
-        };
-        if (whiteEl) whiteEl.textContent = formatTick('white', tick.white);
-        if (blackEl) blackEl.textContent = formatTick('black', tick.black);
+        if (whiteEl) whiteEl.textContent = formatTime(tick.white);
+        if (blackEl) blackEl.textContent = formatTime(tick.black);
         if (topClockEl || bottomClockEl) {
           const { topRole, bottomRole } = getPanelRoles();
           if (topClockEl) {
             const topValue = topRole === 'white' ? tick.white : tick.black;
-            topClockEl.textContent = formatTick(topRole, topValue);
+            topClockEl.textContent = formatTime(topValue);
           }
           if (bottomClockEl) {
             const bottomValue = bottomRole === 'white' ? tick.white : tick.black;
-            bottomClockEl.textContent = formatTick(bottomRole, bottomValue);
+            bottomClockEl.textContent = formatTime(bottomValue);
           }
         }
         if (maybeAutoDeclareTimeout) maybeAutoDeclareTimeout(tick);
@@ -147,7 +138,6 @@
 
   window.MatchClocks = {
     getDisplayedClocks,
-    getAutoCancelCountdownSeconds,
     updateClockDisplays,
   };
 })();

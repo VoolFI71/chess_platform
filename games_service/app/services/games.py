@@ -157,6 +157,23 @@ def build_game_summary(game: Game) -> GameSummary:
 def build_game_detail(game: Game, moves: Sequence[Move | MoveOut] | None = None) -> GameDetail:
 	summary = build_game_summary(game)
 	data = summary.model_dump()
+	
+	# Извлекаем finish_time из time_control для отображения на клиенте
+	white_finish_ms = None
+	black_finish_ms = None
+	if game.time_control and isinstance(game.time_control, dict):
+		white_finish_ms = game.time_control.get("white_finish_ms", 0) or 0
+		black_finish_ms = game.time_control.get("black_finish_ms", 0) or 0
+		# Если finish_time не установлен, используем initial_ms
+		if white_finish_ms == 0:
+			white_finish_ms = game.time_control.get("initial_ms", 0) or 0
+		if black_finish_ms == 0:
+			black_finish_ms = game.time_control.get("initial_ms", 0) or 0
+		if white_finish_ms == 0:
+			white_finish_ms = None
+		if black_finish_ms == 0:
+			black_finish_ms = None
+	
 	data.update(
 		{
 			"initial_pos": game.initial_pos,
@@ -165,6 +182,8 @@ def build_game_detail(game: Game, moves: Sequence[Move | MoveOut] | None = None)
 			"metadata": game.metadata_json,
 			"pgn": game.pgn,
 			"moves": [build_move_out(m) for m in moves] if moves else [],
+			"white_finish_ms": white_finish_ms,
+			"black_finish_ms": black_finish_ms,
 		}
 	)
 	with _AUTO_CANCEL_LOCK:
@@ -313,118 +332,112 @@ class GameService:
 			if last_activity:
 				elapsed_ms = int((_utcnow() - last_activity).total_seconds() * 1000)
 				return max(0, elapsed_ms)
-		elif game.status == GameStatus.ACTIVE.value and game.started_at:
+		
+		# Для первого хода считаем время от started_at (когда присоединился второй игрок)
+		if game.started_at:
 			elapsed_ms = int((_utcnow() - game.started_at).total_seconds() * 1000)
 			return max(0, elapsed_ms)
+		
 		return 0
 	
 	async def _compute_clocks_for_move(
 		self,
 		game: Game,
 		current_turn: str,
-		payload: MakeMovePayload,
 		elapsed_ms: int,
 		increment_ms: int,
-	) -> tuple[int, int]:
-		"""Вычисляет время для обоих игроков при ходе.
+	) -> tuple[int, int, int, int]:
+		"""Вычисляет past_time и finish_time для обоих игроков при ходе.
 
-		Мы доверяем клиенту только время игрока, который делает ход.
-		Время оппонента не должно меняться (он не думал), поэтому
-		используем значение из БД, даже если клиент прислал другое.
+		ЛОГИКА: Сервер всегда сам вычисляет время по elapsed_ms
+		- past_time (прошедшее время) увеличивается на elapsed_ms (время хода)
+		- finish_time увеличивается на increment_ms (инкремент)
+		- Когда past_time >= finish_time, время закончилось
+		
+		Возвращает: (white_past, black_past, white_finish, black_finish)
 		"""
-		white_clock = game.white_clock_ms
-		black_clock = game.black_clock_ms
+		white_past = game.white_clock_ms
+		black_past = game.black_clock_ms
+		
+		white_finish = 0
+		black_finish = 0
+		if game.time_control and isinstance(game.time_control, dict):
+			white_finish = game.time_control.get("white_finish_ms", 0) or 0
+			black_finish = game.time_control.get("black_finish_ms", 0) or 0
+			if white_finish == 0:
+				white_finish = game.time_control.get("initial_ms", 0) or 0
+			if black_finish == 0:
+				black_finish = game.time_control.get("initial_ms", 0) or 0
+
+		if current_turn == SideToMove.WHITE.value:
+			white_past = white_past + elapsed_ms
+			white_finish = white_finish + increment_ms
+		else:
+			black_past = black_past + elapsed_ms
+			black_finish = black_finish + increment_ms
 
 		LOGGER.info(
-			"[CLOCK CALC START] game_id=%s turn=%s "
-			"payload_white=%s payload_black=%s stored_white=%s stored_black=%s "
+			"[CLOCK CALC] game_id=%s turn=%s "
+			"white_past=%d black_past=%d white_finish=%d black_finish=%d "
 			"elapsed_ms=%d increment_ms=%d",
 			game.id, current_turn,
-			payload.white_clock_ms, payload.black_clock_ms,
-			white_clock, black_clock,
+			white_past, black_past, white_finish, black_finish,
 			elapsed_ms, increment_ms,
 		)
 
-		if current_turn == SideToMove.WHITE.value:
-			if payload.white_clock_ms is not None:
-				white_clock = payload.white_clock_ms
-			else:
-				# Для старых клиентов/обратной совместимости
-				white_clock = max(0, white_clock - elapsed_ms)
-		else:
-			if payload.black_clock_ms is not None:
-				black_clock = payload.black_clock_ms
-			else:
-				black_clock = max(0, black_clock - elapsed_ms)
-
-		# Добавляем инкремент игроку, который сделал ход
-		if current_turn == SideToMove.WHITE.value:
-			white_clock += increment_ms
-			if payload.black_clock_ms is not None and payload.black_clock_ms != game.black_clock_ms:
-				LOGGER.warning(
-					"Ignoring black clock from payload for game=%s: value=%s stored=%s",
-					game.id,
-					payload.black_clock_ms,
-					game.black_clock_ms,
-				)
-		else:
-			black_clock += increment_ms
-			if payload.white_clock_ms is not None and payload.white_clock_ms != game.white_clock_ms:
-				LOGGER.warning(
-					"Ignoring white clock from payload for game=%s: value=%s stored=%s",
-					game.id,
-					payload.white_clock_ms,
-					game.white_clock_ms,
-				)
-
-		LOGGER.info(
-			"[CLOCK CALC RESULT] game_id=%s turn=%s "
-			"white_clock_result=%dms black_clock_result=%dms "
-			"white_delta=%d black_delta=%d",
-			game.id, current_turn,
-			white_clock, black_clock,
-			white_clock - game.white_clock_ms, black_clock - game.black_clock_ms,
-		)
-
-		return white_clock, black_clock
+		return white_past, black_past, white_finish, black_finish
 
 	async def _compute_effective_clocks(self, game: Game, last_move: Move | None = None) -> tuple[int, int]:
-		white = game.white_clock_ms
-		black = game.black_clock_ms
+		"""Вычисляет эффективное past_time с учетом прошедшего времени с момента последнего хода.
+		
+		ЛОГИКА: past_time и finish_time
+		- past_time увеличивается на прошедшее время текущего хода
+		- Когда past_time >= finish_time, время закончилось
+		"""
+		white_past = game.white_clock_ms
+		black_past = game.black_clock_ms
 		if game.status == GameStatus.FINISHED.value:
-			return white, black
+			return white_past, black_past
 		# Время начинает тикать только после первого хода
 		# Если ходов еще не было (move_count == 0), время не тикает
 		if game.move_count == 0:
-			return white, black
+			return white_past, black_past
 		last_activity = await self._get_last_activity_timestamp(game, last_move)
 		if not last_activity:
-			return white, black
+			return white_past, black_past
 		now = _utcnow()
 		elapsed_ms = int((now - last_activity).total_seconds() * 1000)
 		if elapsed_ms <= 0:
-			return white, black
+			return white_past, black_past
+		# Добавляем прошедшее время к past_time текущего игрока
 		if game.next_turn == SideToMove.WHITE.value:
-			white = max(0, white - elapsed_ms)
+			white_past = white_past + elapsed_ms
 		else:
-			black = max(0, black - elapsed_ms)
+			black_past = black_past + elapsed_ms
 		LOGGER.debug(
 			"[EFFECTIVE CLOCKS] game_id=%s next_turn=%s last_activity=%s now=%s "
-			"elapsed_ms=%d white_stored=%d black_stored=%d "
-			"white_effective=%d black_effective=%d",
+			"elapsed_ms=%d white_past_stored=%d black_past_stored=%d "
+			"white_past_effective=%d black_past_effective=%d",
 			game.id, game.next_turn,
 			last_activity.isoformat() if last_activity else None,
 			now.isoformat(),
 			elapsed_ms,
 			game.white_clock_ms, game.black_clock_ms,
-			white, black,
+			white_past, black_past,
 		)
-		return white, black
+		return white_past, black_past
 
 	async def create_game(self, *, creator_id: int, payload: CreateGameRequest) -> Game:
 		board, initial_pos = _initial_board(payload.initial_fen)
 		time_control = payload.time_control.dict() if payload.time_control else None
-		initial_clock = payload.time_control.initial_ms if payload.time_control else 0
+		
+		# ЛОГИКА: past_time и finish_time
+		# past_time = 0 (начало партии, прошедшее время = 0)
+		# finish_time = initial_ms (начальное время, например 180000 мс = 3 минуты)
+		initial_ms = payload.time_control.initial_ms if payload.time_control else 0
+		if time_control:
+			time_control["white_finish_ms"] = initial_ms
+			time_control["black_finish_ms"] = initial_ms
 
 		if payload.creator_color == "white":
 			white_id = creator_id
@@ -441,8 +454,8 @@ class GameService:
 			next_turn=SideToMove.WHITE.value if board.turn == chess.WHITE else SideToMove.BLACK.value,
 			time_control=time_control,
 			move_count=0,
-			white_clock_ms=initial_clock,
-			black_clock_ms=initial_clock,
+			white_clock_ms=0,  # past_time начинается с 0 (прошедшее время)
+			black_clock_ms=0,  # past_time начинается с 0 (прошедшее время)
 			metadata_json=payload.metadata,
 		)
 
@@ -517,6 +530,16 @@ class GameService:
 			game.white_id = player_id
 		else:
 			game.black_id = player_id
+		
+		# Если оба игрока присоединились, начинаем партию
+		if game.white_id is not None and game.black_id is not None:
+			game.status = GameStatus.ACTIVE.value
+			game.started_at = _utcnow()
+			LOGGER.info(
+				"[GAME STARTED] game_id=%s Both players joined, game started at %s",
+				game.id, game.started_at.isoformat()
+			)
+		
 		await self.db.commit()
 		await self.db.refresh(game)
 		return game
@@ -578,26 +601,40 @@ class GameService:
 		)
 		
 		# Проверка таймаута: проверяем, не закончилось ли время у игрока, который делает ход
-		effective_white, effective_black = await self._compute_effective_clocks(game, last_move)
+		effective_white_past, effective_black_past = await self._compute_effective_clocks(game, last_move)
+		
+		# Получаем finish_time из time_control
+		white_finish = 0
+		black_finish = 0
+		if game.time_control and isinstance(game.time_control, dict):
+			white_finish = game.time_control.get("white_finish_ms", 0) or 0
+			black_finish = game.time_control.get("black_finish_ms", 0) or 0
+			# Если finish_time не установлен, используем initial_ms
+			if white_finish == 0:
+				white_finish = game.time_control.get("initial_ms", 0) or 0
+			if black_finish == 0:
+				black_finish = game.time_control.get("initial_ms", 0) or 0
+		
 		LOGGER.info(
-			"[TIMEOUT CHECK] game_id=%s effective_white=%dms effective_black=%dms "
-			"server_time=%s",
-			game.id, effective_white, effective_black, _utcnow().isoformat(),
+			"[TIMEOUT CHECK] game_id=%s effective_white_past=%dms effective_black_past=%dms "
+			"white_finish=%d black_finish=%d server_time=%s",
+			game.id, effective_white_past, effective_black_past,
+			white_finish, black_finish, _utcnow().isoformat(),
 		)
 		if current_turn == SideToMove.WHITE.value:
-			if effective_white <= 0:
+			if white_finish > 0 and effective_white_past >= white_finish:
 				LOGGER.info(
 					"Move rejected: timeout - game_id=%s, player_id=%s, turn=white, "
-					"effective_time=%dms",
-					game.id, player_id, effective_white
+					"effective_past=%dms finish=%dms",
+					game.id, player_id, effective_white_past, white_finish
 				)
 				raise GameServiceError("У белых закончилось время", status.HTTP_400_BAD_REQUEST)
 		else:
-			if effective_black <= 0:
+			if black_finish > 0 and effective_black_past >= black_finish:
 				LOGGER.info(
 					"Move rejected: timeout - game_id=%s, player_id=%s, turn=black, "
-					"effective_time=%dms",
-					game.id, player_id, effective_black
+					"effective_past=%dms finish=%dms",
+					game.id, player_id, effective_black_past, black_finish
 				)
 				raise GameServiceError("У черных закончилось время", status.HTTP_400_BAD_REQUEST)
 		
@@ -615,12 +652,13 @@ class GameService:
 			game.id, elapsed_ms, _utcnow().isoformat(),
 		)
 		
-		# Вычисляем время для обоих игроков
-		white_clock, black_clock = await self._compute_clocks_for_move(
-			game, current_turn, payload, elapsed_ms, increment_ms
+		# Вычисляем past_time и finish_time для обоих игроков
+		white_past, black_past, white_finish, black_finish = await self._compute_clocks_for_move(
+			game, current_turn, elapsed_ms, increment_ms
 		)
 
 		move_index = game.move_count + 1
+		move_created_at = _utcnow()
 		move = Move(
 			game_id=game.id,
 			move_index=move_index,
@@ -629,35 +667,40 @@ class GameService:
 			fen_after=new_fen,
 			player_id=player_id,
 			clocks_after={
-				"white_ms": white_clock,
-				"black_ms": black_clock,
+				"white_past_ms": white_past,
+				"black_past_ms": black_past,
+				"white_finish_ms": white_finish,
+				"black_finish_ms": black_finish,
 			},
 			is_capture=is_capture,
 			promotion=payload.promotion,
+			created_at=move_created_at,
 		)
 
 		game.current_pos = new_fen
 		game.move_count = move_index
-		game.white_clock_ms = white_clock
-		game.black_clock_ms = black_clock
+		game.white_clock_ms = white_past
+		game.black_clock_ms = black_past
+		
+		if game.time_control is None:
+			game.time_control = {}
+		if not isinstance(game.time_control, dict):
+			game.time_control = {}
+		game.time_control["white_finish_ms"] = white_finish
+		game.time_control["black_finish_ms"] = black_finish
 		old_next_turn = game.next_turn
 		game.next_turn = SideToMove.BLACK.value if game.next_turn == SideToMove.WHITE.value else SideToMove.WHITE.value
 
-		if game.status == GameStatus.CREATED.value:
-			game.status = GameStatus.ACTIVE.value
-			game.started_at = _utcnow()
-
 		self.db.add(move)
 		
-		# Логируем состояние ПОСЛЕ хода (до коммита)
 		LOGGER.info(
 			"[MOVE AFTER] game_id=%s move_index=%d "
-			"white_clock_after=%dms black_clock_after=%dms next_turn_after=%s "
-			"move_created_at=%s server_time=%s",
+			"white_past_after=%dms black_past_after=%dms "
+			"white_finish_after=%dms black_finish_after=%dms next_turn_after=%s "
+			"move_created_at=%s",
 			game.id, move_index,
-			white_clock, black_clock, game.next_turn,
-			move.created_at.isoformat() if move.created_at else None,
-			_utcnow().isoformat(),
+			white_past, black_past, white_finish, black_finish, game.next_turn,
+			move_created_at.isoformat(),
 		)
 
 		if move_index % SNAPSHOT_INTERVAL == 0:
@@ -693,19 +736,15 @@ class GameService:
 			)
 
 		await self.db.commit()
-		# Оптимизация: refresh только game, move уже в сессии и обновлен
 		await self.db.refresh(game)
-		# move уже обновлен после commit, refresh не нужен
-		# await self.db.refresh(move)  # Убрано для оптимизации
 		
-		# Логируем финальное состояние после коммита
 		LOGGER.info(
 			"[MOVE COMMITTED] game_id=%s move_index=%d "
 			"white_clock_final=%dms black_clock_final=%dms next_turn_final=%s "
 			"move_created_at=%s move_id=%s",
 			game.id, move_index,
 			game.white_clock_ms, game.black_clock_ms, game.next_turn,
-			move.created_at.isoformat() if move.created_at else None,
+			move_created_at.isoformat(),
 			move.id,
 		)
 		
@@ -739,18 +778,38 @@ class GameService:
 			raise GameServiceError("Партия уже завершена", status.HTTP_409_CONFLICT)
 		if requested_by not in (game.white_id, game.black_id):
 			raise GameServiceError("Вы не участвуете в этой партии", status.HTTP_403_FORBIDDEN)
-		effective_white, effective_black = await self._compute_effective_clocks(game)
-		if loser_color == SideToMove.WHITE and effective_white > 0:
-			raise GameServiceError("Время белых не истекло")
-		if loser_color == SideToMove.BLACK and effective_black > 0:
-			raise GameServiceError("Время черных не истекло")
-
-		game.white_clock_ms = effective_white
-		game.black_clock_ms = effective_black
+		effective_white_past, effective_black_past = await self._compute_effective_clocks(game)
+		
+		# Получаем finish_time из time_control
+		white_finish = 0
+		black_finish = 0
+		if game.time_control and isinstance(game.time_control, dict):
+			white_finish = game.time_control.get("white_finish_ms", 0) or 0
+			black_finish = game.time_control.get("black_finish_ms", 0) or 0
+			# Если finish_time не установлен, используем initial_ms
+			if white_finish == 0:
+				white_finish = game.time_control.get("initial_ms", 0) or 0
+			if black_finish == 0:
+				black_finish = game.time_control.get("initial_ms", 0) or 0
+		
+		# Проверяем, достиг ли past_time finish_time (past_time >= finish_time)
 		if loser_color == SideToMove.WHITE:
-			game.white_clock_ms = 0
+			if white_finish == 0 or effective_white_past < white_finish:
+				raise GameServiceError("Время белых не истекло")
 		else:
-			game.black_clock_ms = 0
+			if black_finish == 0 or effective_black_past < black_finish:
+				raise GameServiceError("Время черных не истекло")
+
+		# Обновляем past_time до эффективных значений
+		game.white_clock_ms = effective_white_past
+		game.black_clock_ms = effective_black_past
+		
+		# Устанавливаем past_time проигравшего равным finish_time (время закончилось)
+		if loser_color == SideToMove.WHITE:
+			game.white_clock_ms = white_finish
+		else:
+			game.black_clock_ms = black_finish
+			
 		winner = SideToMove.BLACK.value if loser_color == SideToMove.WHITE else SideToMove.WHITE.value
 		await self._finish_game(
 			game,
