@@ -56,6 +56,11 @@ def _resolve_web_path(request_path: str) -> Path | None:
 
 
 def _detect_media_type(path: Path) -> str | None:
+    # Explicitly set XML content type for sitemap
+    if path.name == "sitemap.xml":
+        return "application/xml; charset=utf-8"
+    if path.name == "robots.txt":
+        return "text/plain; charset=utf-8"
     media_type, _ = guess_type(path.name)
     if not media_type:
         ext = path.suffix.lower()

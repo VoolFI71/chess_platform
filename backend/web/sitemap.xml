@@ -3,46 +3,47 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-    
     <!-- Главная страница -->
     <url>
         <loc>https://power-chess.ru/</loc>
-        <lastmod>2025-12-03</lastmod>
+        <lastmod>2025-01-21</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>
-    
     <!-- Играть -->
     <url>
         <loc>https://power-chess.ru/games</loc>
-        <lastmod>2025-12-03</lastmod>
+        <lastmod>2025-01-21</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
     </url>
-    
     <!-- Задачи -->
     <url>
         <loc>https://power-chess.ru/tasks</loc>
-        <lastmod>2025-12-03</lastmod>
+        <lastmod>2025-01-21</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
-    
     <!-- Рейтинг -->
     <url>
         <loc>https://power-chess.ru/leaderboard</loc>
-        <lastmod>2025-12-03</lastmod>
+        <lastmod>2025-01-21</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.8</priority>
     </url>
-    
     <!-- Курсы -->
     <url>
         <loc>https://power-chess.ru/course</loc>
-        <lastmod>2025-12-03</lastmod>
+        <lastmod>2025-01-21</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
-    
+    <!-- Тренеры -->
+    <url>
+        <loc>https://power-chess.ru/couch</loc>
+        <lastmod>2025-01-21</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>
 </urlset>
 

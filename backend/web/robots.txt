@@ -3,11 +3,10 @@ Allow: /
 Disallow: /api/
 Disallow: /scripts/
 Disallow: /styles/
-Disallow: /match/
 Disallow: /profile
 Disallow: /login
 Disallow: /register
 
+
 # Sitemap
 Sitemap: https://power-chess.ru/sitemap.xml
-
