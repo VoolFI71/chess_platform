@@ -155,34 +155,7 @@
     },
 
     showCorrectMovesInHistory() {
-      if (!TasksState.currentPuzzle || !TasksState.currentPuzzle.moves) return;
-      
-      const historyEl = document.getElementById('movesHistory');
-      if (!historyEl) return;
-      
-      const correctMoves = TasksState.currentPuzzle.moves;
-      const separator = document.createElement('div');
-      separator.className = 'moves-separator';
-      separator.innerHTML = '<div class="separator-line"></div><span class="separator-text">Правильное решение</span><div class="separator-line"></div>';
-      historyEl.appendChild(separator);
-      
-      // Массив moves начинается с хода противника (индекс 0)
-      // Ходы противника: 0, 2, 4, 6, ...
-      // Ходы игрока: 1, 3, 5, 7, ...
-      for (let i = 0; i < correctMoves.length; i += 2) {
-        const moveNum = Math.floor(i / 2) + 1;
-        const opponentMove = correctMoves[i];
-        const playerMove = correctMoves[i + 1] || '';
-        
-        const movePair = document.createElement('div');
-        movePair.className = 'move-item move-correct';
-        movePair.dataset.moveNum = `${moveNum}.`;
-        // Отображаем в правильном порядке: сначала противник, потом игрок
-        movePair.textContent = opponentMove + (playerMove ? ' ' + playerMove : '');
-        movePair.title = 'Правильное решение';
-        movePair.style.opacity = '0.7';
-        historyEl.appendChild(movePair);
-      }
+      // Блок "Правильное решение" отключен, так как аннотация уже показывает решение
     },
   };
 })();

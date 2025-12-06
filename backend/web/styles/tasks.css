@@ -5,6 +5,31 @@ body {
     overflow-x: hidden;
 }
 
+/* Screen reader only class */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Keyboard focus для карточек режимов */
+.mode-card:focus {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 2.5rem;
+}
+
+.mode-card:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
+
 body.dark {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
@@ -41,11 +66,12 @@ body.dark {
 }
 
 .tasks-title {
-    font-size: 3rem;
+    font-size: clamp(1.75rem, 4vw + 0.5rem, 3rem);
     font-weight: 900;
     color: #000000;
     margin-bottom: 1rem;
     letter-spacing: -0.02em;
+    line-height: 1.2;
 }
 
 body.dark .tasks-title {
@@ -53,11 +79,12 @@ body.dark .tasks-title {
 }
 
 .tasks-subtitle {
-    font-size: 1.25rem;
+    font-size: clamp(0.95rem, 2vw + 0.25rem, 1.25rem);
     color: var(--muted-foreground);
     font-weight: 400;
     max-width: 600px;
     margin: 0 auto;
+    line-height: 1.6;
 }
 
 body.dark .tasks-subtitle {
@@ -340,7 +367,7 @@ body.dark .mode-card.active .mode-icon {
 
 .mode-name {
     font-weight: 900;
-    font-size: 2rem;
+    font-size: clamp(1.5rem, 3vw + 0.5rem, 2rem);
     letter-spacing: -0.02em;
     line-height: 1.2;
     transition: all 0.3s ease;
@@ -359,7 +386,7 @@ body.dark .mode-card:not(.active) .mode-name {
 }
 
 .mode-description {
-    font-size: 1.1rem;
+    font-size: clamp(0.875rem, 1.5vw + 0.25rem, 1.1rem);
     line-height: 1.75;
     opacity: 0.85;
     margin-bottom: 2rem;
@@ -464,14 +491,8 @@ body.dark .mode-card.active[data-mode="survival"] .mode-icon i.fa-heartbeat {
         display: block;
     }
 
-    .tasks-title {
-        font-size: 2rem;
-    }
-
-    .tasks-subtitle {
-        font-size: 1rem;
-    }
-
+    /* Fluid typography уже применена через clamp(), убираем дублирование */
+    
     .mode-grid {
         grid-template-columns: 1fr;
         gap: 2rem;
@@ -487,14 +508,6 @@ body.dark .mode-card.active[data-mode="survival"] .mode-icon i.fa-heartbeat {
         width: 70px;
         height: 70px;
         font-size: 2.25rem;
-    }
-
-    .mode-name {
-        font-size: 1.75rem;
-    }
-
-    .mode-description {
-        font-size: 1rem;
     }
 
     .mode-card.active {
@@ -548,8 +561,19 @@ body.dark .mode-card.active[data-mode="survival"] .mode-icon i.fa-heartbeat {
     .control-btn,
     .size-btn,
     .nav-btn {
-        width: 34px;
-        height: 34px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    /* Адаптивный размер доски */
+    .puzzle-board-wrapper .board-container {
+        max-width: calc(100vw - 2rem);
+    }
+    
+    .skeleton-board-grid {
+        max-width: calc(100vw - 2rem);
     }
 
     .board-size-control {
@@ -1079,7 +1103,7 @@ body.dark .sidebar-card {
 }
 
 .sidebar-title {
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 2vw + 0.25rem, 1.1rem);
     font-weight: 700;
     margin-bottom: 1rem;
     display: flex;
@@ -1355,13 +1379,104 @@ body.dark .nav-btn:hover {
     }
 }
 
-@media (max-width: 480px) {
-    .tasks-title {
-        font-size: 1.75rem;
-    }
+/* Breadcrumbs стили */
+.breadcrumbs-nav {
+    position: relative;
+    z-index: 1;
+    padding: 1rem 0;
+    background: transparent;
+}
 
-    .tasks-subtitle {
-        font-size: 0.95rem;
+.breadcrumbs-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--muted);
+    font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+}
+
+.breadcrumb-link {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.breadcrumb-link:hover {
+    color: var(--primary);
+}
+
+.breadcrumb-separator {
+    color: var(--muted);
+    font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+}
+
+.breadcrumb-current {
+    color: var(--foreground);
+    font-weight: 500;
+}
+
+@media (max-width: 480px) {
+    .breadcrumbs-nav {
+        padding: 0.75rem 0;
+    }
+    
+    .breadcrumbs-list {
+        gap: 0.375rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .breadcrumbs-nav {
+        display: none; /* Скрываем breadcrumbs на очень маленьких экранах */
+    }
+}
+
+@media (max-width: 640px) {
+    .tasks-container {
+        padding: 1.25rem 0.5rem 1.5rem;
+    }
+    
+    .tasks-header {
+        margin-bottom: 2rem;
+    }
+    
+    .mode-card {
+        padding: 1.5rem;
+        min-height: 240px;
+    }
+    
+    .mode-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 2rem;
+    }
+    
+    .puzzle-board-wrapper .board-container {
+        max-width: calc(100vw - 1.5rem);
+    }
+    
+    .skeleton-board-grid {
+        max-width: calc(100vw - 1.5rem);
+    }
+}
+
+@media (max-width: 480px) {
+    .tasks-container {
+        padding: 1rem 0.5rem 1.5rem;
+    }
+    
+    .tasks-header {
+        margin-bottom: 1.5rem;
     }
 
     .puzzle-card,
@@ -1370,15 +1485,225 @@ body.dark .nav-btn:hover {
     }
 
     .puzzle-title {
-        font-size: 1.25rem;
+        font-size: clamp(1.1rem, 3vw, 1.25rem);
     }
 
     .puzzle-meta-pill {
-        font-size: 0.8rem;
+        font-size: clamp(0.75rem, 2vw, 0.8rem);
+        padding: 0.3rem 0.6rem;
     }
 
     .puzzle-status {
+        font-size: clamp(0.8rem, 2vw, 0.85rem);
+    }
+    
+    .puzzle-board-wrapper .board-container {
+        max-width: calc(100vw - 1rem);
+    }
+    
+    .skeleton-board-grid {
+        max-width: calc(100vw - 1rem);
+    }
+    
+    .puzzle-meta-line-compact {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .puzzle-meta-pill {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .mode-card {
+        padding: 1.25rem;
+        min-height: 220px;
+    }
+    
+    .mode-icon {
+        width: 55px;
+        height: 55px;
+        font-size: 1.75rem;
+    }
+    
+    /* Компактные sidebar на мобильных */
+    .sidebar-card {
+        font-size: 0.9rem;
+    }
+    
+    .info-item {
+        padding: 0.5rem 0;
+    }
+    
+    .info-label {
         font-size: 0.85rem;
+    }
+    
+    .info-value {
+        font-size: 0.85rem;
+    }
+    
+    .stat-item {
+        padding: 0.5rem;
+    }
+    
+    .stat-label {
+        font-size: 0.85rem;
+    }
+    
+    .stat-value {
+        font-size: 1.1rem;
+    }
+    
+    .moves-history {
+        max-height: 200px;
+        overflow-y: auto;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .tasks-container {
+        padding: 0.75rem 0.375rem 1rem;
+    }
+    
+    .mode-card {
+        padding: 1rem;
+        min-height: 200px;
+    }
+    
+    .mode-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    
+    .puzzle-card,
+    .sidebar-card {
+        padding: 0.75rem;
+    }
+    
+    .puzzle-board-wrapper .board-container {
+        max-width: calc(100vw - 0.75rem);
+    }
+    
+    .skeleton-board-grid {
+        max-width: calc(100vw - 0.75rem);
+    }
+    
+    .control-btn,
+    .size-btn,
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+    }
+}
+
+@media (max-width: 320px) {
+    .tasks-container {
+        padding: 0.5rem 0.25rem 0.75rem;
+    }
+    
+    .mode-card {
+        padding: 0.875rem;
+        min-height: 180px;
+    }
+    
+    .mode-icon {
+        width: 45px;
+        height: 45px;
+        font-size: 1.35rem;
+    }
+    
+    .puzzle-card,
+    .sidebar-card {
+        padding: 0.65rem;
+    }
+    
+    .puzzle-board-wrapper .board-container {
+        max-width: calc(100vw - 0.5rem);
+    }
+    
+    .skeleton-board-grid {
+        max-width: calc(100vw - 0.5rem);
+    }
+}
+
+/* Landscape ориентация для мобильных */
+@media (max-width: 768px) and (orientation: landscape) and (max-height: 600px) {
+    .tasks-container {
+        padding: 1rem 0.5rem;
+    }
+    
+    .tasks-header {
+        margin-bottom: 1rem;
+    }
+    
+    .mode-card {
+        padding: 1.25rem;
+        min-height: 180px;
+    }
+    
+    .puzzle-layout {
+        gap: 1rem;
+    }
+    
+    .puzzle-left-sidebar,
+    .puzzle-sidebar {
+        gap: 0.75rem;
+    }
+    
+    .sidebar-card {
+        padding: 0.75rem;
+    }
+    
+    .puzzle-board-wrapper .board-container {
+        max-width: 50vh;
+    }
+    
+    .skeleton-board-grid {
+        max-width: 50vh;
+    }
+}
+
+@media (max-width: 768px) and (orientation: landscape) and (max-height: 500px) {
+    .breadcrumbs-nav {
+        display: none;
+    }
+    
+    .tasks-header {
+        margin-bottom: 0.75rem;
+    }
+    
+    .mode-card {
+        padding: 1rem;
+        min-height: 160px;
+    }
+    
+    .puzzle-board-wrapper .board-container {
+        max-width: 45vh;
+    }
+    
+    .skeleton-board-grid {
+        max-width: 45vh;
+    }
+}
+
+/* Оптимизация для prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    .mode-card {
+        animation: none;
+    }
+    
+    .skeleton-card,
+    .skeleton-line {
+        animation: none;
+    }
+    
+    * {
+        transition-duration: 0.01ms !important;
     }
 }
 
@@ -1683,5 +2008,123 @@ body.dark .streak-indicator.active {
     background: linear-gradient(135deg, rgba(255, 87, 34, 0.25), rgba(255, 152, 0, 0.25));
     border-color: rgba(255, 87, 34, 0.5);
     box-shadow: 0 0 25px rgba(255, 87, 34, 0.4);
+}
+
+/* ===== LARGE MONITORS ADAPTATION ===== */
+/* Full HD (1920px) */
+@media (min-width: 1920px) {
+    .tasks-content {
+        max-width: 1600px;
+    }
+    
+    .tasks-container {
+        padding: 3rem 2rem 4rem;
+    }
+    
+    .tasks-title {
+        font-size: clamp(2.5rem, 4vw + 0.5rem, 3.5rem);
+    }
+    
+    .tasks-subtitle {
+        font-size: clamp(1.125rem, 2vw + 0.25rem, 1.375rem);
+        max-width: 700px;
+    }
+    
+    .mode-grid {
+        max-width: 1000px;
+        gap: 3rem;
+    }
+    
+    .mode-card {
+        padding: 3.5rem;
+        min-height: 360px;
+    }
+    
+    .puzzle-layout {
+        gap: 2.5rem;
+    }
+    
+    .puzzle-card,
+    .sidebar-card {
+        padding: 2rem;
+    }
+}
+
+/* 2K/QHD (2560px) */
+@media (min-width: 2560px) {
+    .tasks-content {
+        max-width: 1800px;
+    }
+    
+    .tasks-container {
+        padding: 4rem 3rem 5rem;
+    }
+    
+    .tasks-title {
+        font-size: clamp(3rem, 4vw + 0.5rem, 4rem);
+    }
+    
+    .tasks-subtitle {
+        font-size: clamp(1.25rem, 2vw + 0.25rem, 1.5rem);
+        max-width: 800px;
+    }
+    
+    .mode-grid {
+        max-width: 1200px;
+        gap: 3.5rem;
+    }
+    
+    .mode-card {
+        padding: 4rem;
+        min-height: 400px;
+    }
+    
+    .puzzle-layout {
+        gap: 3rem;
+    }
+    
+    .puzzle-card,
+    .sidebar-card {
+        padding: 2.5rem;
+    }
+}
+
+/* 4K/UHD (3840px) */
+@media (min-width: 3840px) {
+    .tasks-content {
+        max-width: 2000px;
+    }
+    
+    .tasks-container {
+        padding: 5rem 4rem 6rem;
+    }
+    
+    .tasks-title {
+        font-size: clamp(3.5rem, 4vw + 0.5rem, 4.5rem);
+    }
+    
+    .tasks-subtitle {
+        font-size: clamp(1.375rem, 2vw + 0.25rem, 1.625rem);
+        max-width: 900px;
+    }
+    
+    .mode-grid {
+        max-width: 1400px;
+        gap: 4rem;
+    }
+    
+    .mode-card {
+        padding: 4.5rem;
+        min-height: 440px;
+    }
+    
+    .puzzle-layout {
+        gap: 3.5rem;
+    }
+    
+    .puzzle-card,
+    .sidebar-card {
+        padding: 3rem;
+    }
 }
 

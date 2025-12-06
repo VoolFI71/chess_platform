@@ -1,0 +1,1158 @@
+package services
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"math"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/notnil/chess"
+	"gorm.io/datatypes"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	"github.com/yourorg/games_service_go/internal/database"
+	"github.com/yourorg/games_service_go/internal/models"
+)
+
+type GameService struct {
+	db *database.DB
+}
+
+func NewGameService(db *database.DB) *GameService {
+	return &GameService{db: db}
+}
+
+type CreateGameRequest struct {
+	InitialFen   string                 `json:"initial_fen"`
+	CreatorColor string                 `json:"creator_color"`
+	Metadata     map[string]interface{} `json:"metadata"`
+	TimeControl  *models.TimeControl    `json:"time_control"`
+}
+
+func (s *GameService) CreateGame(ctx context.Context, creatorID int, req *CreateGameRequest) (*models.GameDetail, error) {
+	gameID := uuid.New()
+
+	var whiteID, blackID *int
+	if req.CreatorColor == "white" {
+		whiteID = &creatorID
+	} else {
+		blackID = &creatorID
+	}
+
+	initialPos := "startpos"
+	if req.InitialFen != "" {
+		initialPos = req.InitialFen
+	}
+
+	currentPos := "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+	var timeControlJSON []byte
+	if req.TimeControl != nil {
+		tc := &models.TimeControl{
+			InitialMs:     req.TimeControl.InitialMs,
+			IncrementMs:   req.TimeControl.IncrementMs,
+			Type:          req.TimeControl.Type,
+			WhiteFinishMs: req.TimeControl.InitialMs,
+			BlackFinishMs: req.TimeControl.InitialMs,
+		}
+		var err error
+		timeControlJSON, err = json.Marshal(tc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal time control: %w", err)
+		}
+	}
+
+	var metadataJSON []byte
+	if req.Metadata != nil {
+		var err error
+		metadataJSON, err = json.Marshal(req.Metadata)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
+		}
+	}
+
+	game := models.Game{
+		ID:           gameID,
+		WhiteID:      whiteID,
+		BlackID:      blackID,
+		InitialPos:   initialPos,
+		CurrentPos:   currentPos,
+		NextTurn:     models.SideWhite,
+		TimeControl:  timeControlJSON,
+		MoveCount:    0,
+		Status:       models.GameStatusCreated,
+		WhiteClockMs: 0,
+		BlackClockMs: 0,
+		Metadata:     metadataJSON,
+	}
+
+	if err := s.db.WithContext(ctx).Create(&game).Error; err != nil {
+		return nil, fmt.Errorf("failed to create game: %w", err)
+	}
+
+	detail := &models.GameDetail{
+		Game:  game,
+		Moves: []models.Move{},
+	}
+
+	if req.TimeControl != nil {
+		whiteFinish := req.TimeControl.InitialMs
+		blackFinish := req.TimeControl.InitialMs
+		detail.WhiteFinishMs = &whiteFinish
+		detail.BlackFinishMs = &blackFinish
+	}
+
+	return detail, nil
+}
+
+func (s *GameService) GetGame(ctx context.Context, gameID uuid.UUID) (*models.GameDetail, error) {
+	var game models.Game
+	if err := s.db.WithContext(ctx).First(&game, "id = ?", gameID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("game not found")
+		}
+		return nil, fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// Загружаем ходы
+	moves, err := s.GetMoves(ctx, gameID, 200)
+	if err != nil {
+		moves = []models.Move{}
+	}
+
+	detail := &models.GameDetail{
+		Game:  game,
+		Moves: moves,
+	}
+
+	// Парсим TimeControl из JSON
+	if len(game.TimeControl) > 0 {
+		var tc models.TimeControl
+		if err := json.Unmarshal(game.TimeControl, &tc); err != nil {
+			log.Printf("[GameService] Failed to unmarshal TimeControl for game %s: %v", game.ID, err)
+		} else {
+			detail.WhiteFinishMs = &tc.WhiteFinishMs
+			detail.BlackFinishMs = &tc.BlackFinishMs
+		}
+	}
+
+	return detail, nil
+}
+
+func (s *GameService) GetMoves(ctx context.Context, gameID uuid.UUID, limit int) ([]models.Move, error) {
+	var moves []models.Move
+	if err := s.db.WithContext(ctx).
+		Where("game_id = ?", gameID).
+		Order("move_index ASC").
+		Limit(limit).
+		Find(&moves).Error; err != nil {
+		return nil, fmt.Errorf("failed to query moves: %w", err)
+	}
+
+	return moves, nil
+}
+
+// Вспомогательные функции для работы со временем
+
+func (s *GameService) getLastMove(ctx context.Context, gameID uuid.UUID) (*models.Move, error) {
+	var move models.Move
+	if err := s.db.WithContext(ctx).
+		Where("game_id = ?", gameID).
+		Order("move_index DESC").
+		First(&move).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &move, nil
+}
+
+func (s *GameService) getLastActivityTimestamp(game *models.Game, lastMove *models.Move) *time.Time {
+	if lastMove != nil {
+		return &lastMove.CreatedAt
+	}
+	if game.StartedAt != nil {
+		return game.StartedAt
+	}
+	return &game.CreatedAt
+}
+
+func (s *GameService) computeElapsedMs(ctx context.Context, game *models.Game, lastMove *models.Move) int64 {
+	if game.MoveCount > 0 {
+		lastActivity := s.getLastActivityTimestamp(game, lastMove)
+		if lastActivity != nil {
+			elapsed := time.Since(*lastActivity).Milliseconds()
+			if elapsed < 0 {
+				return 0
+			}
+			return elapsed
+		}
+	}
+
+	// Для первого хода считаем время от started_at
+	if game.StartedAt != nil {
+		elapsed := time.Since(*game.StartedAt).Milliseconds()
+		if elapsed < 0 {
+			return 0
+		}
+		return elapsed
+	}
+
+	return 0
+}
+
+func (s *GameService) computeClocksForMove(game *models.Game, currentTurn models.SideToMove, elapsedMs, incrementMs int64) (int64, int64, int64, int64) {
+	whitePast := game.WhiteClockMs
+	blackPast := game.BlackClockMs
+
+	whiteFinish := int64(0)
+	blackFinish := int64(0)
+	// Парсим TimeControl из JSON
+	if len(game.TimeControl) > 0 {
+		var tc models.TimeControl
+		if err := json.Unmarshal(game.TimeControl, &tc); err == nil {
+			whiteFinish = tc.WhiteFinishMs
+			blackFinish = tc.BlackFinishMs
+			if whiteFinish == 0 {
+				whiteFinish = tc.InitialMs
+			}
+			if blackFinish == 0 {
+				blackFinish = tc.InitialMs
+			}
+		}
+	}
+
+	if currentTurn == models.SideWhite {
+		whitePast += elapsedMs
+		whiteFinish += incrementMs
+	} else {
+		blackPast += elapsedMs
+		blackFinish += incrementMs
+	}
+
+	log.Printf("[CLOCK CALC] game_id=%s turn=%s white_past=%d black_past=%d white_finish=%d black_finish=%d elapsed_ms=%d increment_ms=%d",
+		game.ID, currentTurn, whitePast, blackPast, whiteFinish, blackFinish, elapsedMs, incrementMs)
+
+	return whitePast, blackPast, whiteFinish, blackFinish
+}
+
+// ComputeEffectiveClocks вычисляет эффективные часы с учетом прошедшего времени
+func (s *GameService) ComputeEffectiveClocks(ctx context.Context, game *models.Game, lastMove *models.Move) (int64, int64, error) {
+	whitePast := game.WhiteClockMs
+	blackPast := game.BlackClockMs
+
+	if game.Status == models.GameStatusFinished {
+		return whitePast, blackPast, nil
+	}
+
+	// Время начинает тикать только после первого хода
+	if game.MoveCount == 0 {
+		return whitePast, blackPast, nil
+	}
+
+	lastActivity := s.getLastActivityTimestamp(game, lastMove)
+	if lastActivity == nil {
+		return whitePast, blackPast, nil
+	}
+
+	elapsedMs := time.Since(*lastActivity).Milliseconds()
+	if elapsedMs <= 0 {
+		return whitePast, blackPast, nil
+	}
+
+	// Добавляем прошедшее время к past_time текущего игрока
+	if game.NextTurn == models.SideWhite {
+		whitePast += elapsedMs
+	} else {
+		blackPast += elapsedMs
+	}
+
+	log.Printf("[EFFECTIVE CLOCKS] game_id=%s next_turn=%s elapsed_ms=%d white_past_stored=%d black_past_stored=%d white_past_effective=%d black_past_effective=%d",
+		game.ID, game.NextTurn, elapsedMs, game.WhiteClockMs, game.BlackClockMs, whitePast, blackPast)
+
+	return whitePast, blackPast, nil
+}
+
+// lockGame блокирует игру для транзакции
+func (s *GameService) lockGame(ctx context.Context, tx *gorm.DB, gameID uuid.UUID) (*models.Game, error) {
+	var game models.Game
+	if err := tx.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).First(&game, "id = ?", gameID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("game not found")
+		}
+		return nil, fmt.Errorf("failed to lock game: %w", err)
+	}
+
+	return &game, nil
+}
+
+func (s *GameService) JoinGame(ctx context.Context, gameID uuid.UUID, playerID int) (*models.GameDetail, error) {
+	var game models.Game
+
+	// Сначала проверяем, не участвует ли уже игрок (без транзакции)
+	if err := s.db.WithContext(ctx).First(&game, "id = ?", gameID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("game not found")
+		}
+		return nil, err
+	}
+
+	// Проверяем, не участвует ли уже игрок
+	// Если игрок уже в игре, просто возвращаем детали игры (для фронтенда, который всегда вызывает join)
+	if (game.WhiteID != nil && *game.WhiteID == playerID) ||
+		(game.BlackID != nil && *game.BlackID == playerID) {
+		// Игрок уже в игре, возвращаем детали игры без изменений
+		return s.buildGameDetail(ctx, &game)
+	}
+
+	// Игрок еще не в игре, нужно добавить его
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Блокируем игру для обновления
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&game, "id = ?", gameID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("game not found")
+			}
+			return err
+		}
+
+		// Двойная проверка (race condition protection)
+		if (game.WhiteID != nil && *game.WhiteID == playerID) ||
+			(game.BlackID != nil && *game.BlackID == playerID) {
+			return nil // Игрок уже добавлен
+		}
+
+		// Проверяем, что игра открыта для присоединения
+		if game.Status != models.GameStatusCreated {
+			return fmt.Errorf("game is not open for joining")
+		}
+
+		// Проверяем, не заполнена ли игра
+		if game.WhiteID != nil && game.BlackID != nil {
+			return fmt.Errorf("game is full")
+		}
+
+		// Присваиваем игрока
+		if game.WhiteID == nil {
+			game.WhiteID = &playerID
+		} else {
+			game.BlackID = &playerID
+		}
+
+		// Если оба игрока присоединились, начинаем партию
+		if game.WhiteID != nil && game.BlackID != nil {
+			game.Status = models.GameStatusActive
+			now := time.Now().UTC()
+			game.StartedAt = &now
+			log.Printf("[GAME STARTED] game_id=%s Both players joined, game started at %s", game.ID, now.Format(time.RFC3339))
+		}
+
+		return tx.Save(&game).Error
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return s.buildGameDetail(ctx, &game)
+}
+
+// buildGameDetail создает GameDetail из Game
+func (s *GameService) buildGameDetail(ctx context.Context, game *models.Game) (*models.GameDetail, error) {
+	// Загружаем ходы
+	moves, err := s.GetMoves(ctx, game.ID, 200)
+	if err != nil {
+		moves = []models.Move{}
+	}
+
+	detail := &models.GameDetail{
+		Game:  *game,
+		Moves: moves,
+	}
+
+	// Парсим TimeControl
+	if len(game.TimeControl) > 0 {
+		var tc models.TimeControl
+		if err := json.Unmarshal(game.TimeControl, &tc); err != nil {
+			log.Printf("[GameService] Failed to unmarshal TimeControl for game %s: %v", game.ID, err)
+		} else {
+			detail.WhiteFinishMs = &tc.WhiteFinishMs
+			detail.BlackFinishMs = &tc.BlackFinishMs
+		}
+	}
+
+	return detail, nil
+}
+
+func (s *GameService) Resign(ctx context.Context, gameID uuid.UUID, playerID int) (*models.GameDetail, error) {
+	var game models.Game
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Блокируем игру
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&game, "id = ?", gameID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("game not found")
+			}
+			return err
+		}
+
+		if game.Status == models.GameStatusFinished {
+			return fmt.Errorf("game already finished")
+		}
+
+		// Проверяем, что игрок участвует в партии
+		if (game.WhiteID == nil || *game.WhiteID != playerID) &&
+			(game.BlackID == nil || *game.BlackID != playerID) {
+			return fmt.Errorf("player not in game")
+		}
+
+		// Определяем победителя (противоположный игрок)
+		var winner models.SideToMove
+		if game.WhiteID != nil && *game.WhiteID == playerID {
+			winner = models.SideBlack
+		} else {
+			winner = models.SideWhite
+		}
+
+		reason := string(models.TerminationResignation)
+		return s.finishGame(ctx, tx, &game, &winner, reason, &playerID)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Перезагружаем игру
+	return s.GetGame(ctx, gameID)
+}
+
+func (s *GameService) Timeout(ctx context.Context, gameID uuid.UUID, playerID int, loserColor string) (*models.GameDetail, error) {
+	var game models.Game
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Блокируем игру
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&game, "id = ?", gameID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("game not found")
+			}
+			return err
+		}
+
+		if game.Status == models.GameStatusFinished {
+			return fmt.Errorf("game already finished")
+		}
+
+		if (game.WhiteID == nil || *game.WhiteID != playerID) &&
+			(game.BlackID == nil || *game.BlackID != playerID) {
+			return fmt.Errorf("player not in game")
+		}
+
+		// Вычисляем эффективные часы
+		lastMove, err := s.getLastMove(ctx, gameID)
+		if err != nil {
+			return fmt.Errorf("failed to get last move: %w", err)
+		}
+
+		effectiveWhitePast, effectiveBlackPast, err := s.ComputeEffectiveClocks(ctx, &game, lastMove)
+		if err != nil {
+			return err
+		}
+
+		// Получаем finish_time из TimeControl JSON
+		whiteFinish := int64(0)
+		blackFinish := int64(0)
+		if len(game.TimeControl) > 0 {
+			var tc models.TimeControl
+			if err := json.Unmarshal(game.TimeControl, &tc); err == nil {
+				whiteFinish = tc.WhiteFinishMs
+				blackFinish = tc.BlackFinishMs
+				if whiteFinish == 0 {
+					whiteFinish = tc.InitialMs
+				}
+				if blackFinish == 0 {
+					blackFinish = tc.InitialMs
+				}
+			}
+		}
+
+		// Определяем проигравшего
+		var loser models.SideToMove
+		if loserColor == "white" {
+			loser = models.SideWhite
+			if whiteFinish == 0 || effectiveWhitePast < whiteFinish {
+				return fmt.Errorf("white clock has not expired")
+			}
+		} else {
+			loser = models.SideBlack
+			if blackFinish == 0 || effectiveBlackPast < blackFinish {
+				return fmt.Errorf("black clock has not expired")
+			}
+		}
+
+		// Обновляем past_time до эффективных значений
+		game.WhiteClockMs = effectiveWhitePast
+		game.BlackClockMs = effectiveBlackPast
+
+		// Устанавливаем past_time проигравшего равным finish_time
+		if loser == models.SideWhite {
+			game.WhiteClockMs = whiteFinish
+		} else {
+			game.BlackClockMs = blackFinish
+		}
+
+		// Определяем победителя
+		winner := models.SideBlack
+		if loser == models.SideWhite {
+			winner = models.SideBlack
+		} else {
+			winner = models.SideWhite
+		}
+
+		reason := string(models.TerminationTimeout)
+		return s.finishGame(ctx, tx, &game, &winner, reason, &playerID)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Перезагружаем игру
+	return s.GetGame(ctx, gameID)
+}
+
+func (s *GameService) ListGames(ctx context.Context, limit, offset int) ([]models.Game, error) {
+	var games []models.Game
+	if err := s.db.WithContext(ctx).
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&games).Error; err != nil {
+		return nil, fmt.Errorf("failed to query games: %w", err)
+	}
+
+	return games, nil
+}
+
+type MakeMovePayload struct {
+	Type         string  `json:"type"`
+	UCI          string  `json:"uci" binding:"required"`
+	Promotion    *string `json:"promotion"`
+	ClientMoveID *string `json:"client_move_id"`
+}
+
+// finishGame завершает игру и обновляет рейтинги
+func (s *GameService) finishGame(ctx context.Context, tx *gorm.DB, game *models.Game, winner *models.SideToMove, reason string, endedBy *int) error {
+	now := time.Now().UTC()
+	game.Status = models.GameStatusFinished
+	game.FinishedAt = &now
+	terminationReason := models.TerminationReason(reason)
+	game.TerminationReason = &terminationReason
+	game.EndedBy = endedBy
+
+	var result models.GameResult
+	if winner == nil {
+		result = models.ResultDraw
+	} else if *winner == models.SideWhite {
+		result = models.ResultWhiteWin
+	} else {
+		result = models.ResultBlackWin
+	}
+	game.Result = &result
+
+	// Обновляем игру в БД
+	if err := tx.WithContext(ctx).Save(game).Error; err != nil {
+		return fmt.Errorf("failed to update game: %w", err)
+	}
+
+	// Обновляем счетчик сыгранных партий
+	if game.WhiteID != nil {
+		if err := tx.WithContext(ctx).Exec("UPDATE users SET games_played = games_played + 1 WHERE id = ?", *game.WhiteID).Error; err != nil {
+			log.Printf("Warning: failed to update games_played for user %d: %v", *game.WhiteID, err)
+		}
+	}
+	if game.BlackID != nil {
+		if err := tx.WithContext(ctx).Exec("UPDATE users SET games_played = games_played + 1 WHERE id = ?", *game.BlackID).Error; err != nil {
+			log.Printf("Warning: failed to update games_played for user %d: %v", *game.BlackID, err)
+		}
+	}
+
+	// Обновляем рейтинги если игра завершена с двумя игроками
+	if game.WhiteID != nil && game.BlackID != nil {
+		if err := s.updateRatings(ctx, tx, game); err != nil {
+			log.Printf("Warning: failed to update ratings: %v", err)
+			// Не прерываем транзакцию из-за ошибки обновления рейтингов
+		}
+	}
+
+	return nil
+}
+
+// updateRatings обновляет рейтинги игроков после завершения игры
+func (s *GameService) updateRatings(ctx context.Context, tx *gorm.DB, game *models.Game) error {
+	// Парсим TimeControl из JSON
+	var tc *models.TimeControl
+	if len(game.TimeControl) > 0 {
+		var parsedTC models.TimeControl
+		if err := json.Unmarshal(game.TimeControl, &parsedTC); err == nil {
+			tc = &parsedTC
+		}
+	}
+
+	formatType := s.getGameFormat(tc)
+
+	// Получаем текущие рейтинги
+	var whiteRating, blackRating int
+	whiteQuery := fmt.Sprintf("SELECT %s_rating FROM users WHERE id = ?", formatType)
+	blackQuery := fmt.Sprintf("SELECT %s_rating FROM users WHERE id = ?", formatType)
+
+	if err := tx.WithContext(ctx).Raw(whiteQuery, *game.WhiteID).Scan(&whiteRating).Error; err != nil {
+		return fmt.Errorf("failed to get white rating: %w", err)
+	}
+	if whiteRating == 0 {
+		whiteRating = 1200
+	}
+
+	if err := tx.WithContext(ctx).Raw(blackQuery, *game.BlackID).Scan(&blackRating).Error; err != nil {
+		return fmt.Errorf("failed to get black rating: %w", err)
+	}
+	if blackRating == 0 {
+		blackRating = 1200
+	}
+
+	// Определяем результат
+	var whiteScore, blackScore float64
+	var whiteResult, blackResult string
+	if game.Result != nil && *game.Result == models.ResultDraw {
+		whiteScore = 0.5
+		blackScore = 0.5
+		whiteResult = "draw"
+		blackResult = "draw"
+	} else if game.Result != nil && *game.Result == models.ResultWhiteWin {
+		whiteScore = 1.0
+		blackScore = 0.0
+		whiteResult = "win"
+		blackResult = "loss"
+	} else {
+		whiteScore = 0.0
+		blackScore = 1.0
+		whiteResult = "loss"
+		blackResult = "win"
+	}
+
+	// Рассчитываем новые рейтинги (Elo)
+	whiteRatingAfter := calculateEloRating(whiteRating, blackRating, whiteScore)
+	blackRatingAfter := calculateEloRating(blackRating, whiteRating, blackScore)
+
+	// Обновляем рейтинги
+	ratingColumn := fmt.Sprintf("%s_rating", formatType)
+	if err := tx.WithContext(ctx).Exec(fmt.Sprintf("UPDATE users SET %s = ? WHERE id = ?", ratingColumn), whiteRatingAfter, *game.WhiteID).Error; err != nil {
+		return fmt.Errorf("failed to update white rating: %w", err)
+	}
+
+	if err := tx.WithContext(ctx).Exec(fmt.Sprintf("UPDATE users SET %s = ? WHERE id = ?", ratingColumn), blackRatingAfter, *game.BlackID).Error; err != nil {
+		return fmt.Errorf("failed to update black rating: %w", err)
+	}
+
+	// Сохраняем историю рейтингов (если таблица существует)
+	if err := s.saveRatingHistory(ctx, tx, game, formatType,
+		*game.WhiteID, whiteRating, whiteRatingAfter, whiteResult, *game.BlackID,
+		*game.BlackID, blackRating, blackRatingAfter, blackResult, *game.WhiteID,
+	); err != nil {
+		log.Printf("Warning: failed to save rating history: %v", err)
+	}
+
+	return nil
+}
+
+func (s *GameService) getGameFormat(timeControl *models.TimeControl) string {
+	if timeControl == nil {
+		return "rapid"
+	}
+
+	totalMinutes := float64(timeControl.InitialMs) / 60000.0
+	if totalMinutes <= 3 {
+		return "bullet"
+	} else if totalMinutes <= 10 {
+		return "blitz"
+	} else {
+		return "rapid"
+	}
+}
+
+func calculateEloRating(playerRating, opponentRating int, score float64) int {
+	kFactor := 32.0
+	expectedScore := 1.0 / (1.0 + pow10(float64(opponentRating-playerRating)/400.0))
+	newRating := float64(playerRating) + kFactor*(score-expectedScore)
+	result := int(newRating)
+	if result < 400 {
+		return 400
+	}
+	return result
+}
+
+func pow10(x float64) float64 {
+	result := 1.0
+	for i := 0; i < int(x); i++ {
+		result *= 10
+	}
+	// Простое приближение для дробных степеней
+	if x > 0 && x-float64(int(x)) > 0 {
+		result *= 1 + (x-float64(int(x)))*9
+	}
+	return result
+}
+
+func (s *GameService) saveRatingHistory(ctx context.Context, tx *gorm.DB, game *models.Game, formatType string,
+	whiteUserID, whiteRatingBefore, whiteRatingAfter int, whiteResult string, whiteOpponentID int,
+	blackUserID, blackRatingBefore, blackRatingAfter int, blackResult string, blackOpponentID int) error {
+
+	// Проверяем существование таблицы
+	var exists bool
+	if err := tx.WithContext(ctx).Raw(`
+		SELECT EXISTS (
+			SELECT FROM information_schema.tables 
+			WHERE table_schema = 'public' 
+			AND table_name = 'rating_history'
+		)
+	`).Scan(&exists).Error; err != nil || !exists {
+		return nil // Таблица не существует, это нормально
+	}
+
+	// Сохраняем историю для белых
+	if err := tx.WithContext(ctx).Exec(`
+		INSERT INTO rating_history 
+		(user_id, format_type, rating_before, rating_after, rating_change, game_id, result, opponent_id, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+	`, whiteUserID, formatType, whiteRatingBefore, whiteRatingAfter, whiteRatingAfter-whiteRatingBefore, game.ID, whiteResult, whiteOpponentID).Error; err != nil {
+		return err
+	}
+
+	// Сохраняем историю для черных
+	if err := tx.WithContext(ctx).Exec(`
+		INSERT INTO rating_history 
+		(user_id, format_type, rating_before, rating_after, rating_change, game_id, result, opponent_id, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+	`, blackUserID, formatType, blackRatingBefore, blackRatingAfter, blackRatingAfter-blackRatingBefore, game.ID, blackResult, blackOpponentID).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// boardFromFEN создает chess.Game из FEN строки
+func boardFromFEN(fen string) (*chess.Game, error) {
+	if fen == "" || fen == "startpos" {
+		return chess.NewGame(), nil
+	}
+
+	fenOption, err := chess.FEN(fen)
+	if err != nil {
+		return nil, fmt.Errorf("invalid FEN format: %w", err)
+	}
+
+	return chess.NewGame(fenOption), nil
+}
+
+func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID int, payload *MakeMovePayload) (*models.Game, *models.Move, error) {
+	var game models.Game
+	var dbMove *models.Move
+
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Блокируем игру
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&game, "id = ?", gameID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("game not found")
+			}
+			return err
+		}
+
+		if game.Status == models.GameStatusFinished {
+			return fmt.Errorf("game already finished")
+		}
+
+		if game.WhiteID == nil || game.BlackID == nil {
+			return fmt.Errorf("cannot start game until second player joins")
+		}
+
+		// Проверяем, чей ход
+		var expectedPlayerID int
+		if game.NextTurn == models.SideWhite {
+			if game.WhiteID == nil {
+				return fmt.Errorf("white player not found")
+			}
+			expectedPlayerID = *game.WhiteID
+		} else {
+			if game.BlackID == nil {
+				return fmt.Errorf("black player not found")
+			}
+			expectedPlayerID = *game.BlackID
+		}
+
+		if playerID != expectedPlayerID {
+			return fmt.Errorf("not your turn")
+		}
+
+		// Создаем доску из текущей позиции
+		board, err := boardFromFEN(game.CurrentPos)
+		if err != nil {
+			return err
+		}
+
+		// Парсим ход в UCI нотации
+		chessMove, err := chess.UCINotation{}.Decode(board.Position(), payload.UCI)
+		if err != nil {
+			return fmt.Errorf("invalid UCI move format: %w", err)
+		}
+
+		// Проверяем, что ход легальный
+		// notnil/chess уже валидирует ход при декодировании UCI
+		validMoves := board.ValidMoves()
+		var validMove *chess.Move
+		for _, m := range validMoves {
+			if m.S1() == chessMove.S1() && m.S2() == chessMove.S2() {
+				validMove = m
+				break
+			}
+		}
+
+		if validMove == nil {
+			return fmt.Errorf("illegal move")
+		}
+
+		// Делаем ход
+		board.Move(validMove)
+
+		// Проверяем, был ли это взятие
+		pos := board.Position()
+		isCapture := pos.Board().Piece(validMove.S2()) != chess.NoPiece || validMove.HasTag(chess.Capture)
+
+		// Получаем SAN нотацию
+		san := validMove.String()
+
+		// Получаем новую FEN позицию
+		newFEN := pos.String()
+
+		currentTurn := game.NextTurn
+
+		// Загружаем последний ход
+		var lastMove *models.Move
+		lastMove, err = s.getLastMove(ctx, gameID)
+		if err != nil {
+			return fmt.Errorf("failed to get last move: %w", err)
+		}
+
+		log.Printf("[MOVE START] game_id=%s player_id=%d move_index=%d turn=%s white_clock_before=%d black_clock_before=%d move_count=%d",
+			game.ID, playerID, game.MoveCount+1, currentTurn, game.WhiteClockMs, game.BlackClockMs, game.MoveCount)
+
+		// Проверка таймаута
+		effectiveWhitePast, effectiveBlackPast, err := s.ComputeEffectiveClocks(ctx, &game, lastMove)
+		if err != nil {
+			return err
+		}
+
+		// Парсим TimeControl из JSON
+		var tc *models.TimeControl
+		if len(game.TimeControl) > 0 {
+			var parsedTC models.TimeControl
+			if err := json.Unmarshal(game.TimeControl, &parsedTC); err == nil {
+				tc = &parsedTC
+			}
+		}
+
+		whiteFinish := int64(0)
+		blackFinish := int64(0)
+		if tc != nil {
+			whiteFinish = tc.WhiteFinishMs
+			blackFinish = tc.BlackFinishMs
+			if whiteFinish == 0 {
+				whiteFinish = tc.InitialMs
+			}
+			if blackFinish == 0 {
+				blackFinish = tc.InitialMs
+			}
+		}
+
+		if currentTurn == models.SideWhite {
+			if whiteFinish > 0 && effectiveWhitePast >= whiteFinish {
+				log.Printf("Move rejected: timeout - game_id=%s, player_id=%d, turn=white, effective_past=%d finish=%d",
+					game.ID, playerID, effectiveWhitePast, whiteFinish)
+				return fmt.Errorf("white clock expired")
+			}
+		} else {
+			if blackFinish > 0 && effectiveBlackPast >= blackFinish {
+				log.Printf("Move rejected: timeout - game_id=%s, player_id=%d, turn=black, effective_past=%d finish=%d",
+					game.ID, playerID, effectiveBlackPast, blackFinish)
+				return fmt.Errorf("black clock expired")
+			}
+		}
+
+		// Вычисляем прошедшее время
+		incrementMs := int64(0)
+		if tc != nil {
+			incrementMs = tc.IncrementMs
+		}
+
+		elapsedMs := s.computeElapsedMs(ctx, &game, lastMove)
+		log.Printf("[ELAPSED TIME] game_id=%s elapsed_ms=%d", game.ID, elapsedMs)
+
+		// Вычисляем новые значения времени
+		whitePast, blackPast, whiteFinishNew, blackFinishNew := s.computeClocksForMove(&game, currentTurn, elapsedMs, incrementMs)
+
+		moveIndex := game.MoveCount + 1
+		moveCreatedAt := time.Now().UTC()
+
+		// Создаем запись хода с ClocksAfter в JSON
+		clocksAfter := models.ClocksAfter{
+			WhitePastMs:   whitePast,
+			BlackPastMs:   blackPast,
+			WhiteFinishMs: whiteFinishNew,
+			BlackFinishMs: blackFinishNew,
+		}
+		clocksAfterJSON, err := json.Marshal(clocksAfter)
+		if err != nil {
+			return fmt.Errorf("failed to marshal clocks_after: %w", err)
+		}
+
+		move := models.Move{
+			GameID:      gameID,
+			MoveIndex:   moveIndex,
+			UCI:         payload.UCI,
+			SAN:         &san,
+			FenAfter:    newFEN,
+			PlayerID:    &playerID,
+			ClocksAfter: clocksAfterJSON,
+			IsCapture:   isCapture,
+			Promotion:   payload.Promotion,
+			CreatedAt:   moveCreatedAt,
+		}
+
+		if err := tx.Create(&move).Error; err != nil {
+			return fmt.Errorf("failed to insert move: %w", err)
+		}
+
+		dbMove = &move
+
+		// Обновляем игру
+		newNextTurn := models.SideBlack
+		if game.NextTurn == models.SideWhite {
+			newNextTurn = models.SideBlack
+		} else {
+			newNextTurn = models.SideWhite
+		}
+
+		// Обновляем TimeControl JSON
+		if tc == nil {
+			tc = &models.TimeControl{}
+		}
+		tc.WhiteFinishMs = whiteFinishNew
+		tc.BlackFinishMs = blackFinishNew
+		timeControlJSON, err := json.Marshal(tc)
+		if err != nil {
+			return fmt.Errorf("failed to marshal time_control: %w", err)
+		}
+		game.TimeControl = timeControlJSON
+
+		game.CurrentPos = newFEN
+		game.MoveCount = moveIndex
+		game.WhiteClockMs = whitePast
+		game.BlackClockMs = blackPast
+		game.NextTurn = newNextTurn
+
+		log.Printf("[MOVE AFTER] game_id=%s move_index=%d white_past_after=%d black_past_after=%d white_finish_after=%d black_finish_after=%d next_turn_after=%s",
+			game.ID, moveIndex, whitePast, blackPast, whiteFinishNew, blackFinishNew, newNextTurn)
+
+		// Проверка окончания игры
+		outcome := board.Outcome()
+		if outcome == chess.WhiteWon {
+			winner := models.SideWhite
+			reason := string(models.TerminationCheckmate)
+			if err := s.finishGame(ctx, tx, &game, &winner, reason, &playerID); err != nil {
+				return err
+			}
+		} else if outcome == chess.BlackWon {
+			winner := models.SideBlack
+			reason := string(models.TerminationCheckmate)
+			if err := s.finishGame(ctx, tx, &game, &winner, reason, &playerID); err != nil {
+				return err
+			}
+		} else if outcome == chess.Draw {
+			// Определяем причину ничьей
+			var reason string = "STALEMATE"
+			if pos.Status() == chess.Stalemate {
+				reason = "STALEMATE"
+			} else {
+				reason = "DRAW"
+			}
+			if err := s.finishGame(ctx, tx, &game, nil, reason, &playerID); err != nil {
+				return err
+			}
+		} else {
+			// Обновляем игру если игра не завершена
+			if err := tx.Save(&game).Error; err != nil {
+				return fmt.Errorf("failed to update game: %w", err)
+			}
+		}
+
+		log.Printf("[MOVE COMMITTED] game_id=%s move_index=%d white_clock_final=%d black_clock_final=%d next_turn_final=%s move_id=%d",
+			game.ID, moveIndex, game.WhiteClockMs, game.BlackClockMs, game.NextTurn, move.ID)
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &game, dbMove, nil
+}
+
+func (s *GameService) GetUserGameStats(ctx context.Context, userID int) (*models.UserGameStats, error) {
+	// Получаем все завершенные партии пользователя
+	var games []models.Game
+	err := s.db.WithContext(ctx).Where(
+		"(white_id = ? OR black_id = ?) AND status = ?",
+		userID, userID, models.GameStatusFinished,
+	).Find(&games).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get games: %w", err)
+	}
+
+	// Функция для определения формата игры
+	getGameFormat := func(timeControlJSON datatypes.JSON) string {
+		if len(timeControlJSON) == 0 {
+			return "classical"
+		}
+		var tc models.TimeControl
+		if err := json.Unmarshal(timeControlJSON, &tc); err != nil {
+			return "classical"
+		}
+		initialMinutes := float64(tc.InitialMs) / 60000.0
+
+		if initialMinutes < 3 {
+			return "bullet"
+		} else if initialMinutes < 10 {
+			return "blitz"
+		} else if initialMinutes < 30 {
+			return "rapid"
+		}
+		return "classical"
+	}
+
+	// Подсчет статистики
+	type formatStat struct {
+		Games  int
+		Wins   int
+		Losses int
+		Draws  int
+	}
+	formatStats := map[string]*formatStat{
+		"blitz":     {},
+		"bullet":    {},
+		"rapid":     {},
+		"classical": {},
+	}
+
+	totalWins := 0
+	totalLosses := 0
+	totalDraws := 0
+
+	for _, game := range games {
+		formatType := getGameFormat(game.TimeControl)
+		formatStats[formatType].Games++
+
+		if game.Result != nil {
+			isWhite := game.WhiteID != nil && *game.WhiteID == userID
+
+			if *game.Result == models.ResultDraw {
+				formatStats[formatType].Draws++
+				totalDraws++
+			} else {
+				isWinner := (*game.Result == models.ResultWhiteWin && isWhite) ||
+					(*game.Result == models.ResultBlackWin && !isWhite)
+
+				if isWinner {
+					formatStats[formatType].Wins++
+					totalWins++
+				} else {
+					formatStats[formatType].Losses++
+					totalLosses++
+				}
+			}
+		}
+	}
+
+	// Получаем рейтинги пользователя из таблицы users
+	type UserRatings struct {
+		BlitzRating  *int `gorm:"column:blitz_rating"`
+		BulletRating *int `gorm:"column:bullet_rating"`
+		RapidRating  *int `gorm:"column:rapid_rating"`
+		PuzzleRating *int `gorm:"column:puzzle_rating"`
+	}
+	var ratings UserRatings
+	err = s.db.WithContext(ctx).Table("users").
+		Select("blitz_rating, bullet_rating, rapid_rating, puzzle_rating").
+		Where("id = ?", userID).
+		First(&ratings).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	blitzRating := 1200
+	bulletRating := 1200
+	rapidRating := 1200
+	puzzleRating := 1200
+	if ratings.BlitzRating != nil {
+		blitzRating = *ratings.BlitzRating
+	}
+	if ratings.BulletRating != nil {
+		bulletRating = *ratings.BulletRating
+	}
+	if ratings.RapidRating != nil {
+		rapidRating = *ratings.RapidRating
+	}
+	if ratings.PuzzleRating != nil {
+		puzzleRating = *ratings.PuzzleRating
+	}
+
+	totalGames := totalWins + totalLosses + totalDraws
+	overallWinRate := 0.0
+	if totalGames > 0 {
+		overallWinRate = float64(totalWins) / float64(totalGames) * 100.0
+	}
+
+	// Формируем список статистики по форматам
+	byFormat := []models.GameFormatStats{}
+	for fmt, stats := range formatStats {
+		if stats.Games > 0 {
+			winRate := 0.0
+			if stats.Games > 0 {
+				winRate = float64(stats.Wins) / float64(stats.Games) * 100.0
+			}
+			byFormat = append(byFormat, models.GameFormatStats{
+				Format:      fmt,
+				GamesPlayed: stats.Games,
+				Wins:        stats.Wins,
+				Losses:      stats.Losses,
+				Draws:       stats.Draws,
+				WinRate:     math.Trunc(winRate*10+0.5) / 10, // Округление до 1 знака
+			})
+		}
+	}
+
+	return &models.UserGameStats{
+		TotalGames:     totalGames,
+		TotalWins:      totalWins,
+		TotalLosses:    totalLosses,
+		TotalDraws:     totalDraws,
+		OverallWinRate: math.Trunc(overallWinRate*10+0.5) / 10, // Округление до 1 знака
+		BlitzRating:    blitzRating,
+		BulletRating:   bulletRating,
+		RapidRating:    rapidRating,
+		PuzzleRating:   puzzleRating,
+		ByFormat:       byFormat,
+	}, nil
+}

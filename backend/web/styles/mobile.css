@@ -1,0 +1,367 @@
+/* Mobile-First Responsive Utilities */
+
+/* Typography adjustments */
+@media (max-width: 768px) {
+    html {
+        font-size: 14px;
+    }
+    
+    h1 {
+        font-size: 2.2rem !important;
+        line-height: 1.2 !important;
+    }
+    
+    h2 {
+        font-size: 1.75rem !important;
+    }
+    
+    h3 {
+        font-size: 1.25rem !important;
+    }
+    
+    p {
+        line-height: 1.7;
+    }
+    
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    h1 {
+        font-size: 2rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    html {
+        font-size: 13px;
+    }
+    
+    h1 {
+        font-size: 1.9rem !important;
+    }
+    
+    h2 {
+        font-size: 1.5rem !important;
+    }
+    
+    .container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}
+
+@media (max-width: 360px) {
+    h1 {
+        font-size: 1.6rem !important;
+    }
+    
+    h2 {
+        font-size: 1.35rem !important;
+    }
+}
+
+@media (max-width: 320px) {
+    html {
+        font-size: 12px;
+    }
+    
+    h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    h2 {
+        font-size: 1.25rem !important;
+    }
+    
+    h3 {
+        font-size: 1.1rem !important;
+    }
+    
+    .container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+
+/* Touch targets (минимум 48x48px для удобства) */
+@media (max-width: 768px) {
+    .btn {
+        min-height: 48px;
+        min-width: 48px;
+        padding: 0.875rem 1.75rem;
+    }
+    
+    .btn-lg {
+        min-height: 56px;
+        padding: 1.1rem 2.25rem;
+    }
+    
+    /* Увеличить пространство между кнопками */
+    .hero [style*="gap: 1rem"] {
+        gap: 1.25rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Кнопки на всю ширину в hero для удобства */
+    .hero .btn-lg {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .hero [style*="display: flex"] > .btn {
+        width: 100%;
+    }
+}
+
+/* Gradient text fallback для маленьких экранов */
+@media (max-width: 480px) {
+    .gradient-text {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+    }
+}
+
+/* Скрытие декоративных элементов на мобильных */
+@media (max-width: 768px) {
+    .floating-chess {
+        display: none;
+    }
+    
+    .chess-piece-decoration {
+        display: none;
+    }
+    
+    .about-decorations {
+        display: none;
+    }
+}
+
+/* Animations - reduce motion на мобильных для производительности */
+@media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
+    .hero-bg-gradient {
+        animation-duration: 30s;
+    }
+    
+    .feature-card {
+        animation-duration: 0.4s;
+    }
+}
+
+/* Оптимизация анимаций для экономии батареи на малых устройствах */
+@media (max-width: 480px) {
+    .hero-bg-gradient {
+        filter: blur(60px);
+    }
+    
+    .feature-card {
+        animation-duration: 0.3s;
+    }
+    
+    /* Упрощение теней для производительности */
+    .feature-card:hover {
+        box-shadow: 0 10px 20px rgba(124, 58, 237, 0.15);
+    }
+    
+    .stat-card:hover {
+        box-shadow: 0 15px 30px rgba(124, 58, 237, 0.25);
+    }
+}
+
+/* Отключение анимаций для пользователей с prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Accessibility - улучшенный focus для мобильных */
+@media (max-width: 768px) {
+    *:focus-visible {
+        outline: 3px solid var(--primary);
+        outline-offset: 3px;
+        border-radius: 4px;
+    }
+    
+    .btn:focus-visible {
+        outline: 3px solid var(--primary);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
+    }
+    
+    a:focus-visible {
+        outline: 3px solid var(--primary);
+        outline-offset: 2px;
+    }
+}
+
+/* Footer на мобильных */
+@media (max-width: 768px) {
+    .footer-grid {
+        grid-template-columns: 1fr !important;
+        gap: 2rem;
+    }
+    
+    .footer-brand {
+        max-width: 100%;
+    }
+    
+    .social-links {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .footer-content {
+        padding: 3rem 0 1.5rem;
+    }
+    
+    .footer-ornament {
+        gap: 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .social-link {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.1rem;
+    }
+    
+    .footer-bottom {
+        padding: 1.5rem 0;
+    }
+    
+    .footer-badges {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* Landscape orientation на мобильных */
+@media (max-width: 768px) and (orientation: landscape) {
+    .hero {
+        min-height: auto;
+        padding: 2rem 0;
+    }
+    
+    .hero-chessboard {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    .hero-content {
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) and (orientation: landscape) and (max-height: 500px) {
+    .hero {
+        padding: 1.5rem 0;
+    }
+    
+    .hero-chessboard {
+        max-width: 220px;
+    }
+    
+    h1 {
+        font-size: 1.75rem !important;
+    }
+    
+    .stats-grid {
+        margin-top: 1rem;
+    }
+}
+
+/* Очень маленькие экраны */
+@media (max-width: 360px) {
+    .btn {
+        font-size: 0.9rem;
+        padding: 0.75rem 1.25rem;
+    }
+    
+    .section-badge {
+        font-size: 0.7rem;
+        padding: 0.35rem 0.7rem;
+    }
+}
+
+/* Экстремально малые экраны (iPhone SE 1st gen, старые Android) */
+@media (max-width: 320px) {
+    .btn {
+        font-size: 0.85rem;
+        padding: 0.65rem 1rem;
+        min-height: 44px;
+    }
+    
+    .btn-lg {
+        font-size: 0.95rem;
+        padding: 0.85rem 1.5rem;
+        min-height: 52px;
+    }
+    
+    .section-badge {
+        font-size: 0.65rem;
+        padding: 0.3rem 0.6rem;
+    }
+    
+    .section-title {
+        font-size: 1.4rem !important;
+    }
+    
+    .section-description {
+        font-size: 0.9rem;
+    }
+}
+
+/* Вертикальные отступы секций - адаптивные */
+@media (max-width: 1024px) {
+    .features-section,
+    .how-it-works-section,
+    .faq-section {
+        padding: 4rem 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .features-section,
+    .how-it-works-section,
+    .faq-section {
+        padding: 3rem 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .features-section,
+    .how-it-works-section,
+    .faq-section {
+        padding: 2rem 0;
+    }
+}
+
+/* Tablet (средние экраны) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .steps-container {
+        grid-template-columns: 1fr;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+

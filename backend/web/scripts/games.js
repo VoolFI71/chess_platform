@@ -86,16 +86,11 @@
     return true;
   };
   
-  // Build URL helper - используем относительные пути для продакшена
+  // Build URL helper - используем относительные пути (работают через gateway)
   const buildUrl = (path) => {
     if (!path) return '';
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    // Для localhost используем порт 8080, для продакшена - относительные пути
-    const { protocol, hostname } = window.location;
-    const isLocalHost = hostname === '127.0.0.1' || hostname === 'localhost';
-    if (isLocalHost && !path.startsWith('/')) {
-      return `${protocol}//${hostname}:8080${path.startsWith('/') ? '' : '/'}${path}`;
-    }
+    // Возвращаем относительный путь - он будет работать через gateway на том же порту
     return path;
   };
 

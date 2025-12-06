@@ -68,6 +68,7 @@
 
   async function apiFetch(path, options = {}) {
     const headers = createHeaders(options);
+    // Используем относительный путь (работает через gateway на том же порту)
     const res = await fetch(path, { ...options, headers });
     if (res.status !== 401 && res.status !== 403) return res;
 

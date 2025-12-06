@@ -4,7 +4,7 @@
     background: var(--card);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
     padding: 1rem 0;
-    z-index: 100;
+    z-index: 1000;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     transition: background 0.3s ease, box-shadow 0.3s ease;
     /* Prevent layout shift during initialization */
@@ -35,6 +35,17 @@ html.dark .spaced-header {
     color: var(--foreground) !important;
 }
 
+/* Упрощение: используем только body.dark для консистентности */
+@media (prefers-color-scheme: dark) {
+    body.dark .header,
+    body.dark .spaced-header {
+        background: #2d2d2d !important;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
+        border-bottom: 1px solid #404040;
+        color: #f8fafc !important;
+    }
+}
+
 .header .container,
 .spaced-header .container {
     position: relative;
@@ -47,6 +58,139 @@ html.dark .spaced-header {
     .header .container,
     .spaced-header .container {
         padding: 0 3rem;
+    }
+}
+
+/* ===== LARGE MONITORS ADAPTATION ===== */
+/* Full HD (1920px) */
+@media (min-width: 1920px) {
+    .header .container,
+    .spaced-header .container {
+        max-width: 1600px;
+        padding: 0 4rem;
+    }
+    
+    .header,
+    .spaced-header {
+        padding: 1.25rem 0;
+    }
+    
+    .logo .gradient-text {
+        font-size: 1.625rem;
+    }
+    
+    .logo .gradient-text + div {
+        font-size: 0.875rem;
+    }
+    
+    .nav-link {
+        padding: 0.7rem 1.4rem;
+        font-size: 1.0625rem;
+    }
+    
+    .btn-login, .btn-register {
+        padding: 0.7rem 1.4rem;
+        font-size: 1.0625rem;
+    }
+    
+    .logo-icon {
+        width: 52px;
+        height: 52px;
+    }
+    
+    .theme-toggle,
+    .mobile-menu-btn,
+    .auth-icon-btn {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* 2K/QHD (2560px) */
+@media (min-width: 2560px) {
+    .header .container,
+    .spaced-header .container {
+        max-width: 1800px;
+        padding: 0 5rem;
+    }
+    
+    .header,
+    .spaced-header {
+        padding: 1.5rem 0;
+    }
+    
+    .logo .gradient-text {
+        font-size: 1.75rem;
+    }
+    
+    .logo .gradient-text + div {
+        font-size: 0.9375rem;
+    }
+    
+    .nav-link {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.125rem;
+    }
+    
+    .btn-login, .btn-register {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.125rem;
+    }
+    
+    .logo-icon {
+        width: 56px;
+        height: 56px;
+    }
+    
+    .theme-toggle,
+    .mobile-menu-btn,
+    .auth-icon-btn {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+/* 4K/UHD (3840px) */
+@media (min-width: 3840px) {
+    .header .container,
+    .spaced-header .container {
+        max-width: 2000px;
+        padding: 0 6rem;
+    }
+    
+    .header,
+    .spaced-header {
+        padding: 1.75rem 0;
+    }
+    
+    .logo .gradient-text {
+        font-size: 2rem;
+    }
+    
+    .logo .gradient-text + div {
+        font-size: 1rem;
+    }
+    
+    .nav-link {
+        padding: 0.8rem 1.6rem;
+        font-size: 1.25rem;
+    }
+    
+    .btn-login, .btn-register {
+        padding: 0.8rem 1.6rem;
+        font-size: 1.25rem;
+    }
+    
+    .logo-icon {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .theme-toggle,
+    .mobile-menu-btn,
+    .auth-icon-btn {
+        width: 52px;
+        height: 52px;
     }
 }
 
@@ -360,7 +504,7 @@ html.dark .theme-toggle #themeIcon.fa-moon {
     border-top: 2px solid var(--border);
     padding: 1.5rem;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
+    z-index: 999;
     transform: translateY(-100%);
     opacity: 0;
     visibility: hidden;
@@ -370,6 +514,12 @@ html.dark .theme-toggle #themeIcon.fa-moon {
     margin-top: 1rem;
     width: 100%;
     box-sizing: border-box;
+}
+
+/* Убеждаемся, что контейнер header имеет position: relative для правильного позиционирования mobile-menu */
+.header .container,
+.spaced-header .container {
+    position: relative;
 }
 
 .mobile-menu.active {

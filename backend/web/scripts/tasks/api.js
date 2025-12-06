@@ -23,9 +23,12 @@
       
       if (TasksState.selectedMode.id === 'rated') {
         const rating = window.TasksUtils.getCurrentPuzzleRating();
+        // Округляем рейтинг до кратного 50 для стабильности ключей кеша
+        // Это предотвращает создание новых кешей при каждом изменении рейтинга
+        const roundedRating = Math.round(rating / 50) * 50;
         const spread = 150;
-        params.set('rating_min', Math.max(400, rating - spread));
-        params.set('rating_max', Math.min(3500, rating + spread));
+        params.set('rating_min', Math.max(400, roundedRating - spread));
+        params.set('rating_max', Math.min(3500, roundedRating + spread));
       }
       
       // Если нужно исключить задачу, добавляем параметр (если API поддерживает)

@@ -1,5 +1,7 @@
 (function () {
   let modalScrollPosition = 0;
+  let lastFocusedElement = null;
+  let focusTrapElements = [];
 
   function lockScroll() {
     modalScrollPosition = window.pageYOffset || document.documentElement.scrollTop || 0;
@@ -25,11 +27,52 @@
     else unlockScroll();
   }
 
+  // Accessibility: Focus trap для модалок
+  function setupFocusTrap(modal) {
+    const focusableElements = modal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    focusTrapElements = Array.from(focusableElements);
+    
+    if (focusTrapElements.length > 0) {
+      const firstElement = focusTrapElements[0];
+      const lastElement = focusTrapElements[focusTrapElements.length - 1];
+      
+      modal.addEventListener('keydown', function trapFocus(e) {
+        if (e.key !== 'Tab') return;
+        
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      });
+      
+      // Фокус на первый элемент при открытии
+      setTimeout(() => firstElement.focus(), 100);
+    }
+  }
+
   function openModal(modalId, options = {}) {
     const modal = document.getElementById(modalId);
     if (!modal) return null;
+    
+    // Сохраняем последний сфокусированный элемент
+    lastFocusedElement = document.activeElement;
+    
     modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
     updateBodyScrollLock();
+    
+    // Setup focus trap
+    setupFocusTrap(modal);
+    
     if (typeof options.onOpen === 'function') {
       options.onOpen(modal);
     }
@@ -39,11 +82,23 @@
   function closeModal(modalId) {
     if (modalId) {
       const modal = document.getElementById(modalId);
-      if (modal) modal.classList.remove('active');
+      if (modal) {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+      }
     } else {
-      document.querySelectorAll('.modal.active').forEach((modal) => modal.classList.remove('active'));
+      document.querySelectorAll('.modal.active').forEach((modal) => {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+      });
     }
     updateBodyScrollLock();
+    
+    // Возвращаем фокус на элемент, который был до открытия модалки
+    if (lastFocusedElement && lastFocusedElement.focus) {
+      lastFocusedElement.focus();
+      lastFocusedElement = null;
+    }
   }
 
   function buildNextQuery() {

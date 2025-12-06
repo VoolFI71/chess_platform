@@ -4,7 +4,7 @@
     <meta name="yandex-verification" content="423b2105f7ad40ad" />
     <meta name="google-site-verification" content="fKYjBgD3rEnMS5_meTCbL_tQRcck2g0OhCEVYx9TIUk" />
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Шахматы онлайн - PowerChess | Играть, решать задачи, шахматы</title>
     
     <!-- SEO Meta Tags -->
@@ -21,8 +21,8 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://power-chess.ru/">
-    <meta property="og:title" content="PowerChess - Шахматная академия нового поколения">
-    <meta property="og:description" content="Революционная платформа для изучения шахмат. 10,000+ учеников, 50+ курсов, 20+ тренеров. Играйте онлайн, изучайте теорию, решайте задачи.">
+    <meta property="og:title" content="PowerChess - Шахматная платформа нового поколения">
+    <meta property="og:description" content="Платформа для изучения шахмат. 1.000.000+ задач. Играйте онлайн, изучайте теорию, решайте задачи.">
     <meta property="og:image" content="https://power-chess.ru/og-image.jpg">
     <meta property="og:locale" content="ru_RU">
     <meta property="og:site_name" content="PowerChess">
@@ -30,8 +30,8 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://power-chess.ru/">
-    <meta name="twitter:title" content="PowerChess - Шахматная академия нового поколения">
-    <meta name="twitter:description" content="Революционная платформа для изучения шахмат. 10,000+ учеников, 50+ курсов, 20+ тренеров.">
+    <meta name="twitter:title" content="PowerChess - Шахматная платформа нового поколения">
+    <meta name="twitter:description" content="латформа для изучения шахмат. 1.000.000+ задач. Играйте онлайн, изучайте теорию, решайте задачи.">
     <meta name="twitter:image" content="https://power-chess.ru/og-image.jpg">
     
     <!-- Загрузка темы до отрисовки страницы, чтобы избежать мерцания -->
@@ -47,7 +47,7 @@
       })();
     </script>
     
-    <!-- Structured Data (JSON-LD) -->
+    <!-- Structured Data (JSON-LD) - Organization -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -70,1504 +70,112 @@
     }
     </script>
     
-    <!-- Fonts -->
+    <!-- Structured Data (JSON-LD) - FAQ Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Нужно ли платить за использование платформы?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Нет! Базовый функционал полностью бесплатен и будет таким всегда. Вы можете решать задачи, играть партии и проходить некоторые курсы без оплаты. Premium подписка открывает дополнительные возможности: безлимитные задачи, AI анализ партий, эксклюзивные курсы."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Можно ли играть и решать задачи без регистрации?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Вы можете решать задачи без регистрации, но для сохранения прогресса и доступа к онлайн партиям потребуется создать аккаунт. Регистрация занимает всего 30 секунд - нужен только email и пароль."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Есть ли мобильное приложение?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Пока нет отдельного приложения для iOS/Android, но наш сайт полностью адаптирован для мобильных устройств. Вы можете играть, решать задачи и проходить курсы прямо в браузере на телефоне. Мобильное приложение в планах на 2025 год."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Как работает рейтинговая система?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Мы используем систему Elo (как на Lichess и Chess.com). Ваш рейтинг изменяется после каждой партии или решенной задачи в зависимости от результата и рейтинга оппонента/задачи. Начальный рейтинг - 1500. Система автоматически подбирает соперников и задачи вашего уровня."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Откуда берутся шахматные задачи?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Наша база содержит более 100,000 задач из реальных партий, собранных из открытых источников (Lichess, Chess.com) и созданных профессиональными тренерами. Все задачи проверены и имеют единственное правильное решение. Мы регулярно добавляем новые задачи."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Кто создает курсы?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Курсы создаются мастерами ФИДЕ, гроссмейстерами и опытными тренерами с многолетним стажем. Каждый курс проходит проверку качества. Мы также принимаем курсы от сообщества - если вы тренер, свяжитесь с нами!"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Как связаться с поддержкой?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Вы можете написать нам на email: support@power-chess.ru или через форму обратной связи в вашем профиле. Мы отвечаем в течение 24 часов. Для срочных вопросов используйте наш Telegram канал."
+          }
+        }
+      ]
+    }
+    </script>
+    
+    <!-- DNS Prefetch & Preconnect для производительности -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome - defer для не критичных иконок -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
 
     <!-- Common Styles -->
     <link rel="stylesheet" href="/styles/variables.css">
     <link rel="stylesheet" href="/styles/common.css">
     <link rel="stylesheet" href="/styles/notifications.css">
     <link rel="stylesheet" href="/styles/index.css">
-    <link rel="stylesheet" href="styles/header.css">
+    <link rel="stylesheet" href="/styles/header.css">
+    <link rel="stylesheet" href="/styles/hero.css">
+    <link rel="stylesheet" href="/styles/features.css">
+    <link rel="stylesheet" href="/styles/faq.css">
+    <link rel="stylesheet" href="/styles/how-it-works.css">
+    <link rel="stylesheet" href="/styles/modals.css">
+    <link rel="stylesheet" href="/styles/index-page.css">
+    <link rel="stylesheet" href="/styles/footer.css">
+    <link rel="stylesheet" href="/styles/mobile.css">
 
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♔</text></svg>">
     
-    <style>
-        /* ===== INDEX-SPECIFIC STYLES ===== */
-        /* Общие стили вынесены в common.css и variables.css */
-        
-
-        /* ===== MODALS ===== */
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(59, 130, 246, 0.8), rgba(16, 185, 129, 0.7));
-            backdrop-filter: blur(20px);
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .modal::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.1), transparent 70%);
-            animation: modalGlow 4s ease-in-out infinite alternate;
-        }
-
-        @keyframes modalGlow {
-            0% { opacity: 0.3; }
-            100% { opacity: 0.7; }
-        }
-
-        .modal.active {
-            display: flex;
-            opacity: 1;
-        }
-
-        .modal-content {
-            background: linear-gradient(135deg, #ffffff, #f8fafc);
-            border-radius: 2.5rem;
-            padding: 3rem 2.5rem;
-            max-width: min(480px, calc(100vw - 2rem));
-            width: calc(100% - 2rem);
-            max-height: calc(100vh - 4rem);
-            overflow-y: auto;
-            box-shadow:
-                0 35px 60px rgba(0, 0, 0, 0.3),
-                0 0 100px rgba(124, 58, 237, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            transform: scale(0.8) translateY(50px);
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-            border: 2px solid rgba(255, 215, 0, 0.3);
-        }
-
-        body.dark .modal-content {
-            background: linear-gradient(135deg, #1e1e3f, #0f0f23);
-            border-color: rgba(139, 92, 246, 0.3);
-        }
-
-        @media (max-width: 480px) {
-            .modal-content {
-                padding: 2.5rem 2rem;
-                max-width: calc(100vw - 1rem);
-                width: calc(100vw - 1rem);
-                border-radius: 2rem;
-            }
-        }
-
-        @media (max-height: 700px) {
-            .modal-content {
-                max-height: calc(100vh - 2rem);
-                padding: 2.5rem 2rem;
-            }
-        }
-
-        .modal.active .modal-content {
-            transform: scale(1) translateY(0);
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
-            background: linear-gradient(135deg, #ff4757, #ff3838);
-            border: none;
-            border-radius: 50%;
-            width: 3rem;
-            height: 3rem;
-            font-size: 1.2rem;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-close:hover {
-            transform: rotate(90deg) scale(1.1);
-            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.5);
-            background: linear-gradient(135deg, #ff3838, #ff4757);
-        }
-
-        .modal-header {
-            text-align: center;
-            margin-bottom: 2.5rem;
-            position: relative;
-        }
-
-        .modal-header h3 {
-            font-size: 2.25rem;
-            margin-bottom: 0.75rem;
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 800;
-        }
-
-        .modal-header p {
-            color: var(--muted);
-            font-size: 1.1rem;
-            margin-top: 0.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 2rem;
-            position: relative;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 0.75rem;
-            font-weight: 700;
-            color: var(--text-light);
-            font-size: 1.1rem;
-            position: relative;
-        }
-
-        .form-label::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 30px;
-            height: 2px;
-            background: linear-gradient(90deg, #7c3aed, #3b82f6);
-            border-radius: 1px;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 1.25rem 1.5rem;
-            border: 2px solid rgba(124, 58, 237, 0.2);
-            border-radius: 1.25rem;
-            font-size: 1.1rem;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            background: rgba(255, 255, 255, 0.9);
-            color: var(--text-light);
-            backdrop-filter: blur(10px);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .form-input::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.1), transparent);
-            transition: left 0.5s;
-        }
-
-        body.dark .form-input {
-            background: rgba(30, 30, 63, 0.9);
-            border-color: rgba(139, 92, 246, 0.2);
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #7c3aed;
-            box-shadow:
-                0 0 0 4px rgba(124, 58, 237, 0.15),
-                0 8px 25px rgba(124, 58, 237, 0.2);
-            background: rgba(255, 255, 255, 1);
-            transform: translateY(-2px);
-        }
-
-        body.dark .form-input:focus {
-            background: rgba(30, 30, 63, 1);
-            border-color: #8b5cf6;
-            box-shadow:
-                0 0 0 4px rgba(139, 92, 246, 0.15),
-                0 8px 25px rgba(139, 92, 246, 0.2);
-        }
-
-        .form-input::placeholder {
-            color: var(--muted);
-            font-style: italic;
-        }
-
-        .form-input:focus::placeholder {
-            color: rgba(124, 58, 237, 0.6);
-        }
-
-        .form-footer {
-            text-align: center;
-            margin-top: 2rem;
-            color: var(--muted);
-            font-size: 1rem;
-        }
-
-        .form-footer a {
-            color: #7c3aed;
-            text-decoration: none;
-            font-weight: 700;
-            transition: all 0.3s;
-            position: relative;
-        }
-
-        .form-footer a::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #7c3aed, #3b82f6);
-            transition: width 0.3s;
-        }
-
-        .form-footer a:hover {
-            color: #3b82f6;
-        }
-
-        .form-footer a:hover::after {
-            width: 100%;
-        }
-
-        .modal-btn {
-            font-size: 1.1rem !important;
-            padding: 1.5rem 2rem !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.5px !important;
-            position: relative !important;
-            overflow: hidden !important;
-        }
-
-        .btn-shine {
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            animation: shine 2s infinite;
-        }
-
-        @keyframes shine {
-            0% { left: -100%; }
-            50% { left: 100%; }
-            100% { left: -100%; }
-        }
-
-        .modal-logo {
-            animation: logoFloat 3s ease-in-out infinite;
-        }
-
-        @keyframes logoFloat {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-10px) rotate(2deg); }
-        }
-
-        .chess-board {
-            width: 250px;
-            height: 250px;
-            margin: 0 auto 2rem;
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            border: 3px solid #8b4513;
-            border-radius: 1rem;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .chess-square {
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-        }
-
-        .chess-square.light {
-            background: #f0d9b5;
-        }
-
-        .chess-square.dark {
-            background: #b58863;
-        }
-
-        /* ===== HERO SECTION ===== */
-        .hero {
-            padding: 5rem 0 3rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero-bg {
-            position: absolute;
-            inset: 0;
-            z-index: -1;
-        }
-
-        .hero-bg-gradient {
-            position: absolute;
-            top: 20%;
-            left: 10%;
-            width: 30rem;
-            height: 30rem;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(6, 182, 212, 0.15));
-            border-radius: 50%;
-            filter: blur(80px);
-        }
-
-        .hero-bg-gradient:nth-child(2) {
-            top: auto;
-            bottom: 10%;
-            left: auto;
-            right: 10%;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.15));
-        }
-
-        .hero-content {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 3rem;
-            align-items: center;
-        }
-
-        @media (min-width: 1024px) {
-            .hero-content {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-            margin-top: 3rem;
-        }
-
-        @media (min-width: 768px) {
-            .stats-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
-        .stat-card {
-            text-align: center;
-            padding: 2rem 1rem;
-            border-radius: 1.5rem;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(20px);
-            border: 2px solid rgba(124, 58, 237, 0.1);
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        body.dark .stat-card {
-            background: rgba(30, 30, 63, 0.8);
-            border-color: rgba(139, 92, 246, 0.3);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-10px) scale(1.05);
-            box-shadow: 0 25px 50px rgba(124, 58, 237, 0.4);
-        }
-
-        .stat-icon {
-            width: 4rem;
-            height: 4rem;
-            margin: 0 auto 1rem;
-            border-radius: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.75rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .stat-label {
-            font-size: 0.875rem;
-            color: var(--muted);
-            font-weight: 600;
-        }
-
-        /* ===== PLATFORM FEATURES ===== */
-        .platform-board {
-            aspect-ratio: 1;
-            border-radius: 2rem;
-            background: linear-gradient(135deg, #f3e8ff, #ddd6fe);
-            border: 2px solid rgba(139, 92, 246, 0.2);
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 25px 50px rgba(124, 58, 237, 0.2);
-        }
-
-        body.dark .platform-board {
-            background: linear-gradient(135deg, #1e1b4b, #312e81);
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            padding: 2rem;
-            height: 100%;
-        }
-
-        @media (min-width: 768px) {
-            .features-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        .feature-item {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            padding: 1.5rem 1rem;
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            transition: all 0.3s;
-            text-align: center;
-        }
-
-        body.dark .feature-item {
-            background: rgba(30, 30, 63, 0.95);
-        }
-
-        .feature-item:hover {
-            transform: scale(1.1);
-            box-shadow: 0 15px 35px rgba(124, 58, 237, 0.3);
-        }
-
-        .feature-icon {
-            width: 3rem;
-            height: 3rem;
-            margin: 0 auto 0.75rem;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(59, 130, 246, 0.1));
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-
-        .corner-badge {
-            position: absolute;
-            width: 4.5rem;
-            height: 4.5rem;
-            border-radius: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s;
-            z-index: 10;
-        }
-
-        .corner-badge:hover {
-            transform: scale(1.15) rotate(0deg) !important;
-        }
-
-        .corner-badge i {
-            font-size: 1.75rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .corner-badge span {
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-
-        /* ===== FREE COURSE SECTION ===== */
-        .free-course-section {
-            padding: 6rem 0;
-            background: linear-gradient(135deg, #faf5ff, #ede9fe);
-        }
-
-        body.dark .free-course-section {
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(59, 130, 246, 0.05));
-        }
-
-        .course-card-header {
-            text-align: center;
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            color: white;
-            padding: 3rem 2rem;
-            border-radius: 1.5rem 1.5rem 0 0;
-        }
-
-        .course-icon-wrapper {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .course-icon {
-            width: 5rem;
-            height: 5rem;
-            background: linear-gradient(135deg, #ef4444, #f97316, #fbbf24);
-            border-radius: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        .course-emoji {
-            font-size: 3rem;
-            animation: bounce 2s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .collapsible-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .collapsible-content.active {
-            max-height: 3000px;
-        }
-
-        .course-includes-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1rem;
-            margin: 2rem 0;
-        }
-
-        @media (min-width: 768px) {
-            .course-includes-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        .course-include-item {
-            display: flex;
-            gap: 1rem;
-            padding: 1.5rem;
-            background: rgba(124, 58, 237, 0.05);
-            border-radius: 1rem;
-            border: 1px solid rgba(124, 58, 237, 0.1);
-            transition: all 0.3s;
-        }
-
-        .course-include-item:hover {
-            background: rgba(124, 58, 237, 0.1);
-            transform: translateX(5px);
-        }
-
-        .course-include-icon {
-            width: 3.5rem;
-            height: 3.5rem;
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            flex-shrink: 0;
-        }
-
-        /* ===== PREMIUM COURSES WITH CIVILIZED COVERS ===== */
-        .courses-section {
-            padding: 6rem 0;
-        }
-
-        .courses-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-
-        @media (min-width: 768px) {
-            .courses-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        .course-card {
-            background: var(--card-light);
-            border-radius: 2rem;
-            overflow: hidden;
-            border: 2px solid var(--border-light);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-        }
-
-        body.dark .course-card {
-            background: var(--card-dark);
-            border-color: var(--border-dark);
-        }
-
-        .course-card:hover {
-            transform: translateY(-15px) scale(1.02);
-            box-shadow: 0 30px 60px rgba(124, 58, 237, 0.4);
-        }
-
-        .course-image {
-            width: 100%;
-            height: 280px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Civilized Course Covers */
-        .course-cover-basic {
-            background: 
-                radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.3), transparent 50%),
-                radial-gradient(circle at 70% 70%, rgba(59, 130, 246, 0.3), transparent 50%),
-                linear-gradient(135deg, #7c3aed, #3b82f6);
-            position: relative;
-        }
-
-        .course-cover-basic::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: 
-                linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-            background-size: 200% 200%;
-            animation: shimmer 3s infinite;
-        }
-
-        .course-cover-tactical {
-            background: 
-                radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.3), transparent 50%),
-                radial-gradient(circle at 70% 70%, rgba(5, 150, 105, 0.3), transparent 50%),
-                linear-gradient(135deg, #10b981, #059669);
-            position: relative;
-        }
-
-        .course-cover-tactical::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image: 
-                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 255, 255, 0.05) 10px, rgba(255, 255, 255, 0.05) 20px);
-        }
-
-        .course-cover-master {
-            background: 
-                radial-gradient(circle at 30% 30%, rgba(245, 158, 11, 0.3), transparent 50%),
-                radial-gradient(circle at 70% 70%, rgba(220, 38, 38, 0.3), transparent 50%),
-                linear-gradient(135deg, #f59e0b, #dc2626);
-            position: relative;
-        }
-
-        .course-cover-master::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: 
-                radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.2), transparent 70%);
-        }
-
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
-        .course-image::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1));
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .course-card:hover .course-image::after {
-            opacity: 1;
-        }
-
-        .course-image i {
-            font-size: 7rem;
-            color: white;
-            position: relative;
-            z-index: 2;
-            transition: transform 0.3s;
-            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
-        }
-
-        .course-card:hover .course-image i {
-            transform: scale(1.1) rotate(5deg);
-        }
-
-        .course-level-badge {
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
-            padding: 0.75rem 1.25rem;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            color: white;
-            border-radius: 2rem;
-            font-size: 0.875rem;
-            font-weight: 700;
-            z-index: 3;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .course-body {
-            padding: 2rem;
-        }
-
-        .course-price {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 2px solid var(--border-light);
-        }
-
-        body.dark .course-price {
-            border-color: var(--border-dark);
-        }
-
-        .price-tag {
-            font-size: 2rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* ===== ENHANCED ABOUT SECTION ===== */
-        .about-section {
-            padding: 6rem 0;
-            background: linear-gradient(135deg, #fafafa, #f5f3ff);
-            position: relative;
-            overflow: hidden;
-        }
-
-        body.dark .about-section {
-            background: linear-gradient(135deg, #0f0f23, #1e1b4b);
-        }
-
-        .about-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.1), transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1), transparent 50%);
-            pointer-events: none;
-        }
-
-        .about-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 4rem;
-            align-items: center;
-            position: relative;
-            z-index: 2;
-        }
-
-        @media (min-width: 1024px) {
-            .about-grid {
-                grid-template-columns: 1.2fr 0.8fr;
-            }
-        }
-
-        .about-features {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .about-feature {
-            text-align: center;
-            padding: 2rem 1.5rem;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border-radius: 1.5rem;
-            transition: all 0.3s;
-            border: 2px solid rgba(124, 58, 237, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        body.dark .about-feature {
-            background: rgba(30, 30, 63, 0.8);
-        }
-
-        .about-feature::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(124, 58, 237, 0.1), transparent);
-            transform: rotate(45deg);
-            transition: all 0.5s;
-        }
-
-        .about-feature:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(124, 58, 237, 0.2);
-            border-color: rgba(124, 58, 237, 0.3);
-        }
-
-        .about-feature:hover::before {
-            animation: shimmerMove 1s;
-        }
-
-        @keyframes shimmerMove {
-            from { transform: translateX(-100%) rotate(45deg); }
-            to { transform: translateX(100%) rotate(45deg); }
-        }
-
-        .about-feature-icon {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            position: relative;
-            z-index: 2;
-        }
-
-        .about-visual {
-            position: relative;
-        }
-
-        .about-image {
-            aspect-ratio: 1;
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            border-radius: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 25px 50px rgba(124, 58, 237, 0.3);
-        }
-
-        .about-image i {
-            font-size: 10rem;
-            color: white;
-            opacity: 0.9;
-            position: relative;
-            z-index: 2;
-        }
-
-        .about-image .chess-pattern {
-            opacity: 0.15;
-        }
-
-        .about-decorations {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-        }
-
-        .about-float-icon {
-            position: absolute;
-            font-size: 2rem;
-            color: white;
-            opacity: 0.3;
-            animation: aboutFloat 4s ease-in-out infinite;
-        }
-
-        .about-float-icon:nth-child(1) {
-            top: 10%;
-            left: 10%;
-            animation-delay: 0s;
-        }
-
-        .about-float-icon:nth-child(2) {
-            top: 20%;
-            right: 15%;
-            animation-delay: 1s;
-        }
-
-        .about-float-icon:nth-child(3) {
-            bottom: 20%;
-            left: 15%;
-            animation-delay: 2s;
-        }
-
-        .about-float-icon:nth-child(4) {
-            bottom: 15%;
-            right: 10%;
-            animation-delay: 3s;
-        }
-
-        @keyframes aboutFloat {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(10deg); }
-        }
-
-        .rating-stars {
-            color: #fbbf24;
-            font-size: 1.25rem;
-        }
-
-        .review-course-tag {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 1rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-top: 1rem;
-        }
-
-        /* ===== CONSULTATION SECTION ===== */
-        .consultation-section {
-            padding: 6rem 0;
-        }
-
-        .cta-card {
-            background: linear-gradient(135deg, #7c3aed, #3b82f6);
-            color: white;
-            padding: 4rem;
-            border-radius: 2rem;
-            text-align: center;
-            box-shadow: 0 25px 50px rgba(124, 58, 237, 0.4);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cta-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">♔</text></svg>') repeat;
-            background-size: 100px 100px;
-            opacity: 0.1;
-            animation: float 20s linear infinite;
-        }
-
-        .cta-content {
-            position: relative;
-            z-index: 2;
-        }
-
-        /* ===== ENHANCED FOOTER ===== */
-        .footer {
-            background: linear-gradient(135deg, var(--dark-wood), var(--light-wood));
-            position: relative;
-            overflow: hidden;
-            margin-top: 4rem;
-            padding: 0;
-        }
-
-        .footer::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: 
-                linear-gradient(45deg, var(--board-light) 25%, transparent 25%),
-                linear-gradient(-45deg, var(--board-light) 25%, transparent 25%),
-                linear-gradient(45deg, transparent 75%, var(--board-light) 75%),
-                linear-gradient(-45deg, transparent 75%, var(--board-light) 75%);
-            background-size: 60px 60px;
-            background-position: 0 0, 0 30px, 30px -30px, -30px 0px;
-            opacity: 0.05;
-        }
-
-        .footer-top {
-            background: linear-gradient(180deg, rgba(0,0,0,0.3), transparent);
-            padding: 1rem 0;
-            border-bottom: 3px solid rgba(255, 215, 0, 0.3);
-        }
-
-        .footer-ornament {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            font-size: 2rem;
-            opacity: 0.6;
-        }
-
-        .footer-ornament span {
-            animation: float 3s ease-in-out infinite;
-        }
-
-        .footer-ornament span:nth-child(1) { animation-delay: 0s; }
-        .footer-ornament span:nth-child(2) { animation-delay: 0.5s; }
-        .footer-ornament span:nth-child(3) { animation-delay: 1s; }
-        .footer-ornament span:nth-child(4) { animation-delay: 1.5s; }
-        .footer-ornament span:nth-child(5) { animation-delay: 2s; }
-        .footer-ornament span:nth-child(6) { animation-delay: 2.5s; }
-
-        .footer-content {
-            position: relative;
-            z-index: 2;
-            padding: 4rem 0 2rem;
-        }
-
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 3rem;
-            margin-bottom: 3rem;
-        }
-
-        @media (min-width: 768px) {
-            .footer-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .footer-grid {
-                grid-template-columns: 2fr 1fr 1fr 1fr;
-            }
-        }
-
-        .footer-brand {
-            max-width: 400px;
-        }
-
-        .footer-brand h3 {
-            color: #ffd700;
-            margin-bottom: 1rem;
-            font-size: 1.75rem;
-            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
-        }
-
-        .footer-brand p {
-            color: rgba(255, 255, 255, 0.8);
-            line-height: 1.7;
-        }
-
-        .footer-section h4 {
-            color: #ffd700;
-            margin-bottom: 1.5rem;
-            font-size: 1.25rem;
-            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
-        }
-
-        .footer-links {
-            list-style: none;
-        }
-
-        .footer-links li {
-            margin-bottom: 0.75rem;
-        }
-
-        .footer-links a {
-            color: rgba(255, 255, 255, 0.7);
-            text-decoration: none;
-            transition: all 0.3s;
-            display: inline-block;
-        }
-
-        .footer-links a:hover {
-            color: #ffd700;
-            padding-left: 0.5rem;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
-
-        .social-links {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-
-        .social-link {
-            width: 3.5rem;
-            height: 3.5rem;
-            background: linear-gradient(135deg, #ffd700, #ffed4e);
-            color: var(--dark-wood);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
-            font-size: 1.25rem;
-        }
-
-        .social-link:hover {
-            transform: translateY(-5px) scale(1.1);
-            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
-            background: linear-gradient(135deg, #ffed4e, #ffd700);
-        }
-
-        .footer-bottom {
-            border-top: 2px solid rgba(255, 215, 0, 0.2);
-            padding: 2rem 0;
-            background: linear-gradient(180deg, transparent, rgba(0,0,0,0.3));
-        }
-
-        .footer-bottom-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-            text-align: center;
-        }
-
-        @media (min-width: 768px) {
-            .footer-bottom-content {
-                flex-direction: row;
-                justify-content: space-between;
-            }
-        }
-
-        .footer-copyright {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.875rem;
-        }
-
-        .footer-badges {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .footer-badge {
-            padding: 0.5rem 1rem;
-            background: rgba(255, 215, 0, 0.1);
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            border-radius: 2rem;
-            color: #ffd700;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .chess-piece-decoration {
-            position: absolute;
-            font-size: 10rem;
-            opacity: 0.03;
-            pointer-events: none;
-        }
-
-        .chess-piece-decoration:nth-child(1) { top: 10%; left: 5%; }
-        .chess-piece-decoration:nth-child(2) { top: 50%; right: 10%; }
-        .chess-piece-decoration:nth-child(3) { bottom: 10%; left: 15%; }
-
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 768px) {
-            html { font-size: 14px; }
-            h1 { font-size: 2rem; }
-            /* Стили для header вынесены в header.css */
-            .hero { padding: 4.5rem 0 2.5rem; }
-            .btn { padding: 0.875rem 1.5rem; }
-        }
-
-        @media (max-width: 1024px) {
-            .auth-buttons { display: none; }
-            .user-actions { display: flex; }
-        }
-
-        @media (max-width: 480px) {
-            .auth-buttons { display: none; }
-            /* Стили для nav-link вынесены в header.css */
-        }
-
-        .modal.active .modal-content {
-            transform: scale(1) translateY(0);
-        }
-
-        .auth-modal {
-            background: rgba(15, 23, 42, 0.78);
-            padding: 1rem;
-        }
-
-        .auth-modal::before {
-            display: none;
-        }
-
-        .auth-modal .modal-content {
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
-            border-radius: 1.5rem;
-            padding: 2.5rem;
-            max-width: min(430px, calc(100vw - 2rem));
-            width: 100%;
-            box-shadow: 0 30px 70px rgba(15, 23, 42, 0.35);
-            border: 1px solid rgba(124, 58, 237, 0.14);
-            transform: translateY(24px);
-            transition: transform 0.35s ease, box-shadow 0.35s ease;
-        }
-
-        .auth-modal.active .modal-content {
-            transform: translateY(0);
-        }
-
-        body.dark .auth-modal .modal-content {
-            background: linear-gradient(160deg, rgba(17, 24, 39, 0.98), rgba(30, 41, 59, 0.94));
-            border-color: rgba(139, 92, 246, 0.25);
-            box-shadow: 0 28px 70px rgba(2, 6, 23, 0.6);
-        }
-
-        .auth-modal .modal-close {
-            background: rgba(148, 163, 184, 0.18);
-            border: none;
-            width: 2.5rem;
-            height: 2.5rem;
-            font-size: 1rem;
-            color: var(--text-light);
-            display: grid;
-            place-items: center;
-            border-radius: 999px;
-            transition: all 0.2s ease;
-        }
-
-        body.dark .auth-modal .modal-close {
-            background: rgba(148, 163, 184, 0.12);
-            color: #e2e8f0;
-        }
-
-        .auth-modal .modal-close:hover {
-            background: rgba(59, 130, 246, 0.22);
-            color: #1e3a8a;
-            transform: translateY(-1px);
-        }
-
-        body.dark .auth-modal .modal-close:hover {
-            background: rgba(59, 130, 246, 0.32);
-            color: #dbeafe;
-        }
-
-        .auth-modal .modal-header {
-            padding: 0;
-            border: none;
-            background: transparent;
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .auth-modal .modal-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.35rem 0.85rem;
-            border-radius: 999px;
-            background: rgba(59, 130, 246, 0.12);
-            color: #2563eb;
-            font-weight: 600;
-            font-size: 0.85rem;
-            margin-bottom: 1rem;
-        }
-
-        body.dark .auth-modal .modal-badge {
-            background: rgba(59, 130, 246, 0.18);
-            color: #93c5fd;
-        }
-
-        .auth-modal .modal-title {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--text-light);
-            margin-bottom: 0.75rem;
-        }
-
-        .auth-modal .modal-subtitle {
-            color: var(--muted);
-            font-size: 1rem;
-        }
-
-        body.dark .auth-modal .modal-subtitle {
-            color: rgba(203, 213, 225, 0.9);
-        }
-
-        .auth-modal .modal-benefits {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            margin-bottom: 2rem;
-        }
-
-        .auth-modal .modal-benefit {
-            flex: 1 1 150px;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            padding: 0.75rem 1rem;
-            border-radius: 1rem;
-            background: rgba(79, 70, 229, 0.08);
-            color: var(--muted);
-        }
-
-        body.dark .auth-modal .modal-benefit {
-            background: rgba(79, 70, 229, 0.18);
-            color: rgba(226, 232, 240, 0.9);
-        }
-
-        .auth-modal .modal-benefit i {
-            color: #6366f1;
-            font-size: 1rem;
-        }
-
-        body.dark .auth-modal .modal-benefit i {
-            color: #a5b4fc;
-        }
-
-        .auth-modal .modal-form {
-            display: grid;
-            gap: 1.25rem;
-        }
-
-        .auth-modal .form-group {
-            display: grid;
-            gap: 0.6rem;
-        }
-
-        .auth-modal .form-label {
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: var(--text-light);
-        }
-
-        body.dark .auth-modal .form-label {
-            color: #e2e8f0;
-        }
-
-        .auth-modal .form-label::after {
-            display: none;
-        }
-
-        .auth-modal .form-input {
-            width: 100%;
-            padding: 0.95rem 1.1rem;
-            border-radius: 0.9rem;
-            border: 1px solid rgba(148, 163, 184, 0.45);
-            background: rgba(255, 255, 255, 0.9);
-            color: var(--text-light);
-            font-size: 1rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        body.dark .auth-modal .form-input {
-            background: rgba(17, 24, 39, 0.95);
-            border-color: rgba(148, 163, 184, 0.28);
-            color: #f8fafc;
-        }
-
-        .auth-modal .form-input:focus {
-            outline: none;
-            border-color: #7c3aed;
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
-        }
-
-        body.dark .auth-modal .form-input:focus {
-            border-color: #8b5cf6;
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
-        }
-
-        .auth-modal .form-extra {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9rem;
-            color: var(--muted);
-            gap: 1rem;
-        }
-
-        .auth-modal .form-remember {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: inherit;
-        }
-
-        .auth-modal .form-remember input {
-            width: 1rem;
-            height: 1rem;
-            accent-color: #7c3aed;
-        }
-
-        .auth-modal .form-extra a {
-            color: #3b82f6;
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .auth-modal .modal-submit {
-            width: 100%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-            font-size: 1rem;
-        }
-
-        .auth-modal .modal-note {
-            margin-top: 1.25rem;
-            text-align: center;
-            font-size: 0.9rem;
-            color: var(--muted);
-        }
-
-        .auth-modal .modal-note i {
-            margin-right: 0.35rem;
-            color: #10b981;
-        }
-
-        .auth-modal .modal-switch {
-            margin-top: 1.75rem;
-            text-align: center;
-            font-size: 0.95rem;
-            color: var(--muted);
-        }
-
-        .auth-modal .modal-switch a {
-            color: #7c3aed;
-            font-weight: 600;
-        }
-
-        .auth-modal .modal-switch a:hover {
-            color: #4f46e5;
-        }
-
-        @media (max-width: 480px) {
-            .auth-modal .modal-content {
-                padding: 2.25rem 1.75rem;
-            }
-
-            .auth-modal .modal-benefits {
-                flex-direction: column;
-            }
-
-            .auth-modal .form-extra {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.75rem;
-            }
-        }
-    </style>
+    <!-- Performance: Preload critical resources -->
+    <link rel="preload" href="/styles/variables.css" as="style">
+    <link rel="preload" href="/styles/common.css" as="style">
 </head>
 
 <body>
+    <!-- Skip to main content для accessibility -->
+    <a href="#main-content" class="skip-to-content">Перейти к основному содержимому</a>
     <!-- Background Elements -->
     <div style="position: fixed; inset: 0; z-index: 0;">
         <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(124, 58, 237, 0.03), rgba(59, 130, 246, 0.03));"></div>
@@ -1659,9 +267,9 @@
     </header>
 
     <!-- Main Content -->
-    <main style="position: relative; z-index: 10;">
+    <main id="main-content" style="position: relative; z-index: 10;" role="main">
         <!-- Hero Section -->
-        <section class="hero">
+        <section class="hero" aria-labelledby="hero-heading">
             <div class="hero-bg">
                 <div class="hero-bg-gradient"></div>
                 <div class="hero-bg-gradient"></div>
@@ -1671,23 +279,41 @@
                 <div class="hero-content">
                     <!-- Left Content -->
                     <div>
-                        <div class="badge badge-primary" style="margin-bottom: 2rem;">
-                            🚀 Новая эра шахматного обучения
+                        <div class="badge badge-primary" style="margin-bottom: 2rem; animation: fadeInUp 0.6s ease-out;" role="text">
+                            <i class="fas fa-chess-knight" aria-hidden="true"></i> Шахматная платформа нового поколения
                         </div>
-                        <h1 style="margin-bottom: 1.5rem; font-family: 'Roboto', sans-serif;">
-                            Шахматы онлайн: играть, решать задачи, учиться <span class="gradient-text" style="font-family: 'Roboto', sans-serif;">шахматам</span>
+                        <h1 id="hero-heading" style="margin-bottom: 1.5rem; font-family: 'Roboto', sans-serif; animation: fadeInUp 0.8s ease-out; font-size: 3.5rem; line-height: 1.1;">
+                            Прокачай свои <span class="gradient-text" style="font-family: 'Roboto', sans-serif;">шахматы</span> до нового уровня
                         </h1>
-                        <p style="font-size: 1.25rem; color: var(--muted); max-width: 600px; margin-bottom: 2.5rem;">
-                            Присоединяйтесь к революции в шахматном обучении! Наша платформа поможет вам стать мастером быстрее.
+                        <p style="font-size: 1.25rem; color: var(--muted); max-width: 600px; margin-bottom: 2.5rem; animation: fadeInUp 1s ease-out;">
+                            Решай тысячи задач, играй партии в реальном времени, учись у профессионалов. Всё в одном месте.
                         </p>
 
-                        <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 3rem;">
-                            <a href="/games" class="btn btn-primary btn-lg">
-                                ♟ Играть
+                        <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; animation: fadeInUp 1.2s ease-out;">
+                            <a href="/tasks.html" class="btn btn-primary btn-lg" style="padding: 1.2rem 2.5rem; font-size: 1.125rem;" aria-label="Начать решать шахматные задачи бесплатно">
+                                <i class="fas fa-rocket" aria-hidden="true"></i> Начать бесплатно
+                            </a>
+                            <a href="/games.html" class="btn btn-secondary btn-lg" style="padding: 1.2rem 2.5rem; font-size: 1.125rem;" aria-label="Начать играть партию в шахматы">
+                                <i class="fas fa-chess" aria-hidden="true"></i> Играть партию
                             </a>
                         </div>
 
-                        <!-- Stats -->
+                        <div style="display: flex; gap: 2rem; margin-bottom: 3rem; flex-wrap: wrap; animation: fadeInUp 1.4s ease-out;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 0.95rem;">
+                                <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                                <span>Без рекламы</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 0.95rem;">
+                                <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                                <span>100,000+ задач</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 0.95rem;">
+                                <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                                <span id="heroOnlineCount">Онлайн игроки</span>
+                            </div>
+                        </div>
+
+                        <!-- Live Stats Mini -->
                         <div class="stats-grid">
                             <div class="stat-card">
                                 <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #3b82f6);">
@@ -1720,40 +346,15 @@
                         </div>
                     </div>
 
-                    <!-- Right Content - Platform Board -->
-                    <div style="position: relative;">
-                        <div class="platform-board">
-                            <div class="features-grid">
-                                <div class="feature-item">
-                                    <div class="feature-icon"><i class="fas fa-puzzle-piece" style="color: #3b82f6;"></i></div>
-                                    <div style="font-weight: 600; font-size: 0.875rem;">Chess Puzzle</div>
-                                    <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Решение задач</div>
-                                </div>
-                                <div class="feature-item">
-                                    <div class="feature-icon"><i class="fas fa-chart-line" style="color: #10b981;"></i></div>
-                                    <div style="font-weight: 600; font-size: 0.875rem;">Статистика</div>
-                                    <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Ваш прогресс</div>
-                                </div>
-                                <div class="feature-item">
-                                    <div class="feature-icon"><i class="fas fa-user-graduate" style="color: #f59e0b;"></i></div>
-                                    <div style="font-weight: 600; font-size: 0.875rem;">Обучение</div>
-                                    <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Личный подход</div>
-                                </div>
-                                <div class="feature-item">
+                    <!-- Right Content - Animated Chessboard -->
+                    <div style="animation: fadeInUp 1s ease-out;">
+                        <!-- Анимированная шахматная доска -->
+                        <div id="heroChessboard" class="hero-chessboard" role="img" aria-label="Демонстрационная шахматная доска с анимированной позицией"></div>
+                        <div class="feature-item" style="display: none;">
                                     <div class="feature-icon"><i class="fas fa-bolt" style="color: #ec4899;"></i></div>
                                     <div style="font-weight: 600; font-size: 0.875rem;">Быстрое</div>
                                     <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Развитие</div>
                                 </div>
-                                <div class="feature-item">
-                                    <div class="feature-icon"><i class="fas fa-trophy" style="color: #8b5cf6;"></i></div>
-                                    <div style="font-weight: 600; font-size: 0.875rem;">Турниры</div>
-                                    <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Соревнуйтесь</div>
-                                </div>
-                                <div class="feature-item">
-                                    <div class="feature-icon"><i class="fas fa-users" style="color: #06b6d4;"></i></div>
-                                    <div style="font-weight: 600; font-size: 0.875rem;">Комьюнити</div>
-                                    <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Общайтесь</div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -1761,253 +362,325 @@
             </div>
         </section>
 
-        <!-- Free Course Section -->
-        <section id="courses" class="free-course-section">
+        <!-- Features Section -->
+        <section class="features-section" aria-labelledby="features-heading">
             <div class="container">
-                <div style="text-align: center; margin-bottom: 4rem;">
-                    <div class="badge" style="background: linear-gradient(135deg, #ef4444, #f97316); color: white; margin-bottom: 1.5rem;">
-                        БЕСПЛАТНЫЙ КУРС
+                <div class="section-header">
+                    <div class="section-badge" role="text">
+                        <i class="fas fa-star" aria-hidden="true"></i> Возможности
                     </div>
-                    <h2 class="gradient-text" style="margin-bottom: 1rem; font-family: 'Roboto', sans-serif;">Опровержение дебюта Гроба</h2>
-                    <p style="font-size: 1.125rem; color: var(--muted); max-width: 700px; margin: 0 auto; font-family: 'Roboto', sans-serif;">
-                        Изучите, как правильно отвечать на один из самых провокационных дебютов в шахматах
+                    <h2 id="features-heading" class="section-title">
+                        Всё что нужно для <span class="gradient-text">роста</span> в шахматах
+                    </h2>
+                    <p class="section-description">
+                        Комплексная платформа для обучения, тренировки и игры. От новичка до мастера.
                     </p>
                 </div>
 
-                <div style="max-width: 900px; margin: 0 auto;">
-                    <div class="card" style="padding: 0; overflow: hidden;">
-                        <div class="course-card-header">
-                            <div class="course-icon-wrapper">
-                                <div class="course-icon">
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                                        <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                                    </svg>
-                                </div>
-                                <div class="course-emoji">⚰️</div>
-                            </div>
-                            <h3 style="font-size: 2rem; margin-bottom: 0.5rem; color: white; font-family: 'Roboto', sans-serif;">Дебют Гроба (1.g4)</h3>
-                            <p style="opacity: 0.9;">Превратите слабость противника в вашу силу</p>
+                <div class="features-grid">
+                    <!-- Feature 1: Puzzles -->
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper" style="color: #3b82f6;">
+                            <i class="fas fa-puzzle-piece"></i>
                         </div>
-
-                        <div style="padding: 2.5rem;">
-                            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem;">
-                                <div style="display: flex; align-items: center; gap: 1rem;">
-                                    <div style="font-size: 2.5rem;">⚡</div>
-                                    <div>
-                                        <h4>Что включено в курс</h4>
-                                        <p style="color: var(--muted); font-size: 0.875rem;">Всё необходимое для победы</p>
-                                    </div>
-                                </div>
-                                <button class="btn btn-outline" onclick="toggleCollapsible('courseContent')">
-                                    <span id="toggleText">Показать всё</span>
-                                    <i class="fas fa-chevron-down" id="toggleIcon" style="transition: transform 0.3s;"></i>
-                                </button>
-                            </div>
-
-                            <div class="collapsible-content" id="courseContent">
-                                <div class="course-includes-grid">
-                                    <div class="course-include-item">
-                                        <div class="course-include-icon">
-                                            <i class="fas fa-video"></i>
-                                        </div>
-                                        <div>
-                                            <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">Видеоролики HD</h4>
-                                            <p style="color: var(--muted); font-size: 0.875rem;">Подробный разбор всех вариантов</p>
-                                            <div class="badge" style="background: var(--secondary); color: var(--text-light); margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.75rem;">8 уроков</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="course-include-item">
-                                        <div class="course-include-icon">
-                                            <i class="fas fa-file-alt"></i>
-                                        </div>
-                                        <div>
-                                            <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">PGN файлы</h4>
-                                            <p style="color: var(--muted); font-size: 0.875rem;">Готовые партии для изучения</p>
-                                            <div class="badge" style="background: var(--secondary); color: var(--text-light); margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.75rem;">50+ партий</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="course-include-item">
-                                        <div class="course-include-icon">
-                                            <i class="fas fa-trophy"></i>
-                                        </div>
-                                        <div>
-                                            <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">Тематический турнир</h4>
-                                            <p style="color: var(--muted); font-size: 0.875rem;">Эксклюзивный турнир с призами</p>
-                                            <div class="badge" style="background: var(--secondary); color: var(--text-light); margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.75rem;">10,000₽</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="course-include-item">
-                                        <div class="course-include-icon">
-                                            <i class="fas fa-puzzle-piece"></i>
-                                        </div>
-                                        <div>
-                                            <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">Интерактивные задачи</h4>
-                                            <p style="color: var(--muted); font-size: 0.875rem;">Тактические тесты и упражнения</p>
-                                            <div class="badge" style="background: var(--secondary); color: var(--text-light); margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.75rem;">25 задач</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="course-include-item">
-                                        <div class="course-include-icon">
-                                            <i class="fas fa-users"></i>
-                                        </div>
-                                        <div>
-                                            <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">Сообщество экспертов</h4>
-                                            <p style="color: var(--muted); font-size: 0.875rem;">Доступ к закрытому чату</p>
-                                            <div class="badge" style="background: var(--secondary); color: var(--text-light); margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.75rem;">Telegram</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="course-include-item">
-                                        <div class="course-include-icon">
-                                            <i class="fas fa-chart-bar"></i>
-                                        </div>
-                                        <div>
-                                            <h4 style="font-size: 1rem; margin-bottom: 0.25rem;">Персональная статистика</h4>
-                                            <p style="color: var(--muted); font-size: 0.875rem;">Отслеживание прогресса</p>
-                                            <div class="badge" style="background: var(--secondary); color: var(--text-light); margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.75rem;">Аналитика</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style="margin-top: 2.5rem; padding: 2rem; background: linear-gradient(135deg, #dcfce7, #d1fae5); border-radius: 1.5rem; border: 2px solid #86efac;">
-                                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2rem;">
-                                    <div style="display: flex; align-items: center; gap: 1rem;">
-                                        <div style="font-size: 3rem;">🎁</div>
-                                        <div>
-                                            <h4 style="color: #166534; font-size: 1.25rem; margin-bottom: 0.25rem;">Полностью бесплатно</h4>
-                                            <p style="color: #16a34a; font-size: 1.125rem;">
-                                                Стоимость: <span style="text-decoration: line-through;">2,990₽</span> → <strong>0₽</strong>
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-success btn-lg" data-free-course="grob">
-                                        Получить бесплатно
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <h3 class="feature-title">Тактические задачи</h3>
+                        <p class="feature-description">
+                            Тысячи задач разного уровня сложности. Система подбирает задачи под твой уровень.
+                        </p>
+                        <ul class="feature-benefits">
+                            <li><i class="fas fa-check"></i> 100,000+ задач из реальных партий</li>
+                            <li><i class="fas fa-check"></i> Адаптивная сложность</li>
+                            <li><i class="fas fa-check"></i> Рейтинговая система</li>
+                            <li><i class="fas fa-check"></i> Режим выживания</li>
+                        </ul>
+                        <a href="/tasks.html" class="feature-link">
+                            Решать задачи <i class="fas fa-arrow-right"></i>
+                        </a>
                     </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- Success Metrics -->
-        <section style="padding: 6rem 0; background: linear-gradient(135deg, #faf5ff, #f3e8ff);">
-            <div class="container">
-                <div style="text-align: center; margin-bottom: 4rem;">
-                    <h2 class="gradient-text" style="margin-bottom: 1rem;">Результаты говорят сами за себя</h2>
-                    <p style="font-size: 1.125rem; color: var(--muted);">Статистика успеха наших учеников</p>
-                </div>
+                    <!-- Feature 2: Online Games -->
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper" style="color: #10b981;">
+                            <i class="fas fa-chess"></i>
+                        </div>
+                        <h3 class="feature-title">Онлайн партии</h3>
+                        <p class="feature-description">
+                            Играй с живыми соперниками в реальном времени. Блиц, рапид, классика.
+                        </p>
+                        <ul class="feature-benefits">
+                            <li><i class="fas fa-check"></i> WebSocket для мгновенных ходов</li>
+                            <li><i class="fas fa-check"></i> Точные таймеры с инкрементом</li>
+                            <li><i class="fas fa-check"></i> Рейтинг Elo</li>
+                            <li><i class="fas fa-check"></i> История всех партий</li>
+                        </ul>
+                        <a href="/games.html" class="feature-link">
+                            Играть сейчас <i class="fas fa-arrow-right"></i>
+                        </a>
+                            </div>
 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #3b82f6);">
-                            <i class="fas fa-chart-line"></i>
+                    <!-- Feature 3: Courses -->
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper" style="color: #f59e0b;">
+                            <i class="fas fa-graduation-cap"></i>
                         </div>
-                        <div class="stat-value">89%</div>
-                        <div class="stat-label">Повысили рейтинг</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-                            <i class="fas fa-medal"></i>
+                        <h3 class="feature-title">Обучающие курсы</h3>
+                        <p class="feature-description">
+                            Структурированное обучение от профессионалов. Дебюты, миттельшпиль, эндшпиль.
+                        </p>
+                        <ul class="feature-benefits">
+                            <li><i class="fas fa-check"></i> Курсы от мастеров и гроссмейстеров</li>
+                            <li><i class="fas fa-check"></i> Пошаговые уроки</li>
+                            <li><i class="fas fa-check"></i> Практические задания</li>
+                            <li><i class="fas fa-check"></i> Сертификаты</li>
+                        </ul>
+                        <a href="/course.html" class="feature-link">
+                            Смотреть курсы <i class="fas fa-arrow-right"></i>
+                        </a>
+                            </div>
+
+                    <!-- Feature 4: Analysis -->
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper" style="color: #8b5cf6;">
+                            <i class="fas fa-brain"></i>
                         </div>
-                        <div class="stat-value">247</div>
-                        <div class="stat-label">Получили разряды</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <h3 class="feature-title">AI Анализ</h3>
+                        <p class="feature-description">
+                            Stockfish разбирает твои партии и показывает ошибки. Учись на своих промахах.
+                        </p>
+                        <ul class="feature-benefits">
+                            <li><i class="fas fa-check"></i> Движок уровня 3000+ Elo</li>
+                            <li><i class="fas fa-check"></i> Анализ каждого хода</li>
+                            <li><i class="fas fa-check"></i> Подсветка ошибок</li>
+                            <li><i class="fas fa-check"></i> Альтернативные варианты</li>
+                        </ul>
+                        <a href="/profile" class="feature-link">
+                            Анализировать <i class="fas fa-arrow-right"></i>
+                        </a>
+                            </div>
+
+                    <!-- Feature 5: Tournaments -->
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper" style="color: #ec4899;">
                             <i class="fas fa-trophy"></i>
                         </div>
-                        <div class="stat-value">156</div>
-                        <div class="stat-label">Выиграли турниры</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #ec4899, #be185d);">
-                            <i class="fas fa-star"></i>
+                        <h3 class="feature-title">Турниры</h3>
+                        <p class="feature-description">
+                            Участвуй в турнирах, соревнуйся с лучшими, выигрывай призы.
+                        </p>
+                        <ul class="feature-benefits">
+                            <li><i class="fas fa-check"></i> Еженедельные турниры</li>
+                            <li><i class="fas fa-check"></i> Разные форматы (швейцарка, арена)</li>
+                            <li><i class="fas fa-check"></i> Реальные призы</li>
+                            <li><i class="fas fa-check"></i> Рейтинговые и фановые</li>
+                        </ul>
+                        <a href="/games.html" class="feature-link">
+                            Участвовать <i class="fas fa-arrow-right"></i>
+                        </a>
+                            </div>
+
+                    <!-- Feature 6: Community -->
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper" style="color: #06b6d4;">
+                            <i class="fas fa-users"></i>
                         </div>
-                        <div class="stat-value">4.9</div>
-                        <div class="stat-label">Средняя оценка</div>
+                        <h3 class="feature-title">Сообщество</h3>
+                        <p class="feature-description">
+                            Находи друзей, общайся с шахматистами, делись опытом и учись вместе.
+                        </p>
+                        <ul class="feature-benefits">
+                            <li><i class="fas fa-check"></i> Система друзей</li>
+                            <li><i class="fas fa-check"></i> Таблица лидеров</li>
+                            <li><i class="fas fa-check"></i> Чат и обсуждения</li>
+                            <li><i class="fas fa-check"></i> Совместное обучение</li>
+                        </ul>
+                        <a href="/leaderboard.html" class="feature-link">
+                            Посмотреть топ <i class="fas fa-arrow-right"></i>
+                        </a>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Enhanced About Section -->
-        <section id="about" class="about-section">
+        <!-- How It Works Section -->
+        <section class="how-it-works-section" aria-labelledby="how-it-works-heading">
             <div class="container">
-                <div style="text-align: center; margin-bottom: 4rem; position: relative; z-index: 2;">
-                    <h2 class="gradient-text" style="margin-bottom: 1rem;">О PowerChess</h2>
-                    <p style="font-size: 1.125rem; color: var(--muted); max-width: 800px; margin: 0 auto;">
-                        Revolutionize шахматное образование с помощью передовых технологий и классической мудрости
+                <div class="section-header">
+                    <div class="section-badge" role="text">
+                        <i class="fas fa-lightbulb" aria-hidden="true"></i> Простой старт
+                            </div>
+                    <h2 id="how-it-works-heading" class="section-title">
+                        Начни за <span class="gradient-text">3 минуты</span>
+                    </h2>
+                    <p class="section-description">
+                        Всего три шага отделяют тебя от улучшения навыков игры в шахматы
+                    </p>
+                        </div>
+
+                <div class="steps-container">
+                    <!-- Step 1 -->
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <div class="step-icon">
+                            <i class="fas fa-user-plus" style="color: #3b82f6;"></i>
+                    </div>
+                        <h3 class="step-title">Регистрация</h3>
+                        <p class="step-description">
+                            Создай аккаунт за 30 секунд. Нужен только email и пароль. Никаких лишних вопросов.
+                        </p>
+                        <span class="step-time">
+                            <i class="fas fa-clock"></i> 30 секунд
+                        </span>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <div class="step-icon">
+                            <i class="fas fa-gamepad" style="color: #8b5cf6;"></i>
+                        </div>
+                        <h3 class="step-title">Выбери режим</h3>
+                        <p class="step-description">
+                            Решай задачи, играй партии или проходи курсы. Система подберет задачи под твой уровень.
+                        </p>
+                        <span class="step-time">
+                            <i class="fas fa-clock"></i> 1 минута
+                        </span>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <div class="step-icon">
+                            <i class="fas fa-chart-line" style="color: #ec4899;"></i>
+                        </div>
+                        <h3 class="step-title">Развивайся</h3>
+                        <p class="step-description">
+                            Отслеживай прогресс, наблюдай рост рейтинга, участвуй в турнирах. Стань сильнее!
+                        </p>
+                        <span class="step-time">
+                            <i class="fas fa-infinity"></i> Постоянно
+                        </span>
+                    </div>
+                </div>
+
+                <!-- CTA after steps -->
+                <div style="text-align: center; margin-top: 4rem;">
+                    <a href="/tasks.html" class="btn btn-primary btn-lg" style="padding: 1.2rem 2.5rem; font-size: 1.125rem;">
+                        <i class="fas fa-rocket"></i> Начать прямо сейчас
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="faq-section" aria-labelledby="faq-heading">
+            <div class="container">
+                <div class="section-header">
+                    <div class="section-badge" role="text">
+                        <i class="fas fa-question-circle" aria-hidden="true"></i> FAQ
+                    </div>
+                    <h2 id="faq-heading" class="section-title">
+                        Часто задаваемые вопросы
+                    </h2>
+                    <p class="section-description">
+                        Ответы на популярные вопросы о платформе
                     </p>
                 </div>
 
-                <div class="about-grid">
-                    <div style="position: relative; z-index: 2;">
-                        <h3 style="font-size: 2.5rem; margin-bottom: 1.5rem; line-height: 1.2;">
-                            Наша миссия - 
-                            <span class="gradient-text">изменить мир шахмат</span>
-                        </h3>
-                        <p style="color: var(--muted); font-size: 1.125rem; margin-bottom: 2rem; line-height: 1.8;">
-                            PowerChess создана для того, чтобы сделать изучение шахмат доступным, увлекательным и эффективным 
-                            для игроков любого уровня. Мы используем искусственный интеллект и современные методики обучения, 
-                            чтобы каждый мог достичь мастерства быстрее.
-                        </p>
-
-                        <div class="about-features">
-                            <div class="about-feature">
-                                <div class="about-feature-icon">🧩</div>
-                                <h4 style="margin-bottom: 0.75rem; font-size: 1.125rem;">Решение задач</h4>
-                                <p style="color: var(--muted); font-size: 0.875rem; line-height: 1.6;">
-                                    Тысячи шахматных задач для развития тактического мышления и улучшения навыков
-                                </p>
-                            </div>
-                            <div class="about-feature">
-                                <div class="about-feature-icon">👨‍🏫</div>
-                                <h4 style="margin-bottom: 0.75rem; font-size: 1.125rem;">Эксперты</h4>
-                                <p style="color: var(--muted); font-size: 0.875rem; line-height: 1.6;">
-                                    Тренеры с международными титулами и многолетним опытом
-                                </p>
-                            </div>
-                            <div class="about-feature">
-                                <div class="about-feature-icon">📱</div>
-                                <h4 style="margin-bottom: 0.75rem; font-size: 1.125rem;">Мобильность</h4>
-                                <p style="color: var(--muted); font-size: 0.875rem; line-height: 1.6;">
-                                    Учитесь где угодно и когда угодно с любого устройства
-                                </p>
-                            </div>
-                            <div class="about-feature">
-                                <div class="about-feature-icon">🏆</div>
-                                <h4 style="margin-bottom: 0.75rem; font-size: 1.125rem;">Турниры</h4>
-                                <p style="color: var(--muted); font-size: 0.875rem; line-height: 1.6;">
-                                    Регулярные соревнования с денежными призами
-                                </p>
-                            </div>
+                <div class="faq-container" role="list">
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-1"
+                                type="button">
+                            <span>Нужно ли платить за использование платформы?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-1" role="region">
+                            <p>Нет! Базовый функционал полностью бесплатен и будет таким всегда. Вы можете решать задачи, играть партии и проходить некоторые курсы без оплаты. Premium подписка открывает дополнительные возможности: безлимитные задачи, AI анализ партий, эксклюзивные курсы.</p>
                         </div>
                     </div>
 
-                    <div class="about-visual">
-                        <div class="about-image">
-                            <div class="chess-pattern"></div>
-                            <i class="fas fa-chess-board"></i>
-                            <div class="about-decorations">
-                                <div class="about-float-icon">♔</div>
-                                <div class="about-float-icon">♛</div>
-                                <div class="about-float-icon">♜</div>
-                                <div class="about-float-icon">♞</div>
-                            </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-2"
+                                type="button">
+                            <span>Можно ли играть и решать задачи без регистрации?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-2" role="region">
+                            <p>Вы можете решать задачи без регистрации, но для сохранения прогресса и доступа к онлайн партиям потребуется создать аккаунт. Регистрация занимает всего 30 секунд - нужен только email и пароль.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-3"
+                                type="button">
+                            <span>Есть ли мобильное приложение?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-3" role="region">
+                            <p>Пока нет отдельного приложения для iOS/Android, но наш сайт полностью адаптирован для мобильных устройств. Вы можете играть, решать задачи и проходить курсы прямо в браузере на телефоне. Мобильное приложение в планах на 2025 год.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-4"
+                                type="button">
+                            <span>Как работает рейтинговая система?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-4" role="region">
+                            <p>Мы используем систему Elo (как на Lichess и Chess.com). Ваш рейтинг изменяется после каждой партии или решенной задачи в зависимости от результата и рейтинга оппонента/задачи. Начальный рейтинг - 1500. Система автоматически подбирает соперников и задачи вашего уровня.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-5"
+                                type="button">
+                            <span>Откуда берутся шахматные задачи?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-5" role="region">
+                            <p>Наша база содержит более 100,000 задач из реальных партий, собранных из открытых источников (Lichess, Chess.com) и созданных профессиональными тренерами. Все задачи проверены и имеют единственное правильное решение. Мы регулярно добавляем новые задачи.</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-6"
+                                type="button">
+                            <span>Кто создает курсы?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-6" role="region">
+                            <p>Курсы создаются мастерами ФИДЕ, гроссмейстерами и опытными тренерами с многолетним стажем. Каждый курс проходит проверку качества. Мы также принимаем курсы от сообщества - если вы тренер, свяжитесь с нами!</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-7"
+                                type="button">
+                            <span>Как связаться с поддержкой?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-7" role="region">
+                            <p>Вы можете написать нам на email: support@power-chess.ru или через форму обратной связи в вашем профиле. Мы отвечаем в течение 24 часов. Для срочных вопросов используйте наш Telegram канал.</p>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
-
-        <div id="tournaments"></div>
 
     </main>
 
@@ -2144,17 +817,17 @@
     </footer>
 
     <!-- Login Modal -->
-    <div class="modal auth-modal" id="loginModal">
+    <div class="modal auth-modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" aria-hidden="true">
         <div class="modal-content">
-            <button class="modal-close" type="button" onclick="closeLoginModal()">
-                <i class="fas fa-times"></i>
+            <button class="modal-close" type="button" onclick="closeLoginModal()" aria-label="Закрыть окно входа">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
             <div class="modal-header">
-                <span class="modal-badge">
-                    <i class="fas fa-chess-knight"></i>
+                <span class="modal-badge" role="text">
+                    <i class="fas fa-chess-knight" aria-hidden="true"></i>
                     PowerChess
                 </span>
-                <h3 class="modal-title">Войти в аккаунт</h3>
+                <h3 id="login-modal-title" class="modal-title">Войти в аккаунт</h3>
                 <p class="modal-subtitle">Продолжайте обучение и возвращайтесь к сохранённым курсам.</p>
             </div>
             <form class="modal-form" onsubmit="handleLogin(event)">
@@ -2182,17 +855,17 @@
     </div>
 
     <!-- Register Modal -->
-    <div class="modal auth-modal" id="registerModal">
+    <div class="modal auth-modal" id="registerModal" role="dialog" aria-modal="true" aria-labelledby="register-modal-title" aria-hidden="true">
         <div class="modal-content">
-            <button class="modal-close" type="button" onclick="closeRegisterModal()">
-                <i class="fas fa-times"></i>
+            <button class="modal-close" type="button" onclick="closeRegisterModal()" aria-label="Закрыть окно регистрации">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
             <div class="modal-header">
-                <span class="modal-badge">
-                    <i class="fas fa-chess-knight"></i>
+                <span class="modal-badge" role="text">
+                    <i class="fas fa-chess-knight" aria-hidden="true"></i>
                     PowerChess
                 </span>
-                <h3 class="modal-title">Создать аккаунт</h3>
+                <h3 id="register-modal-title" class="modal-title">Создать аккаунт</h3>
                 <p class="modal-subtitle">Получите доступ к закрытым курсам и персональным рекомендациям.</p>
             </div>
             <form class="modal-form" onsubmit="handleRegister(event)">
@@ -2225,12 +898,12 @@
     </div>
 
     <!-- Purchase Modal -->
-    <div class="modal" id="purchaseModal">
+    <div class="modal" id="purchaseModal" role="dialog" aria-modal="true" aria-labelledby="purchase-modal-title" aria-hidden="true">
         <div class="modal-content">
-            <button class="modal-close" onclick="closePurchaseModal()">
-                <i class="fas fa-times"></i>
+            <button class="modal-close" onclick="closePurchaseModal()" type="button" aria-label="Закрыть окно покупки">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
-            <h3 style="font-size: 2rem; margin-bottom: 2rem;">Оформление покупки</h3>
+            <h3 id="purchase-modal-title" style="font-size: 2rem; margin-bottom: 2rem;">Оформление покупки</h3>
             <div class="chess-board" id="chessBoard"></div>
             <p style="color: var(--muted); margin-bottom: 2rem; font-size: 1.125rem;">
                 Ход белых... Обдумывание лучшего решения...
@@ -2246,9 +919,9 @@
         </div>
     </div>
 
-    <!-- JavaScript -->
-    <script src="/scripts/modal-utils.js"></script>
-    <script>
+    <!-- JavaScript - defer для оптимизации -->
+    <script src="/scripts/modal-utils.js" defer></script>
+    <script defer>
         // Theme functions are provided by auth.js
 
         // Mobile Menu
@@ -2408,13 +1081,53 @@
         // Include common auth functions
         document.addEventListener('DOMContentLoaded', function() {
             loadTheme();
+            initAccessibility();
         });
+        
+        // Accessibility improvements
+        function initAccessibility() {
+            // FAQ keyboard navigation and aria-expanded
+            const faqButtons = document.querySelectorAll('.faq-question');
+            faqButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const parent = this.parentElement;
+                    const isActive = parent.classList.contains('active');
+                    this.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+                });
+                
+                // Enter and Space для открытия
+                button.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+            
+            // Smooth scroll для skip-to-content
+            const skipLink = document.querySelector('.skip-to-content');
+            if (skipLink) {
+                skipLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.tabIndex = -1;
+                        target.focus();
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
+        }
     </script>
 
     <!-- Common Auth Script (must load first) -->
-    <script src="/scripts/auth.js"></script>
-    <script src="/scripts/notifications.js"></script>
+    <script src="/scripts/auth.js" defer></script>
+    <script src="/scripts/notifications.js" defer></script>
+    <!-- Chess Pieces SVG (for hero board) -->
+    <script src="/scripts/chess-pieces-svg.js" defer></script>
     <!-- Page Script -->
-    <script src="/scripts/index.js"></script>
+    <script src="/scripts/index.js" defer></script>
+    <script src="/scripts/hero-animation.js" defer></script>
+    <script src="/scripts/live-stats.js" defer></script>
 </body>
 </html>

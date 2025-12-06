@@ -65,12 +65,23 @@
       })();
     </script>
     
-    <!-- Fonts -->
+    <!-- DNS Prefetch & Preconnect для производительности -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome - defer для не критичных иконок -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    
+    <!-- Performance: Preload critical resources -->
+    <link rel="preload" href="/styles/variables.css" as="style">
+    <link rel="preload" href="/styles/common.css" as="style">
 
     <!-- Common Styles -->
     <link rel="stylesheet" href="/styles/variables.css">
@@ -86,8 +97,8 @@
     <header class="header">
         <div class="container">
             <div class="header-content">
-                <a href="/" class="logo">
-                    <div class="logo-icon">
+                <a href="/" class="logo" aria-label="PowerChess - Главная страница">
+                    <div class="logo-icon" aria-hidden="true">
                         <div class="chess-pattern"></div>
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
                             <defs>
@@ -107,7 +118,7 @@
                     </div>
                     <div>
                         <div class="gradient-text">PowerChess</div>
-                        <div>♔ Шахматная академия</div>
+                        <div aria-hidden="true">♔ Шахматная академия</div>
                     </div>
                 </a>
                 <nav class="nav">
@@ -121,19 +132,19 @@
                             <span></span>
                         </div>
                     </div>
-                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()">
-                        <i class="fas fa-sun" id="themeIcon"></i>
+                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()" aria-label="Переключить тему">
+                        <i class="fas fa-sun" id="themeIcon" aria-hidden="true"></i>
                     </button>
                     <div id="authButtons">
-                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtn" title="Войти / Регистрация">
-                            <i class="fas fa-sign-in-alt"></i>
+                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtn" title="Войти / Регистрация" aria-label="Войти или зарегистрироваться">
+                            <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
                         </a>
                     </div>
-                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
-                        <i class="fas fa-bars" id="menuIcon"></i>
+                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Открыть меню" aria-expanded="false">
+                        <i class="fas fa-bars" id="menuIcon" aria-hidden="true"></i>
                     </button>
-                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
-                        <i class="fas fa-sign-out-alt"></i>
+                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти" aria-label="Выйти из аккаунта">
+                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -161,18 +172,19 @@
         </div>
     </header>
 
-    <div class="tasks-container">
+    <main id="main-content" class="tasks-container" role="main">
         <div class="tasks-content">
-            <div class="tasks-header">
-                <h1 class="tasks-title">Шахматные задачи онлайн - решайте задачи по шахматам</h1>
+            <div class="tasks-header" aria-labelledby="tasks-heading">
+                <h1 id="tasks-heading" class="tasks-title">Шахматные задачи онлайн - решайте задачи по шахматам</h1>
                 <p class="tasks-subtitle">Тренируйте шахматную тактику, решая задачи в режиме выживания или на рейтинг. Тысячи задач для всех уровней</p>
             </div>
-            <div class="mode-grid" id="modeGrid"></div>
+            <div class="mode-grid" id="modeGrid" role="list" aria-label="Режимы решения задач"></div>
 
-            <section class="puzzle-section hidden" id="puzzleSection">
+            <section class="puzzle-section hidden" id="puzzleSection" aria-labelledby="puzzle-section-heading">
+                <h2 id="puzzle-section-heading" class="sr-only">Решение шахматной задачи</h2>
                 <div class="puzzle-layout">
                     <!-- Левая панель с информацией о задаче -->
-                    <aside class="puzzle-left-sidebar" id="puzzleLeftSidebar">
+                    <aside class="puzzle-left-sidebar" id="puzzleLeftSidebar" aria-label="Информация о задаче">
                         <!-- Скелетон для заголовка -->
                         <div class="sidebar-card skeleton-card hidden" id="headerSkeleton">
                             <div class="skeleton-line" style="width: 60%; height: 20px; margin-bottom: 1rem;"></div>
@@ -181,20 +193,20 @@
                         </div>
                         <div class="sidebar-card hidden" id="puzzleHeaderCard">
                             <div class="puzzle-title-compact">
-                                <i class="fas fa-chess-puzzle"></i>
+                                <i class="fas fa-chess-puzzle" aria-hidden="true"></i>
                                 Позиция задачи
                             </div>
-                            <div class="puzzle-meta-line-compact">
-                                <span class="puzzle-meta-pill" id="currentModeLabel">
-                                    <i class="fas fa-layer-group"></i>
+                            <div class="puzzle-meta-line-compact" role="list">
+                                <span class="puzzle-meta-pill" id="currentModeLabel" role="listitem">
+                                    <i class="fas fa-layer-group" aria-hidden="true"></i>
                                     Режим: —
                                 </span>
-                                <span class="puzzle-meta-pill" id="currentPuzzleRating">
-                                    <i class="fas fa-chess"></i>
+                                <span class="puzzle-meta-pill" id="currentPuzzleRating" role="listitem">
+                                    <i class="fas fa-chess" aria-hidden="true"></i>
                                     Рейтинг: —
                                 </span>
-                                <span class="puzzle-meta-pill" id="currentPuzzleMoves">
-                                    <i class="fas fa-arrows-alt"></i>
+                                <span class="puzzle-meta-pill" id="currentPuzzleMoves" role="listitem">
+                                    <i class="fas fa-arrows-alt" aria-hidden="true"></i>
                                     Ходов: —
                                 </span>
                             </div>
@@ -208,112 +220,112 @@
                             <div class="skeleton-line" style="width: 60%; height: 16px;"></div>
                         </div>
                         <div class="sidebar-card hidden" id="puzzleInfoCard">
-                            <h3 class="sidebar-title">
-                                <i class="fas fa-info-circle"></i>
+                            <h3 class="sidebar-title" id="puzzle-info-heading">
+                                <i class="fas fa-info-circle" aria-hidden="true"></i>
                                 О задаче
                             </h3>
-                            <div class="puzzle-info-content">
-                                <div class="info-item" id="puzzleThemes">
+                            <div class="puzzle-info-content" role="list" aria-labelledby="puzzle-info-heading">
+                                <div class="info-item" id="puzzleThemes" role="listitem">
                                     <div class="info-label">
-                                        <i class="fas fa-tags"></i>
+                                        <i class="fas fa-tags" aria-hidden="true"></i>
                                         Темы
                                     </div>
-                                    <div class="info-value" id="puzzleThemesValue">—</div>
+                                    <div class="info-value" id="puzzleThemesValue" aria-live="polite">—</div>
                                 </div>
-                                <div class="info-item" id="puzzleOpening">
+                                <div class="info-item" id="puzzleOpening" role="listitem">
                                     <div class="info-label">
-                                        <i class="fas fa-chess-board"></i>
+                                        <i class="fas fa-chess-board" aria-hidden="true"></i>
                                         Дебют
                                     </div>
-                                    <div class="info-value" id="puzzleOpeningValue">—</div>
+                                    <div class="info-value" id="puzzleOpeningValue" aria-live="polite">—</div>
                                 </div>
-                                <div class="info-item" id="puzzlePopularity">
+                                <div class="info-item" id="puzzlePopularity" role="listitem">
                                     <div class="info-label">
-                                        <i class="fas fa-chart-line"></i>
+                                        <i class="fas fa-chart-line" aria-hidden="true"></i>
                                         Популярность
                                     </div>
-                                    <div class="info-value" id="puzzlePopularityValue">—</div>
+                                    <div class="info-value" id="puzzlePopularityValue" aria-live="polite">—</div>
                                 </div>
-                                <div class="info-item" id="puzzlePlays">
+                                <div class="info-item" id="puzzlePlays" role="listitem">
                                     <div class="info-label">
-                                        <i class="fas fa-users"></i>
+                                        <i class="fas fa-users" aria-hidden="true"></i>
                                         Решено раз
                                     </div>
-                                    <div class="info-value" id="puzzlePlaysValue">—</div>
+                                    <div class="info-value" id="puzzlePlaysValue" aria-live="polite">—</div>
                                 </div>
                             </div>
                         </div>
                     </aside>
 
                     <!-- Основная область с доской -->
-                    <div class="puzzle-main">
+                    <div class="puzzle-main" role="region" aria-label="Шахматная доска">
                         <div class="board-container" id="boardContainer">
                             <!-- Скелетон доски во время загрузки -->
-                            <div class="board-skeleton" id="boardSkeleton">
-                                <div class="skeleton-board-grid">
+                            <div class="board-skeleton" id="boardSkeleton" aria-label="Загрузка доски" aria-busy="true">
+                                <div class="skeleton-board-grid" role="img" aria-label="Загрузка">
                                     <!-- Генерируем 64 клетки для скелетона -->
                                 </div>
                             </div>
                             <div class="board-wrapper hidden" id="boardWrapper">
                                 <div class="board-shell">
-                                    <div class="chess-board" id="boardGrid"></div>
+                                    <div class="chess-board" id="boardGrid" role="img" aria-label="Шахматная доска с позицией задачи"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Боковая панель со статистикой -->
-                    <aside class="puzzle-sidebar" id="puzzleSidebar">
+                    <aside class="puzzle-sidebar" id="puzzleSidebar" aria-label="Статистика и история ходов">
                         <div class="sidebar-card">
-                            <h3 class="sidebar-title">
-                                <i class="fas fa-chart-line"></i>
+                            <h3 class="sidebar-title" id="stats-heading">
+                                <i class="fas fa-chart-line" aria-hidden="true"></i>
                                 Статистика
                             </h3>
                             
-                            <div class="stats-section">
-                                <div class="stat-item" id="currentRatingStat">
+                            <div class="stats-section" role="list" aria-labelledby="stats-heading">
+                                <div class="stat-item" id="currentRatingStat" role="listitem">
                                     <div class="stat-label">
-                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star" aria-hidden="true"></i>
                                         Рейтинг
                                     </div>
-                                    <div class="stat-value" id="currentRatingValue">—</div>
+                                    <div class="stat-value" id="currentRatingValue" aria-live="polite">—</div>
                                 </div>
                                 
-                                <div class="stat-item" id="streakStat">
+                                <div class="stat-item" id="streakStat" role="listitem">
                                     <div class="stat-label">
-                                        <i class="fas fa-fire"></i>
+                                        <i class="fas fa-fire" aria-hidden="true"></i>
                                         Серия
                                     </div>
-                                    <div class="streak-indicator" id="streakIndicator">
-                                        <i class="fas fa-fire streak-icon"></i>
+                                    <div class="streak-indicator" id="streakIndicator" aria-live="polite">
+                                        <i class="fas fa-fire streak-icon" aria-hidden="true"></i>
                                         <span class="streak-value" id="streakValue">0</span>
                                     </div>
                                 </div>
                                 
-                                <div class="stat-item" id="timeStat">
+                                <div class="stat-item" id="timeStat" role="listitem">
                                     <div class="stat-label">
-                                        <i class="fas fa-clock"></i>
+                                        <i class="fas fa-clock" aria-hidden="true"></i>
                                         Время
                                     </div>
-                                    <div class="stat-value" id="currentTimeValue">00:00</div>
+                                    <div class="stat-value" id="currentTimeValue" aria-live="polite">00:00</div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="sidebar-card">
-                            <h3 class="sidebar-title">
-                                <i class="fas fa-history"></i>
+                            <h3 class="sidebar-title" id="moves-heading">
+                                <i class="fas fa-history" aria-hidden="true"></i>
                                 История ходов
                             </h3>
-                            <div class="moves-history" id="movesHistory">
-                                <div class="moves-empty">Ходы появятся здесь</div>
+                            <div class="moves-history" id="movesHistory" role="list" aria-labelledby="moves-heading">
+                                <div class="moves-empty" role="status">Ходы появятся здесь</div>
                             </div>
-                            <div class="moves-navigation hidden" id="movesNavigation">
-                                <button class="nav-btn" id="prevMoveBtn" title="Предыдущий ход">
-                                    <i class="fas fa-chevron-left"></i>
+                            <div class="moves-navigation hidden" id="movesNavigation" role="group" aria-label="Навигация по ходам">
+                                <button class="nav-btn" id="prevMoveBtn" title="Предыдущий ход" aria-label="Предыдущий ход">
+                                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
                                 </button>
-                                <button class="nav-btn" id="nextMoveBtn" title="Следующий ход">
-                                    <i class="fas fa-chevron-right"></i>
+                                <button class="nav-btn" id="nextMoveBtn" title="Следующий ход" aria-label="Следующий ход">
+                                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
@@ -321,19 +333,63 @@
                 </div>
             </section>
         </div>
-    </div>
+    </main>
 
-    <script src="/scripts/auth.js"></script>
-    <script src="/scripts/modal-utils.js"></script>
+    <script src="/scripts/auth.js" defer></script>
+    <script src="/scripts/modal-utils.js" defer></script>
     <!-- Ленивая загрузка модулей -->
-    <script src="/scripts/tasks/lazy-loader.js"></script>
+    <script src="/scripts/tasks/lazy-loader.js" defer></script>
     <!-- Tasks modules (order matters) - только критичные модули -->
-    <script src="/scripts/tasks/constants.js"></script>
-    <script src="/scripts/tasks/state.js"></script>
-    <script src="/scripts/tasks/utils.js"></script>
-    <script src="/scripts/tasks/api.js"></script>
-    <script src="/scripts/tasks/ui.js"></script>
-    <script src="/scripts/tasks/main.js"></script>
+    <script src="/scripts/tasks/constants.js" defer></script>
+    <script src="/scripts/tasks/state.js" defer></script>
+    <script src="/scripts/tasks/utils.js" defer></script>
+    <script src="/scripts/tasks/api.js" defer></script>
+    <script src="/scripts/tasks/ui.js" defer></script>
+    <script src="/scripts/tasks/main.js" defer></script>
     <!-- Остальные модули загружаются лениво через lazy-loader.js -->
+    
+    <script defer>
+        // Accessibility improvements для tasks страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Skip to content smooth scroll
+            const skipLink = document.querySelector('.skip-to-content');
+            if (skipLink) {
+                skipLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.tabIndex = -1;
+                        target.focus();
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
+            
+            // Keyboard navigation для карточек режимов
+            const modeGrid = document.getElementById('modeGrid');
+            if (modeGrid) {
+                // Делаем карточки доступными для клавиатуры
+                modeGrid.addEventListener('keydown', function(e) {
+                    const cards = Array.from(modeGrid.querySelectorAll('.mode-card'));
+                    const currentIndex = cards.indexOf(document.activeElement);
+                    
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        const nextIndex = (currentIndex + 1) % cards.length;
+                        cards[nextIndex].focus();
+                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        const prevIndex = (currentIndex - 1 + cards.length) % cards.length;
+                        cards[prevIndex].focus();
+                    } else if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (document.activeElement.classList.contains('mode-card')) {
+                            document.activeElement.click();
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

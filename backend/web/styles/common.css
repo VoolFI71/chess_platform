@@ -8,6 +8,34 @@
     box-sizing: border-box;
 }
 
+/* ===== ACCESSIBILITY ===== */
+/* Skip to content link для screen readers и keyboard navigation */
+.skip-to-content {
+    position: absolute;
+    top: -100px;
+    left: 0;
+    background: var(--primary);
+    color: white;
+    padding: 1rem 2rem;
+    text-decoration: none;
+    font-weight: 600;
+    z-index: 10000;
+    border-radius: 0 0 8px 0;
+    transition: top 0.3s;
+}
+
+.skip-to-content:focus {
+    top: 0;
+    outline: 3px solid #fbbf24;
+    outline-offset: 2px;
+}
+
+body.dark .skip-to-content,
+html.dark .skip-to-content {
+    background: var(--primary);
+    color: white;
+}
+
 html {
     font-size: 16px;
     scroll-behavior: smooth;
@@ -62,6 +90,88 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
     .container { padding: 0 3rem; }
 }
 
+/* ===== LARGE MONITORS ADAPTATION ===== */
+/* Full HD (1920px) */
+@media (min-width: 1920px) {
+    .container {
+        max-width: 1600px;
+        padding: 0 4rem;
+    }
+    
+    html {
+        font-size: 17px;
+    }
+    
+    h1 { font-size: clamp(3rem, 5vw, 4.5rem); }
+    h2 { font-size: clamp(2.5rem, 4vw, 3.5rem); }
+    h3 { font-size: clamp(1.75rem, 3vw, 2.25rem); }
+    h4 { font-size: clamp(1.5rem, 2vw, 1.75rem); }
+}
+
+/* 2K/QHD (2560px) */
+@media (min-width: 2560px) {
+    .container {
+        max-width: 1800px;
+        padding: 0 5rem;
+    }
+    
+    html {
+        font-size: 18px;
+    }
+    
+    h1 { font-size: clamp(3.5rem, 5vw, 5rem); }
+    h2 { font-size: clamp(2.75rem, 4vw, 4rem); }
+    h3 { font-size: clamp(2rem, 3vw, 2.5rem); }
+    h4 { font-size: clamp(1.75rem, 2vw, 2rem); }
+}
+
+/* 4K/UHD (3840px) */
+@media (min-width: 3840px) {
+    .container {
+        max-width: 2000px;
+        padding: 0 6rem;
+    }
+    
+    html {
+        font-size: 20px;
+    }
+    
+    h1 { font-size: clamp(4rem, 5vw, 6rem); }
+    h2 { font-size: clamp(3rem, 4vw, 4.5rem); }
+    h3 { font-size: clamp(2.25rem, 3vw, 3rem); }
+    h4 { font-size: clamp(2rem, 2vw, 2.5rem); }
+}
+
+/* ===== BREADCRUMBS ===== */
+nav[aria-label="Breadcrumb"] {
+    background: transparent;
+}
+
+nav[aria-label="Breadcrumb"] ol {
+    font-size: 0.875rem;
+}
+
+nav[aria-label="Breadcrumb"] a:hover {
+    color: var(--primary) !important;
+    text-decoration: underline;
+}
+
+nav[aria-label="Breadcrumb"] a:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+    nav[aria-label="Breadcrumb"] {
+        padding: 0.5rem 0;
+    }
+    
+    nav[aria-label="Breadcrumb"] ol {
+        font-size: 0.8rem;
+    }
+}
+
 /* .gradient-text стили вынесены в header.css для единообразия логотипа */
 
 /* ===== BUTTONS ===== */
@@ -79,6 +189,28 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+}
+
+/* Large monitors - увеличенные кнопки */
+@media (min-width: 1920px) {
+    .btn {
+        padding: 1.125rem 2.25rem;
+        font-size: 1.0625rem;
+    }
+}
+
+@media (min-width: 2560px) {
+    .btn {
+        padding: 1.25rem 2.5rem;
+        font-size: 1.125rem;
+    }
+}
+
+@media (min-width: 3840px) {
+    .btn {
+        padding: 1.5rem 3rem;
+        font-size: 1.25rem;
+    }
 }
 
 .btn-primary {
@@ -139,6 +271,28 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
     position: relative;
     overflow: hidden;
     color: var(--foreground);
+}
+
+/* Large monitors - увеличенные карточки */
+@media (min-width: 1920px) {
+    .card {
+        padding: 2.5rem;
+        border-radius: 1.75rem;
+    }
+}
+
+@media (min-width: 2560px) {
+    .card {
+        padding: 3rem;
+        border-radius: 2rem;
+    }
+}
+
+@media (min-width: 3840px) {
+    .card {
+        padding: 3.5rem;
+        border-radius: 2.25rem;
+    }
 }
 
 body.dark .card,

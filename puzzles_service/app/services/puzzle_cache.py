@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class PuzzleCache:
-	"""Сервис для кэширования случайных задач с использованием TABLESAMPLE"""
+	"""Сервис для кэширования случайных задач. Задачи возвращаются ТОЛЬКО из кеша."""
 
 	_cache: dict[str, list[Puzzle]] = {}
 	_cache_timestamps: dict[str, datetime] = {}
@@ -27,7 +27,7 @@ class PuzzleCache:
 
 	def __init__(self):
 		self.settings = get_settings()
-		self._cache_ttl = timedelta(minutes=30)  # Увеличено до 30 минут для снижения нагрузки на БД
+		self._cache_ttl = timedelta(minutes=30)  # TTL кеша 30 минут
 
 	@classmethod
 	def _get_cache(cls, key: str) -> list[Puzzle] | None:
@@ -50,52 +50,97 @@ class PuzzleCache:
 
 	async def get_random_puzzle(
 		self,
-		session: AsyncSession,
 		filters: PuzzleFilters | None = None,
 	) -> Puzzle | None:
-		"""Получает случайную задачу, используя кэш или TABLESAMPLE."""
+		"""
+		Получает случайную задачу ТОЛЬКО из кеша.
+		
+		Если кеш пуст:
+		- Запускает обновление кеша и ждет его завершения
+		- Возвращает задачу из обновленного кеша
+		
+		Если кеш устарел:
+		- Запускает обновление в фоне (stale-while-revalidate)
+		- Возвращает задачу из старого кеша
+		
+		Args:
+			filters: Фильтры для задач
+			
+		Returns:
+			Puzzle или None, если кеш пуст и обновление не удалось
+		"""
 		cache_key = self._build_cache_key(filters)
 
 		# Читаем из кеша без блокировки (чтение из dict атомарно в CPython)
 		cached = self._get_cache(cache_key)
+		is_cache_empty = not cached or len(cached) == 0
+		should_refresh = self._should_refresh(cache_key, self._cache_ttl)
 		
 		# Если кеш есть и свежий - возвращаем задачу сразу
-		if cached and not self._should_refresh(cache_key, self._cache_ttl):
+		if cached and len(cached) > 0 and not should_refresh:
 			return random.choice(cached)
 
-		# Если кеш устарел или пуст - запускаем обновление в фоне (не блокируя)
-		if self._should_refresh(cache_key, self._cache_ttl):
+		# Если кеш пуст - запускаем обновление и ждем его завершения
+		if is_cache_empty:
+			# Используем блокировку, чтобы только один запрос запускал обновление
+			async with self._refresh_lock:
+				# Двойная проверка: возможно, кеш уже обновили пока ждали блокировку
+				cached = self._get_cache(cache_key)
+				if cached and len(cached) > 0:
+					return random.choice(cached)
+				
+				# Проверяем, не запущено ли уже обновление
+				refresh_task = self._refresh_tasks.get(cache_key)
+				
+				if refresh_task and not refresh_task.done():
+					# Обновление уже запущено другим запросом - сохраняем задачу и выходим из блокировки
+					# Задача будет ждаться ниже
+					pass
+				else:
+					# Запускаем обновление синхронно и сохраняем задачу
+					async def refresh_and_save():
+						async with SessionLocal() as session:
+							try:
+								await self._refresh_cache(session, cache_key, filters)
+							except Exception as e:
+								logger.error(f"Error refreshing empty cache: {e}")
+								raise
+					
+					refresh_task = asyncio.create_task(refresh_and_save())
+					self._refresh_tasks[cache_key] = refresh_task
+			
+			# Ждем завершения обновления (либо запущенного нами, либо другим запросом)
+			refresh_task = self._refresh_tasks.get(cache_key)
+			if refresh_task and not refresh_task.done():
+				try:
+					await refresh_task
+				except Exception as e:
+					logger.error(f"Error waiting for cache refresh: {e}")
+					# Если обновление не удалось, возвращаем None
+					return None
+			
+			# Проверяем кеш после обновления
+			cached = self._get_cache(cache_key)
+			if cached and len(cached) > 0:
+				return random.choice(cached)
+			
+			# Если после обновления кеш все еще пуст - возвращаем None
+			return None
+
+		# Если кеш устарел (но не пуст) - используем stale-while-revalidate
+		if should_refresh:
 			# Запускаем обновление в фоне, если еще не запущено
-			# Создаем новую сессию для фоновой задачи, чтобы избежать конфликтов
 			if cache_key not in self._refresh_tasks or self._refresh_tasks[cache_key].done():
 				self._refresh_tasks[cache_key] = asyncio.create_task(
 					self._refresh_cache_async(cache_key, filters)
 				)
+			
+			# Возвращаем задачу из старого кеша
+			if cached and len(cached) > 0:
+				return random.choice(cached)
 
-		# Если кеш есть, но устарел - используем его (stale-while-revalidate)
-		if cached:
-			return random.choice(cached)
-
-		# Кэш пуст – используем прямую выборку
-		return await self._get_random_with_tablesample(session, filters)
-
-	async def _get_random_with_tablesample(
-		self,
-		session: AsyncSession,
-		filters: PuzzleFilters | None = None,
-	) -> Puzzle | None:
-		"""Использует простой запрос с ORDER BY random() для выборки пазла."""
-		conditions = self._build_filter_conditions(filters) if filters else []
-		
-		# Простой и быстрый способ: ORDER BY random() LIMIT 1
-		# PostgreSQL оптимизирует это для больших таблиц с индексами
-		query = select(Puzzle)
-		if conditions:
-			query = query.where(*conditions)
-		query = query.order_by(func.random()).limit(1)
-		
-		result = await session.execute(query)
-		return result.scalar_one_or_none()
+		# Fallback - возвращаем None
+		return None
 
 	async def _refresh_cache_async(
 		self,
@@ -151,8 +196,10 @@ class PuzzleCache:
 			min_max_result = await session.execute(min_max_stmt)
 			min_id, max_id = min_max_result.one()
 			if min_id is None or max_id is None:
-				self._set_cache(cache_key, [])
-				return
+				# Не кешируем пустой результат - нет задач с такими фильтрами
+				# Следующий запрос попробует снова, возможно данные появятся
+				logger.warning(f"No puzzles found for filters: {filters}")
+				return None
 
 			results: list[Puzzle] = []
 			seen_ids: set[int] = set()
@@ -182,8 +229,17 @@ class PuzzleCache:
 			items = results[: self.settings.random_pool_size]
 
 		# Атомарно обновляем кеш (запись в dict атомарна в CPython)
-		self._set_cache(cache_key, items or [])
-		logger.info("Refreshed cache for key '%s' with %d puzzles", cache_key, len(items or []))
+		# Не кешируем пустые результаты - если items пуст, не сохраняем в кеш
+		if items and len(items) > 0:
+			self._set_cache(cache_key, items)
+			logger.info("Refreshed cache for key '%s' with %d puzzles", cache_key, len(items))
+		else:
+			# Если не нашли задачи - удаляем из кеша (если был)
+			if cache_key in self._cache:
+				del self._cache[cache_key]
+				if cache_key in self._cache_timestamps:
+					del self._cache_timestamps[cache_key]
+			logger.warning("No puzzles found for cache key '%s', cache not updated", cache_key)
 
 	def _build_cache_key(self, filters: PuzzleFilters | None) -> str:
 		if not filters:

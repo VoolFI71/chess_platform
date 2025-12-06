@@ -34,8 +34,18 @@
         const card = document.createElement('div');
         card.className = `mode-card ${isActive ? 'active' : ''}`;
         card.dataset.mode = mode.id;
+        card.setAttribute('role', 'listitem');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', `${mode.name}. ${mode.description}`);
+        card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         // Фон устанавливается через CSS, не через инлайн-стиль
         card.addEventListener('click', () => window.TasksMain.selectMode(mode.id));
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            window.TasksMain.selectMode(mode.id);
+          }
+        });
         
         const header = document.createElement('div');
         header.className = 'mode-header';
@@ -44,6 +54,7 @@
         iconDiv.className = 'mode-icon';
         const icon = document.createElement('i');
         icon.className = `fas ${mode.icon}`;
+        icon.setAttribute('aria-hidden', 'true');
         iconDiv.appendChild(icon);
         
         const nameSpan = document.createElement('span');
@@ -66,6 +77,7 @@
           
           const metaIcon = document.createElement('i');
           metaIcon.className = `fas ${meta.icon} mode-meta-icon`;
+          metaIcon.setAttribute('aria-hidden', 'true');
           
           const metaText = document.createElement('span');
           metaText.textContent = meta.text;
@@ -191,35 +203,46 @@
 
     updateStats() {
       const ratingValue = document.getElementById('currentRatingValue');
+      const ratingStatItem = ratingValue?.closest('.stat-item');
       const streakValue = document.getElementById('streakValue');
       const streakIndicator = document.getElementById('streakIndicator');
+      const streakStat = document.getElementById('streakStat');
       
-      if (ratingValue) {
-        const rating = window.TasksUtils.getCurrentPuzzleRating();
-        ratingValue.textContent = rating;
+      // Рейтинг показывается только в режиме рейтинга (не в выживании)
+      if (ratingStatItem) {
+        if (TasksState.selectedMode.id === 'rated') {
+          const rating = window.TasksUtils.getCurrentPuzzleRating();
+          if (ratingValue) ratingValue.textContent = rating;
+          ratingStatItem.style.display = '';
+        } else {
+          ratingStatItem.style.display = 'none';
+        }
       }
       
-      if (streakValue && streakIndicator) {
+      // Серия показывается только в режиме выживания (не в рейтинге)
+      if (streakStat) {
         if (TasksState.selectedMode.id === 'survival') {
           const streak = TasksState.sessionStats.streak;
-          streakValue.textContent = streak;
+          if (streakValue) streakValue.textContent = streak;
+          streakStat.style.display = '';
           
           // Визуальная индикация активной серии (более 3 решенных подряд)
-          if (streak >= 3) {
-            streakIndicator.classList.add('active');
-            // Анимация при увеличении серии
-            streakValue.style.animation = 'none';
-            setTimeout(() => {
-              streakValue.style.animation = 'streakIncrease 0.5s ease-out';
-            }, 10);
-          } else {
-            streakIndicator.classList.remove('active');
+          if (streakIndicator) {
+            if (streak >= 3) {
+              streakIndicator.classList.add('active');
+              // Анимация при увеличении серии
+              if (streakValue) {
+                streakValue.style.animation = 'none';
+                setTimeout(() => {
+                  streakValue.style.animation = 'streakIncrease 0.5s ease-out';
+                }, 10);
+              }
+            } else {
+              streakIndicator.classList.remove('active');
+            }
           }
         } else {
-          streakValue.textContent = '—';
-          if (streakIndicator) {
-            streakIndicator.classList.remove('active');
-          }
+          streakStat.style.display = 'none';
         }
       }
     },

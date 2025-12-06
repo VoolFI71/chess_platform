@@ -1,0 +1,27 @@
+# Добавить этот сервис в основной docker-compose.yml для тестирования
+version: '3.8'
+
+services:
+  games-go:
+    build:
+      context: ./games_service_go
+      dockerfile: Dockerfile
+    container_name: games-go
+    ports:
+      - "8001:8000"  # Другой порт для параллельного запуска с Python версией
+    environment:
+      - DATABASE_URL=postgresql://chess_user:chess_password@postgres:5432/chess_db
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=HS256
+      - GAMES_INTERNAL_TOKEN=${GAMES_INTERNAL_TOKEN}
+      - PORT=8000
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    external: true
+

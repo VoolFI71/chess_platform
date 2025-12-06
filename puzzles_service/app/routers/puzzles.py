@@ -53,8 +53,9 @@ async def get_random_puzzle(
 	)
 
 	# Используем singleton кэш для получения случайной задачи
+	# Задачи возвращаются ТОЛЬКО из кеша
 	cache = get_puzzle_cache()
-	puzzle = await cache.get_random_puzzle(db, filters)
+	puzzle = await cache.get_random_puzzle(filters)
 
 	if not puzzle:
 		# Просто возвращаем 404 без медленной проверки count
