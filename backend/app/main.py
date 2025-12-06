@@ -133,6 +133,26 @@ def serve_profile_page_with_username(username: str):
     return _serve_file(profile_file)
 
 
+@app.get("/favicon.ico")
+def serve_favicon_ico():
+    """Serve favicon.ico - redirect to favicon.svg or serve PNG if available"""
+    # Try to serve favicon.png first (120x120 as required by Yandex)
+    png_path = WEB_DIR / "favicon.png"
+    if png_path.is_file():
+        response = FileResponse(str(png_path))
+        response.headers["Content-Type"] = "image/png"
+        return response
+    
+    # Fallback to SVG
+    svg_path = WEB_DIR / "favicon.svg"
+    if svg_path.is_file():
+        response = FileResponse(str(svg_path))
+        response.headers["Content-Type"] = "image/svg+xml; charset=utf-8"
+        return response
+    
+    return JSONResponse({"detail": "Not Found"}, status_code=404)
+
+
 @app.get("/{full_path:path}")
 def serve_frontend(full_path: str):
     # Don't serve API routes as static files
