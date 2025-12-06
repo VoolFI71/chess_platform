@@ -8,6 +8,8 @@ class Settings(BaseServiceSettings):
 	auth_internal_token: str | None = None
 	users_service_url: str | None = None
 	users_internal_token: str | None = None
+	email_service_url: str | None = None
+	email_internal_token: str | None = None
 	kafka_broker_url: str | None = None
 
 

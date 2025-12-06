@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добро пожаловать в Power Chess!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        p {
+            margin-bottom: 15px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background-color: #2980b9;
+        }
+        ul {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Добро пожаловать, {{.Username}}!</h1>
+        <p>Спасибо за регистрацию в Power Chess. Ваш аккаунт успешно создан!</p>
+        <p>Теперь вы можете:</p>
+        <ul>
+            <li>Решать шахматные задачи и улучшать свои навыки</li>
+            <li>Играть партии с другими игроками</li>
+            <li>Изучать курсы и уроки по шахматам</li>
+            <li>Отслеживать свой прогресс и рейтинг</li>
+        </ul>
+        {{if .VerificationToken}}
+        <p>Для завершения регистрации подтвердите ваш email:</p>
+        <a href="{{.FrontendURL}}/verify-email?token={{.VerificationToken}}" class="button">
+            Подтвердить email
+        </a>
+        {{else}}
+        <p>Начните работу с Power Chess прямо сейчас:</p>
+        <a href="{{.FrontendURL}}/" class="button">
+            Перейти на сайт
+        </a>
+        {{end}}
+        <p>Желаем вам успехов в изучении шахмат!</p>
+        <div class="footer">
+            <p>Если вы не регистрировались на Power Chess, просто проигнорируйте это письмо.</p>
+            <p>С уважением,<br>Команда Power Chess</p>
+        </div>
+    </div>
+</body>
+</html>
+

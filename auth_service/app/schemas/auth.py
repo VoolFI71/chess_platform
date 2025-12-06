@@ -44,3 +44,34 @@ class Token(BaseModel):
 	token_type: str = "bearer"
 
 
+class PasswordResetRequest(BaseModel):
+	email: EmailStr = Field(description="Email аккаунта для восстановления пароля")
+
+
+class VerifyResetCodeRequest(BaseModel):
+	email: EmailStr
+	code: str = Field(min_length=6, max_length=6, description="6-значный код верификации")
+
+
+class ResetPasswordRequest(BaseModel):
+	email: EmailStr
+	code: str = Field(min_length=6, max_length=6, description="6-значный код верификации")
+	new_password: str = Field(min_length=8, max_length=128, description="Новый пароль")
+
+
+class PasswordResetResponse(BaseModel):
+	message: str
+
+
+class RegisterWithCodeRequest(BaseModel):
+	username: str = Field(
+		min_length=3,
+		max_length=32,
+		pattern=r"^[A-Za-z0-9_.-]+$",
+		description="Уникальное имя пользователя (латиница, цифры, _ . -)",
+	)
+	email: EmailStr
+	password: str = Field(min_length=8, max_length=128)
+	code: str = Field(min_length=6, max_length=6, description="6-значный код верификации")
+
+

@@ -47,8 +47,6 @@ func createUpgrader(allowedOrigins []string) websocket.Upgrader {
 	}
 }
 
-var upgrader = createUpgrader(nil) // По умолчанию разрешаем все origins
-
 // validateJWT валидирует JWT токен и возвращает user ID
 func validateJWT(tokenString, secret string) (int, error) {
 	// Убираем "Bearer " префикс если есть
@@ -117,10 +115,6 @@ func validateJWT(tokenString, secret string) (int, error) {
 	}
 
 	return userID, nil
-}
-
-func handleWebSocket(db *database.DB, wsManager *realtime.ConnectionManager, cfg *config.Config) gin.HandlerFunc {
-	return handleWebSocketWithUpgrader(db, wsManager, cfg, upgrader)
 }
 
 // handleWebSocketWithUpgrader обрабатывает WebSocket соединения с кастомным upgrader

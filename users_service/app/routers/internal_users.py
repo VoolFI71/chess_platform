@@ -100,3 +100,27 @@ async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)) -> In
 
 	return build_internal_user(user, include_secret=False)
 
+
+@router.put(
+	"/{user_id}/password",
+	dependencies=[Depends(verify_internal_token)],
+)
+async def update_user_password(
+	user_id: int, data: dict[str, str], db: AsyncSession = Depends(get_db)
+) -> dict[str, str]:
+	"""
+	Обновляет пароль пользователя.
+	Ожидает в теле запроса: {"hashed_password": "..."}
+	"""
+	user = await db.get(User, user_id)
+	if not user:
+		raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+
+	hashed_password = data.get("hashed_password")
+	if not hashed_password:
+		raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="hashed_password обязателен")
+
+	user.hashed_password = hashed_password
+	await db.commit()
+
+	return {"message": "Пароль успешно обновлён"}

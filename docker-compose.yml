@@ -32,11 +32,15 @@ services:
         condition: service_completed_successfully
       users:
         condition: service_started
+      email:
+        condition: service_started
     env_file:
       - .env
     environment:
       METRICS_ENABLED: "true"
       USERS_SERVICE_URL: ${USERS_SERVICE_URL}
+      EMAIL_SERVICE_URL: http://email:8000
+      EMAIL_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
       USERS_INTERNAL_TOKEN: ${USERS_INTERNAL_TOKEN}
     expose:
       - "8000"
@@ -188,6 +192,33 @@ services:
       - "8000"
     restart: unless-stopped
 
+  email:
+    build:
+      context: ./email_service_go
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      PORT: 8000
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@power-chess.ru}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Power Chess}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      FRONTEND_URL: ${FRONTEND_URL:-https://power-chess.ru}
+      FRONTEND_RESET_PASSWORD_PATH: ${FRONTEND_RESET_PASSWORD_PATH:-/reset-password}
+      DATABASE_URL: postgresql://chess:chess@db:5432/chess?sslmode=disable
+      METRICS_ENABLED: "true"
+    expose:
+      - "8000"
+    restart: unless-stopped
+
   notifications:
     build:
       context: .
@@ -243,6 +274,8 @@ services:
         condition: service_started
       games:
         condition: service_started
+      email:
+        condition: service_started
       notifications:
         condition: service_started
       puzzles:
@@ -268,6 +301,7 @@ services:
       - lessons
       - payments
       - games
+      - email
       - notifications
       - puzzles
     environment:

@@ -243,16 +243,19 @@
       return;
     }
 
-    setFormLoading(form, true, 'Создаём аккаунт…');
+    setFormLoading(form, true, 'Отправляем код…');
     try {
-      await postJson('/api/auth/register', { username, email, password });
-      // После регистрации входим используя email (можно использовать и username)
-      const token = await postJson('/api/auth/login', { login: email, password });
-      setTokens(token.access_token, token.refresh_token);
-      showFeedback(form, 'Аккаунт создан! Перенаправляем…', 'success');
-      redirectAfterSuccess();
+      const response = await postJson('/api/auth/register', { username, email, password });
+      // Сохраняем данные регистрации для следующего шага
+      window.registerData = { username, email, password };
+      // Переходим к шагу 2 - ввод кода
+      if (window.showRegisterStep2) {
+        window.showRegisterStep2(email);
+      } else {
+        showFeedback(form, response.message || 'Код отправлен на почту', 'success');
+      }
     } catch (error) {
-      showFeedback(form, error.message || 'Не удалось зарегистрироваться');
+      showFeedback(form, error.message || 'Не удалось отправить код');
     } finally {
       setFormLoading(form, false);
     }

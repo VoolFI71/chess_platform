@@ -10,6 +10,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 
 from common import configure_observability, setup_logging
 
+from .clients.email import close_email_client
 from .clients.users import close_users_client
 from .config import get_settings
 from .database import get_db, sync_engine
@@ -76,6 +77,7 @@ async def run_startup_tasks() -> None:
 async def shutdown_http_clients() -> None:
 	logger.info("Auth service shutdown initiated")
 	await close_users_client()
+	await close_email_client()
 	logger.info("Auth service shutdown completed")
 
 
