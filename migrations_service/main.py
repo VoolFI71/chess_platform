@@ -32,6 +32,7 @@ DATABASE_URL = os.getenv(
 BASE_DIR = Path(__file__).parent.parent
 
 # Migration order: services that don't depend on others first
+# Note: games_service now uses Go and doesn't use Alembic migrations
 MIGRATION_ORDER = [
     ("users", "users_service", "alembic_version_users"),
     ("auth", "auth_service", "alembic_version_auth"),
@@ -39,12 +40,12 @@ MIGRATION_ORDER = [
     ("lessons", "lessons_service", "alembic_version_lessons"),
     ("enrollments", "enrollments_service", "alembic_version_enrollments"),
     ("payments", "payments_service", "alembic_version_payments"),
-    ("games", "games_service", "alembic_version_games"),
     ("notifications", "notifications_service", "alembic_version_notifications"),
     ("puzzles", "puzzles_service", "alembic_version_puzzles"),
 ]
 
 # Tables to check for existence (to determine if we need to stamp initial version)
+# Note: games service tables are managed by Go/GORM, not Alembic
 SERVICE_TABLES = {
     "users": ["users", "rating_history"],  # Добавляем rating_history для проверки
     "auth": ["refresh_tokens"],
@@ -52,7 +53,6 @@ SERVICE_TABLES = {
     "lessons": ["lessons"],
     "enrollments": ["enrollments"],
     "payments": ["payments", "payment_transactions", "subscriptions"],
-    "games": ["games", "moves"],  # Исправлено: таблица называется moves, а не game_moves
     "notifications": ["notifications"],
     "puzzles": ["puzzles", "puzzle_user_stats", "puzzle_attempts"],
 }

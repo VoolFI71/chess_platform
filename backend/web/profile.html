@@ -20,6 +20,7 @@
       } catch {}
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- Common Styles -->
     <link rel="stylesheet" href="/styles/variables.css">
     <link rel="stylesheet" href="/styles/common.css">
@@ -46,22 +47,7 @@
             <div class="header-content">
                 <a href="/" class="logo">
                     <div class="logo-icon">
-                        <div class="chess-pattern"></div>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                            <defs>
-                                <linearGradient id="cabinet-crown-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#ffd700" />
-                                    <stop offset="50%" stop-color="#ffffff" />
-                                    <stop offset="100%" stop-color="#ffd700" />
-                                </linearGradient>
-                            </defs>
-                            <rect x="3" y="16" width="18" height="3" fill="url(#cabinet-crown-gradient)" stroke="#fff" stroke-width="0.5" rx="1.5"/>
-                            <path d="M4 16L3 6L6 11L12 3L18 11L21 6L20 16H4Z" fill="url(#cabinet-crown-gradient)" stroke="#fff" stroke-width="1"/>
-                            <circle cx="12" cy="9" r="1.5" fill="#e11d48" stroke="#fff" stroke-width="0.5"/>
-                        </svg>
-                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
-                            <path d="M7 1L3 7H5L4 11L8 5H6L7 1Z" fill="#ffd700" stroke="#fff" stroke-width="0.8"/>
-                        </svg>
+                        <img src="/favicon.svg" alt="PowerChess" width="32" height="32" style="display: block;">
                     </div>
                     <div>
                         <div class="gradient-text">PowerChess</div>
@@ -122,6 +108,27 @@
         </div>
     </header>
 
+    <!-- HERO SECTION -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-avatar" id="heroAvatar">
+                    —
+                </div>
+                <div class="hero-info">
+                    <h1 class="hero-name" id="heroName">Загрузка...</h1>
+                    <div class="hero-username" id="heroUsername">@username</div>
+                    <div class="hero-league-container" id="heroLeagueContainer">
+                        <!-- Лига и прогресс будут добавлены динамически -->
+                    </div>
+                    <div class="hero-badges" id="heroBadges">
+                        <!-- Дополнительные бейджи будут добавлены динамически -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <!-- MAIN LAYOUT -->
 <div class="container">
     <div class="cabinet-layout">
@@ -135,10 +142,6 @@
                 <div class="sidebar-item" data-section="puzzles">
                     <i class="fas fa-puzzle-piece"></i>
                     <span>Прогресс по задачам</span>
-                </div>
-                <div class="sidebar-item" data-section="friendRequests">
-                    <i class="fas fa-user-clock"></i>
-                    <span>Заявки в друзья</span>
                 </div>
                 <div class="sidebar-item" data-section="friends">
                     <i class="fas fa-user-friends"></i>
@@ -155,18 +158,6 @@
                 <div class="sidebar-item" data-section="ratingHistory">
                     <i class="fas fa-chart-line"></i>
                     <span>История рейтингов</span>
-                </div>
-                <div class="sidebar-item" data-section="favorites">
-                    <i class="fas fa-star"></i>
-                    <span>Отмеченные партии</span>
-                </div>
-                <div class="sidebar-item" data-section="webinars">
-                    <i class="fas fa-video"></i>
-                    <span>Вебинары</span>
-                </div>
-                <div class="sidebar-item" data-section="support">
-                    <i class="fas fa-headset"></i>
-                    <span>Тех. поддержка</span>
                 </div>
             </nav>
         </aside>
@@ -189,33 +180,33 @@
                 </div>
 
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card purple">
                         <div class="stat-icon purple">
                             <i class="fas fa-trophy"></i>
                         </div>
                         <div class="stat-value" id="overallRating">—</div>
                         <div class="stat-label">Общий рейтинг</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card gold">
                         <div class="stat-icon gold">
                             <i class="fas fa-chess-king"></i>
                         </div>
                         <div class="stat-value" id="totalGames">0</div>
                         <div class="stat-label">Всего партий</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card green">
                         <div class="stat-icon green">
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-value" id="overallWinRate">0%</div>
                         <div class="stat-label">Винрейт</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon red">
-                            <i class="fas fa-fire"></i>
+                    <div class="stat-card blue">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-puzzle-piece"></i>
                         </div>
-                        <div class="stat-value">12</div>
-                        <div class="stat-label">Дни подряд</div>
+                        <div class="stat-value" id="puzzlesSolvedHero">0</div>
+                        <div class="stat-label">Задач решено</div>
                     </div>
                 </div>
 
@@ -232,34 +223,123 @@
                     </div>
                 </div>
 
-                <div class="charts-grid">
-                    <div class="chart-card">
-                        <h3 class="chart-title">
-                            <i class="fas fa-chart-area"></i>
-                            Динамика рейтинга
-                        </h3>
-                        <div class="chart-placeholder">
-                            📈 График изменения рейтинга за последние 30 дней
+                <!-- Dashboard Widgets -->
+                <div class="dashboard-widgets">
+                    <div class="widget-card">
+                        <div class="widget-header">
+                            <h3 class="widget-title">
+                                <i class="fas fa-fire"></i>
+                                Активность
+                            </h3>
+                        </div>
+                        <div class="widget-content">
+                            <div class="activity-stats">
+                                <div class="activity-stat-item">
+                                    <div class="activity-stat-label">Игр сегодня</div>
+                                    <div class="activity-stat-value" id="gamesToday">0</div>
+                                </div>
+                                <div class="activity-stat-item">
+                                    <div class="activity-stat-label">Игр на этой неделе</div>
+                                    <div class="activity-stat-value" id="gamesThisWeek">0</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="chart-card">
-                        <h3 class="chart-title">
-                            <i class="fas fa-chart-pie"></i>
-                            Статистика побед
-                        </h3>
-                        <div class="chart-placeholder">
-                            🥧 Круговая диаграмма: Победы / Поражения / Ничьи
+                    
+                    <div class="widget-card">
+                        <div class="widget-header">
+                            <h3 class="widget-title">
+                                <i class="fas fa-trophy"></i>
+                                Рекорды
+                            </h3>
+                        </div>
+                        <div class="widget-content">
+                            <div class="records-list">
+                                <div class="record-item">
+                                    <i class="fas fa-arrow-up" style="color: var(--success);"></i>
+                                    <div class="record-info">
+                                        <div class="record-label">Лучший рейтинг</div>
+                                        <div class="record-value" id="bestRating">—</div>
+                                    </div>
+                                </div>
+                                <div class="record-item">
+                                    <i class="fas fa-fire" style="color: var(--warning);"></i>
+                                    <div class="record-info">
+                                        <div class="record-label">Лучшая серия побед</div>
+                                        <div class="record-value" id="bestWinStreak">—</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="chart-card">
-                    <h3 class="chart-title">
-                        <i class="fas fa-brain"></i>
-                        Сильные и слабые стороны
-                    </h3>
-                    <div class="chart-placeholder">
-                        📊 Анализ дебютов, миттельшпиля и эндшпиля
+                <div class="charts-grid">
+                    <div class="chart-card enhanced">
+                        <div class="chart-header">
+                            <h3 class="chart-title">
+                                <i class="fas fa-chart-line"></i>
+                                Динамика рейтинга
+                            </h3>
+                            <div class="chart-controls">
+                                <select id="ratingChartFormat" class="chart-filter">
+                                    <option value="all">Все форматы</option>
+                                    <option value="blitz">Блиц</option>
+                                    <option value="rapid">Рапид</option>
+                                    <option value="bullet">Пуля</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="ratingChart"></canvas>
+                        </div>
+                        <div class="chart-footer">
+                            <div class="chart-stats">
+                                <div class="chart-stat-item">
+                                    <span class="stat-label">Текущий:</span>
+                                    <span class="stat-value" id="currentRatingStat">—</span>
+                                </div>
+                                <div class="chart-stat-item">
+                                    <span class="stat-label">Изменение:</span>
+                                    <span class="stat-value" id="ratingChangeStat">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-card enhanced">
+                        <div class="chart-header">
+                            <h3 class="chart-title">
+                                <i class="fas fa-chart-pie"></i>
+                                Статистика побед
+                            </h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="winRateChart"></canvas>
+                        </div>
+                        <div class="chart-footer">
+                            <div class="chart-stats">
+                                <div class="chart-stat-item">
+                                    <span class="stat-label">Винрейт:</span>
+                                    <span class="stat-value" id="winRateStat">—</span>
+                                </div>
+                                <div class="chart-stat-item">
+                                    <span class="stat-label">Всего игр:</span>
+                                    <span class="stat-value" id="totalGamesStat">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-card enhanced">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-chart-bar"></i>
+                            Статистика по форматам
+                        </h3>
+                    </div>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="formatStatsChart"></canvas>
                     </div>
                 </div>
             </section>
@@ -304,13 +384,18 @@
                     </div>
                 </div>
 
-                <div class="chart-card">
-                    <h3 class="chart-title">
-                        <i class="fas fa-chart-bar"></i>
-                        Прогресс по категориям
-                    </h3>
-                    <div class="chart-placeholder">
-                        📊 График прогресса: Вилки, Связки, Открытые линии, Матовые атаки
+                <div class="chart-card enhanced">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-chart-bar"></i>
+                            Прогресс по категориям
+                        </h3>
+                    </div>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="puzzleThemesChart"></canvas>
+                    </div>
+                    <div id="puzzleThemesList" class="themes-list">
+                        <!-- Список категорий будет загружен динамически -->
                     </div>
                 </div>
             </section>
@@ -331,38 +416,105 @@
 
             <!-- FRIENDS -->
             <section class="content-section" id="friends">
-                <div class="section-header">
-                    <h1 class="section-title">
-                        <i class="fas fa-user-friends"></i>
-                        Друзья
-                    </h1>
-                    <button class="btn btn-primary" id="addFriendBtn" onclick="showAddFriendModal()">
-                        <i class="fas fa-user-plus"></i>
-                        Добавить друга
-                    </button>
-                </div>
-
-                <!-- Поиск друзей -->
-                <div class="friends-search-container" style="margin-bottom: 2rem;">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input 
-                            type="text" 
-                            id="friendsSearchInput" 
-                            placeholder="Поиск друзей по имени..."
-                            autocomplete="off"
-                        />
-                        <button class="search-clear" id="friendsSearchClear" style="display: none;">
-                            <i class="fas fa-times"></i>
+                <div class="strengths-card">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h2 class="section-title" style="margin-bottom: 0.5rem;">
+                                <i class="fas fa-user-friends"></i>
+                                Друзья
+                            </h2>
+                            <p id="friendsCount" style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">
+                                Загрузка...
+                            </p>
+                        </div>
+                        <button class="btn btn-primary" id="addFriendBtn" onclick="showAddFriendModal()">
+                            <i class="fas fa-user-plus"></i>
+                            Добавить друга
                         </button>
                     </div>
-                </div>
 
-                <div class="friends-grid" id="friendsList">
-                    <!-- Список друзей будет загружен динамически -->
-                    <div style="text-align: center; padding: 2rem; color: var(--muted-foreground);">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                        <div>Загрузка друзей...</div>
+                    <!-- Панель фильтров и поиска -->
+                    <div class="friends-controls">
+                        <!-- Поиск -->
+                        <div class="friends-search-container">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input 
+                                    type="text" 
+                                    id="friendsSearchInput" 
+                                    placeholder="Поиск по имени пользователя..."
+                                    autocomplete="off"
+                                />
+                                <button class="search-clear" id="friendsSearchClear" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Фильтры и сортировка -->
+                        <div class="friends-filters">
+                            <div class="filter-group">
+                                <label class="filter-label">Статус:</label>
+                                <div class="filter-buttons">
+                                    <button class="filter-btn active" data-filter="all">
+                                        <i class="fas fa-users"></i> Все
+                                    </button>
+                                    <button class="filter-btn" data-filter="online">
+                                        <i class="fas fa-circle" style="color: var(--success); font-size: 0.7rem;"></i> Онлайн
+                                    </button>
+                                    <button class="filter-btn" data-filter="playing">
+                                        <i class="fas fa-chess"></i> Играют
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Сортировка:</label>
+                                <select id="friendsSortSelect" class="filter-select">
+                                    <option value="name">По имени</option>
+                                    <option value="rating">По рейтингу</option>
+                                    <option value="recent">Последняя активность</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Группы друзей -->
+                    <div id="friendsListContainer">
+                        <!-- Онлайн друзья -->
+                        <div id="friendsOnlineGroup" class="friends-group" style="display: none;">
+                            <div class="friends-group-header">
+                                <i class="fas fa-circle" style="color: var(--success); font-size: 0.7rem;"></i>
+                                <span class="friends-group-title">Онлайн (<span id="onlineCount">0</span>)</span>
+                            </div>
+                            <div class="friends-list" id="friendsOnlineList"></div>
+                        </div>
+
+                        <!-- Играют сейчас -->
+                        <div id="friendsPlayingGroup" class="friends-group" style="display: none;">
+                            <div class="friends-group-header">
+                                <i class="fas fa-chess" style="color: var(--primary);"></i>
+                                <span class="friends-group-title">Играют сейчас (<span id="playingCount">0</span>)</span>
+                            </div>
+                            <div class="friends-list" id="friendsPlayingList"></div>
+                        </div>
+
+                        <!-- Остальные друзья -->
+                        <div id="friendsOtherGroup" class="friends-group" style="display: none;">
+                            <div class="friends-group-header">
+                                <i class="fas fa-users"></i>
+                                <span class="friends-group-title">Все остальные (<span id="otherCount">0</span>)</span>
+                            </div>
+                            <div class="friends-list" id="friendsOtherList"></div>
+                        </div>
+
+                        <!-- Основной список (для обратной совместимости) -->
+                        <div class="friends-list" id="friendsList">
+                            <!-- Список друзей будет загружен динамически -->
+                            <div class="friends-loading">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <span>Загрузка друзей...</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -393,7 +545,13 @@
                     </div>
                 </div>
 
-                <div id="ratingHistoryList">
+                <div class="chart-card">
+                    <div class="chart-container">
+                        <canvas id="ratingsHistoryChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="ratingHistoryList" style="margin-top: 2rem;">
                     <!-- История рейтингов будет загружена динамически -->
                     <div style="text-align: center; padding: 2rem; color: var(--muted-foreground);">
                         <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
@@ -552,15 +710,15 @@
 
             <!-- GAMES -->
             <section class="content-section" id="games">
-                <div class="section-header">
-                    <h1 class="section-title">
+                <div class="strengths-card">
+                    <h2 class="section-title" style="margin-bottom: 2rem;">
                         <i class="fas fa-history"></i>
                         История партий
-                    </h1>
-                </div>
-
-                <div class="games-list" id="matchHistoryList" data-limit="50">
-                    <!-- История партий будет загружена динамически -->
+                    </h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 2rem;">Последние сыгранные партии</p>
+                    <div style="display: grid; gap: 1rem;" id="matchHistoryList" data-limit="50">
+                        <!-- История партий будет загружена динамически -->
+                    </div>
                 </div>
             </section>
 
@@ -714,6 +872,324 @@
 </div>
 
 <script>
+    // Инициализация графиков
+    function initCharts() {
+        const isDark = document.body.classList.contains('dark');
+        const gridColor = isDark ? '#2a2a4a' : '#e2e8f0';
+        const textColor = isDark ? '#a0a0c0' : '#64748b';
+        const tooltipBg = isDark ? '#1e1e3f' : '#ffffff';
+        const tooltipBorder = isDark ? '#2a2a4a' : '#e2e8f0';
+
+        // График динамики рейтинга
+        const ratingCtx = document.getElementById('ratingChart')?.getContext('2d');
+        if (ratingCtx && typeof Chart !== 'undefined') {
+            const existingChart = Chart.getChart('ratingChart');
+            if (existingChart) existingChart.destroy();
+            
+            new Chart(ratingCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Рейтинг',
+                        data: [],
+                        borderColor: '#7c3aed',
+                        backgroundColor: isDark ? 'rgba(124, 58, 237, 0.1)' : 'rgba(124, 58, 237, 0.05)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#7c3aed',
+                        pointBorderColor: isDark ? '#1e1e3f' : '#ffffff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: tooltipBg,
+                            titleColor: isDark ? '#ffffff' : '#0f172a',
+                            bodyColor: textColor,
+                            borderColor: tooltipBorder,
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: gridColor },
+                            ticks: { color: textColor }
+                        },
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor }
+                        }
+                    }
+                }
+            });
+        }
+
+        // График статистики побед
+        const winRateCtx = document.getElementById('winRateChart')?.getContext('2d');
+        if (winRateCtx && typeof Chart !== 'undefined') {
+            const existingChart = Chart.getChart('winRateChart');
+            if (existingChart) existingChart.destroy();
+            
+            new Chart(winRateCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Победы', 'Ничьи', 'Поражения'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 0,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: textColor,
+                                padding: 15,
+                                font: { size: 14 },
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: tooltipBg,
+                            titleColor: isDark ? '#ffffff' : '#0f172a',
+                            bodyColor: textColor,
+                            borderColor: tooltipBorder,
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // График статистики по форматам
+        const formatStatsCtx = document.getElementById('formatStatsChart')?.getContext('2d');
+        if (formatStatsCtx && typeof Chart !== 'undefined') {
+            const existingChart = Chart.getChart('formatStatsChart');
+            if (existingChart) existingChart.destroy();
+            
+            new Chart(formatStatsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Блиц', 'Рапид', 'Пуля'],
+                    datasets: [{
+                        label: 'Игр',
+                        data: [0, 0, 0],
+                        backgroundColor: ['#7c3aed', '#3b82f6', '#10b981'],
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: tooltipBg,
+                            titleColor: isDark ? '#ffffff' : '#0f172a',
+                            bodyColor: textColor,
+                            borderColor: tooltipBorder,
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, stepSize: 1 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: textColor }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Обновление hero section
+    function updateHeroSection(user) {
+        if (!user) return;
+        
+        const heroAvatar = document.getElementById('heroAvatar');
+        const heroName = document.getElementById('heroName');
+        const heroUsername = document.getElementById('heroUsername');
+        const heroBadges = document.getElementById('heroBadges');
+        
+        if (heroAvatar) {
+            const initials = (user.username || 'U').substring(0, 2).toUpperCase();
+            heroAvatar.textContent = initials;
+        }
+        
+        if (heroName) {
+            heroName.textContent = user.username || 'Пользователь';
+        }
+        
+        if (heroUsername) {
+            heroUsername.textContent = `@${user.username || 'username'}`;
+        }
+        
+        // Определяем лигу по рейтингу
+        const leagueContainer = document.getElementById('heroLeagueContainer');
+        // Если rating уже передан (общий рейтинг), используем его, иначе вычисляем как сумму всех рейтингов
+        let rating = user.rating;
+        if (!rating) {
+            const blitzRating = user.blitz_rating || 1200;
+            const rapidRating = user.rapid_rating || 1200;
+            const bulletRating = user.bullet_rating || 1200;
+            const puzzleRating = user.puzzle_rating || 1200;
+            rating = blitzRating + rapidRating + bulletRating + puzzleRating;
+        }
+        
+        if (leagueContainer && rating) {
+            let league = 'Новичок';
+            let leagueIcon = 'fa-seedling';
+            let leagueColor = '#64748b';
+            let leagueGradient = 'linear-gradient(135deg, #64748b 0%, #475569 100%)';
+            let nextLeague = 'Бронза';
+                let nextRating = 5600; // 4 * 1400
+            let currentRating = rating;
+            
+            // Пороги лиг пересчитаны для суммы рейтингов (4 формата * порог)
+            if (rating >= 9600) { // 4 * 2400
+                league = 'Гроссмейстер';
+                leagueIcon = 'fa-crown';
+                leagueColor = '#b9f2ff';
+                leagueGradient = 'linear-gradient(135deg, #b9f2ff 0%, #60a5fa 100%)';
+                nextLeague = null;
+                nextRating = null;
+            } else if (rating >= 8800) { // 4 * 2200
+                league = 'Мастер';
+                leagueIcon = 'fa-gem';
+                leagueColor = '#e5e4e2';
+                leagueGradient = 'linear-gradient(135deg, #e5e4e2 0%, #cbd5e1 100%)';
+                nextLeague = 'Гроссмейстер';
+                nextRating = 9600;
+            } else if (rating >= 8000) { // 4 * 2000
+                league = 'Эксперт';
+                leagueIcon = 'fa-star';
+                leagueColor = '#c0c0c0';
+                leagueGradient = 'linear-gradient(135deg, #c0c0c0 0%, #94a3b8 100%)';
+                nextLeague = 'Мастер';
+                nextRating = 8800;
+            } else if (rating >= 7200) { // 4 * 1800
+                league = 'Золото';
+                leagueIcon = 'fa-medal';
+                leagueColor = '#fbbf24';
+                leagueGradient = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+                nextLeague = 'Эксперт';
+                nextRating = 8000;
+            } else if (rating >= 6400) { // 4 * 1600
+                league = 'Серебро';
+                leagueIcon = 'fa-award';
+                leagueColor = '#c0c0c0';
+                leagueGradient = 'linear-gradient(135deg, #c0c0c0 0%, #94a3b8 100%)';
+                nextLeague = 'Золото';
+                nextRating = 7200;
+            } else if (rating >= 5600) { // 4 * 1400
+                league = 'Бронза';
+                leagueIcon = 'fa-trophy';
+                leagueColor = '#cd7f32';
+                leagueGradient = 'linear-gradient(135deg, #cd7f32 0%, #a16207 100%)';
+                nextLeague = 'Серебро';
+                nextRating = 6400;
+            } else {
+                nextRating = 5600;
+            }
+            
+            let progressPercent = 0;
+            let progressText = '';
+            let ratingToNext = 0;
+            
+            if (nextRating) {
+                // Определяем начальный рейтинг текущей лиги (для суммы рейтингов)
+                let startRating = 4800; // 4 * 1200
+                if (rating >= 8800) startRating = 8800; // 4 * 2200
+                else if (rating >= 8000) startRating = 8000; // 4 * 2000
+                else if (rating >= 7200) startRating = 7200; // 4 * 1800
+                else if (rating >= 6400) startRating = 6400; // 4 * 1600
+                else if (rating >= 5600) startRating = 5600; // 4 * 1400
+                
+                const ratingRange = nextRating - startRating;
+                const currentInRange = rating - startRating;
+                progressPercent = Math.min(100, Math.max(0, (currentInRange / ratingRange) * 100));
+                ratingToNext = nextRating - rating;
+                progressText = ratingToNext > 0 ? `${ratingToNext} до ${nextLeague}` : '';
+            } else {
+                progressPercent = 100;
+                progressText = 'Максимальная лига!';
+            }
+            
+            leagueContainer.innerHTML = `
+                <div class="hero-league-card" style="background: ${leagueGradient};">
+                    <div class="hero-league-icon">
+                        <i class="fas ${leagueIcon}"></i>
+                    </div>
+                    <div class="hero-league-info">
+                        <div class="hero-league-name">${league}</div>
+                        <div class="hero-league-rating">${rating} рейтинг</div>
+                        ${nextRating ? `
+                        <div class="hero-league-progress">
+                            <div class="progress-bar-wrapper">
+                                <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
+                            </div>
+                            <div class="progress-bar-text">${progressText}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Добавляем дополнительные бейджи в heroBadges, если нужно
+        if (heroBadges) {
+            heroBadges.innerHTML = ''; // Очищаем, чтобы не дублировать
+        }
+    }
+
+    // Обновление графика статистики побед
+    function updateWinRateChart(wins, draws, losses) {
+        const chart = Chart.getChart('winRateChart');
+        if (chart) {
+            chart.data.datasets[0].data = [wins || 0, draws || 0, losses || 0];
+            chart.update('active');
+        }
+        
+        // Обновляем статистику в footer
+        const totalGames = (wins || 0) + (draws || 0) + (losses || 0);
+        const winRate = totalGames > 0 ? Math.round(((wins || 0) / totalGames) * 100) : 0;
+        
+        const winRateStat = document.getElementById('winRateStat');
+        const totalGamesStat = document.getElementById('totalGamesStat');
+        if (winRateStat) winRateStat.textContent = `${winRate}%`;
+        if (totalGamesStat) totalGamesStat.textContent = totalGames;
+    }
+
     // Sidebar navigation
     const sidebarItems = document.querySelectorAll('.sidebar-item');
     const contentSections = document.querySelectorAll('.content-section');
@@ -754,7 +1230,13 @@
             // Загружаем прогресс по задачам при переключении на вкладку "Прогресс по задачам"
             if (targetSection === 'puzzles' && typeof window.loadPuzzlesProgress === 'function') {
                 // Используем сохраненный profileUserId, если он есть (для чужого профиля)
-                window.loadPuzzlesProgress(window.profileUserId || null);
+                const userId = window.profileUserId || null;
+                window.loadPuzzlesProgress(userId).then(() => {
+                    // После загрузки основной статистики загружаем статистику по темам
+                    if (typeof window.loadPuzzleThemesStats === 'function') {
+                        window.loadPuzzleThemesStats(userId);
+                    }
+                });
             }
             
             // Загружаем историю рейтингов при переключении на вкладку "История рейтингов"
@@ -764,6 +1246,17 @@
                     if (typeof initRatingHistoryFilters === 'function') {
                         initRatingHistoryFilters();
                     }
+                    // Инициализируем график истории рейтингов
+                    if (typeof initRatingsHistoryChart === 'function') {
+                        initRatingsHistoryChart();
+                    }
+                }, 100);
+            }
+            
+            // Инициализируем графики при открытии dashboard
+            if (targetSection === 'dashboard' && typeof Chart !== 'undefined') {
+                setTimeout(() => {
+                    initCharts();
                 }, 100);
             }
         });
@@ -802,7 +1295,13 @@
                     window.ensureMatchHistoryLoaded(false, profileUsername);
                 } else if (hash === 'puzzles' && typeof window.loadPuzzlesProgress === 'function') {
                     // Используем сохраненный profileUserId, если он есть (для чужого профиля)
-                    window.loadPuzzlesProgress(window.profileUserId || null);
+                    const userId = window.profileUserId || null;
+                    window.loadPuzzlesProgress(userId).then(() => {
+                        // После загрузки основной статистики загружаем статистику по темам
+                        if (typeof window.loadPuzzleThemesStats === 'function') {
+                            window.loadPuzzleThemesStats(userId);
+                        }
+                    });
                 } else if (hash === 'ratingHistory' && typeof window.loadRatingHistory === 'function') {
                     window.loadRatingHistory();
                     setTimeout(() => {
@@ -818,6 +1317,19 @@
     // Обрабатываем хеш при загрузке страницы
     if (window.location.hash) {
         openSectionFromHash();
+    } else {
+        // Если нет хеша, проверяем активную вкладку по умолчанию
+        const activeSection = document.querySelector('.content-section.active');
+        if (activeSection && activeSection.id === 'puzzles') {
+            const userId = window.profileUserId || null;
+            if (typeof window.loadPuzzlesProgress === 'function') {
+                window.loadPuzzlesProgress(userId).then(() => {
+                    if (typeof window.loadPuzzleThemesStats === 'function') {
+                        window.loadPuzzleThemesStats(userId);
+                    }
+                });
+            }
+        }
     }
 
     // Обрабатываем изменение хеша
@@ -867,16 +1379,16 @@
 
         // Login/Register redirects - handled by auth.js, but add fallback
         document.getElementById('gamesLoginBtn')?.addEventListener('click', () => {
-            window.location.href = '/login.html';
+            window.location.href = '/login';
         });
         document.getElementById('gamesLoginBtnMobile')?.addEventListener('click', () => {
-            window.location.href = '/login.html';
+            window.location.href = '/login';
         });
         document.getElementById('gamesRegisterBtn')?.addEventListener('click', () => {
-            window.location.href = '/register.html';
+            window.location.href = '/register';
         });
         document.getElementById('gamesRegisterBtnMobile')?.addEventListener('click', () => {
-            window.location.href = '/register.html';
+                window.location.href = '/register';
         });
 
         // Logout - handled by auth.js, but add fallback
@@ -903,11 +1415,138 @@
         // Auth.js will automatically update the UI via updateAuthUI
         // But we can also call it explicitly if needed
         if (window.authMe && typeof window.authMe === 'function') {
-            window.authMe().catch(() => {
+            window.authMe().then((user) => {
+                if (user) {
+                    updateHeroSection(user);
+                }
+            }).catch(() => {
                 // Not authenticated - auth.js will handle UI update
             });
         }
+        
+        // Загружаем данные пользователя для hero section
+        if (typeof window.apiFetch === 'function') {
+            window.apiFetch('/api/auth/me').then(res => {
+                if (res.ok) {
+                    return res.json();
+                }
+            }).then(user => {
+                if (user) {
+                    updateHeroSection(user);
+                }
+            }).catch(() => {
+                // Ошибка загрузки - игнорируем
+            });
+        }
+        
+        // Инициализируем графики после загрузки
+        if (typeof Chart !== 'undefined') {
+            setTimeout(() => {
+                initCharts();
+            }, 500);
+        }
     });
+    
+    // Функция для инициализации графика истории рейтингов
+    function initRatingsHistoryChart() {
+        if (typeof Chart === 'undefined') return;
+        
+        const existingChart = Chart.getChart('ratingsHistoryChart');
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        const ctx = document.getElementById('ratingsHistoryChart')?.getContext('2d');
+        if (!ctx) return;
+
+        const isDark = document.body.classList.contains('dark');
+        const gridColor = isDark ? '#2a2a4a' : '#e2e8f0';
+        const textColor = isDark ? '#a0a0c0' : '#64748b';
+        const tooltipBg = isDark ? '#1e1e3f' : '#ffffff';
+        const tooltipBorder = isDark ? '#2a2a4a' : '#e2e8f0';
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Блиц',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Рапид',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Пуля',
+                        data: [],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Задачи',
+                        data: [],
+                        borderColor: '#7c3aed',
+                        backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: textColor,
+                            padding: 15,
+                            font: { size: 14 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: tooltipBg,
+                        titleColor: isDark ? '#ffffff' : '#0f172a',
+                        bodyColor: textColor,
+                        borderColor: tooltipBorder,
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: { color: gridColor },
+                        ticks: { color: textColor }
+                    },
+                    x: {
+                        grid: { color: gridColor },
+                        ticks: { color: textColor }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Экспортируем функции для использования в profile.js
+    window.updateHeroSection = updateHeroSection;
+    window.updateWinRateChart = updateWinRateChart;
+    window.initRatingsHistoryChart = initRatingsHistoryChart;
 </script>
 </body>
 </html>

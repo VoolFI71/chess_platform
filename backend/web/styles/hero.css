@@ -384,6 +384,23 @@ body.dark .hero-chessboard {
 }
 
 /* ===== LARGE MONITORS ADAPTATION ===== */
+/* Large screens (1600px+) */
+@media (min-width: 1600px) {
+    .hero .container {
+        max-width: 1500px;
+        padding: 0 3.5rem;
+    }
+    
+    .hero-content {
+        gap: 3.5rem;
+    }
+    
+    .hero-chessboard {
+        max-width: 550px;
+        max-height: 550px;
+    }
+}
+
 /* Full HD (1920px) */
 @media (min-width: 1920px) {
     .hero {
@@ -391,8 +408,14 @@ body.dark .hero-chessboard {
         min-height: 90vh;
     }
     
+    .hero .container {
+        max-width: 1600px;
+        padding: 0 4rem;
+    }
+    
     .hero-content {
-        max-width: 700px;
+        max-width: none;
+        gap: 4rem;
     }
     
     .hero h1 {
@@ -406,8 +429,8 @@ body.dark .hero-chessboard {
     }
     
     .hero-chessboard {
-        max-width: 500px;
-        max-height: 500px;
+        max-width: 600px;
+        max-height: 600px;
     }
     
     .hero-piece {
@@ -445,8 +468,14 @@ body.dark .hero-chessboard {
         min-height: 92vh;
     }
     
+    .hero .container {
+        max-width: 1800px;
+        padding: 0 5rem;
+    }
+    
     .hero-content {
-        max-width: 800px;
+        max-width: none;
+        gap: 5rem;
     }
     
     .hero h1 {
@@ -460,8 +489,8 @@ body.dark .hero-chessboard {
     }
     
     .hero-chessboard {
-        max-width: 600px;
-        max-height: 600px;
+        max-width: 700px;
+        max-height: 700px;
     }
     
     .hero-piece {
@@ -499,8 +528,14 @@ body.dark .hero-chessboard {
         min-height: 95vh;
     }
     
+    .hero .container {
+        max-width: 2000px;
+        padding: 0 6rem;
+    }
+    
     .hero-content {
-        max-width: 900px;
+        max-width: none;
+        gap: 6rem;
     }
     
     .hero h1 {
@@ -514,8 +549,8 @@ body.dark .hero-chessboard {
     }
     
     .hero-chessboard {
-        max-width: 700px;
-        max-height: 700px;
+        max-width: 800px;
+        max-height: 800px;
     }
     
     .hero-piece {

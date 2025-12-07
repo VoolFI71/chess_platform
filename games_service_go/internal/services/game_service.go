@@ -33,14 +33,17 @@ type CreateGameRequest struct {
 	TimeControl  *models.TimeControl    `json:"time_control"`
 }
 
-func (s *GameService) CreateGame(ctx context.Context, creatorID int, req *CreateGameRequest) (*models.GameDetail, error) {
+func (s *GameService) CreateGame(ctx context.Context, creatorID *int, creatorSessionID *string, req *CreateGameRequest) (*models.GameDetail, error) {
 	gameID := uuid.New()
 
 	var whiteID, blackID *int
+	var whiteSessionID, blackSessionID *string
 	if req.CreatorColor == "white" {
-		whiteID = &creatorID
+		whiteID = creatorID
+		whiteSessionID = creatorSessionID
 	} else {
-		blackID = &creatorID
+		blackID = creatorID
+		blackSessionID = creatorSessionID
 	}
 
 	initialPos := "startpos"
@@ -66,10 +69,25 @@ func (s *GameService) CreateGame(ctx context.Context, creatorID int, req *Create
 		}
 	}
 
-	var metadataJSON []byte
+	// Подготавливаем metadata
+	metadata := make(map[string]interface{})
 	if req.Metadata != nil {
+		for k, v := range req.Metadata {
+			metadata[k] = v
+		}
+	}
+	// Добавляем session_id в metadata, если он есть
+	if whiteSessionID != nil {
+		metadata["white_session_id"] = *whiteSessionID
+	}
+	if blackSessionID != nil {
+		metadata["black_session_id"] = *blackSessionID
+	}
+
+	var metadataJSON []byte
+	if len(metadata) > 0 {
 		var err error
-		metadataJSON, err = json.Marshal(req.Metadata)
+		metadataJSON, err = json.Marshal(metadata)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
 		}
@@ -292,8 +310,13 @@ func (s *GameService) lockGame(ctx context.Context, tx *gorm.DB, gameID uuid.UUI
 	return &game, nil
 }
 
-func (s *GameService) JoinGame(ctx context.Context, gameID uuid.UUID, playerID int) (*models.GameDetail, error) {
+func (s *GameService) JoinGame(ctx context.Context, gameID uuid.UUID, playerID *int, playerSessionID *string) (*models.GameDetail, error) {
 	var game models.Game
+
+	// Проверяем, что передан хотя бы один идентификатор
+	if playerID == nil && playerSessionID == nil {
+		return nil, fmt.Errorf("either player_id or player_session_id must be provided")
+	}
 
 	// Сначала проверяем, не участвует ли уже игрок (без транзакции)
 	if err := s.db.WithContext(ctx).First(&game, "id = ?", gameID).Error; err != nil {
@@ -303,12 +326,30 @@ func (s *GameService) JoinGame(ctx context.Context, gameID uuid.UUID, playerID i
 		return nil, err
 	}
 
+	// Парсим metadata для проверки session_id
+	var metadata map[string]interface{}
+	if len(game.Metadata) > 0 {
+		if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
+			log.Printf("[JoinGame] Failed to unmarshal metadata: %v", err)
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
+	}
+
 	// Проверяем, не участвует ли уже игрок
-	// Если игрок уже в игре, просто возвращаем детали игры (для фронтенда, который всегда вызывает join)
-	if (game.WhiteID != nil && *game.WhiteID == playerID) ||
-		(game.BlackID != nil && *game.BlackID == playerID) {
-		// Игрок уже в игре, возвращаем детали игры без изменений
-		return s.buildGameDetail(ctx, &game)
+	if playerID != nil {
+		if (game.WhiteID != nil && *game.WhiteID == *playerID) ||
+			(game.BlackID != nil && *game.BlackID == *playerID) {
+			return s.buildGameDetail(ctx, &game)
+		}
+	}
+	if playerSessionID != nil {
+		whiteSessionID, _ := metadata["white_session_id"].(string)
+		blackSessionID, _ := metadata["black_session_id"].(string)
+		if *playerSessionID == whiteSessionID || *playerSessionID == blackSessionID {
+			return s.buildGameDetail(ctx, &game)
+		}
 	}
 
 	// Игрок еще не в игре, нужно добавить его
@@ -321,10 +362,26 @@ func (s *GameService) JoinGame(ctx context.Context, gameID uuid.UUID, playerID i
 			return err
 		}
 
+		// Перепарсиваем metadata после блокировки
+		if len(game.Metadata) > 0 {
+			if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
+				metadata = make(map[string]interface{})
+			}
+		}
+
 		// Двойная проверка (race condition protection)
-		if (game.WhiteID != nil && *game.WhiteID == playerID) ||
-			(game.BlackID != nil && *game.BlackID == playerID) {
-			return nil // Игрок уже добавлен
+		if playerID != nil {
+			if (game.WhiteID != nil && *game.WhiteID == *playerID) ||
+				(game.BlackID != nil && *game.BlackID == *playerID) {
+				return nil // Игрок уже добавлен
+			}
+		}
+		if playerSessionID != nil {
+			whiteSessionID, _ := metadata["white_session_id"].(string)
+			blackSessionID, _ := metadata["black_session_id"].(string)
+			if *playerSessionID == whiteSessionID || *playerSessionID == blackSessionID {
+				return nil // Игрок уже добавлен
+			}
 		}
 
 		// Проверяем, что игра открыта для присоединения
@@ -332,20 +389,43 @@ func (s *GameService) JoinGame(ctx context.Context, gameID uuid.UUID, playerID i
 			return fmt.Errorf("game is not open for joining")
 		}
 
-		// Проверяем, не заполнена ли игра
-		if game.WhiteID != nil && game.BlackID != nil {
+		// Проверяем, не заполнена ли игра (учитываем и user_id и session_id)
+		hasWhite := game.WhiteID != nil || metadata["white_session_id"] != nil
+		hasBlack := game.BlackID != nil || metadata["black_session_id"] != nil
+		if hasWhite && hasBlack {
 			return fmt.Errorf("game is full")
 		}
 
-		// Присваиваем игрока
-		if game.WhiteID == nil {
-			game.WhiteID = &playerID
-		} else {
-			game.BlackID = &playerID
+		// Присваиваем игрока на свободную сторону
+		if !hasWhite {
+			if playerID != nil {
+				game.WhiteID = playerID
+			}
+			if playerSessionID != nil {
+				metadata["white_session_id"] = *playerSessionID
+			}
+		} else if !hasBlack {
+			if playerID != nil {
+				game.BlackID = playerID
+			}
+			if playerSessionID != nil {
+				metadata["black_session_id"] = *playerSessionID
+			}
 		}
 
-		// Если оба игрока присоединились, начинаем партию
-		if game.WhiteID != nil && game.BlackID != nil {
+		// Сохраняем обновленный metadata
+		if len(metadata) > 0 {
+			metadataJSON, err := json.Marshal(metadata)
+			if err != nil {
+				return fmt.Errorf("failed to marshal metadata: %w", err)
+			}
+			game.Metadata = metadataJSON
+		}
+
+		// Проверяем, присоединились ли оба игрока (учитываем и user_id и session_id)
+		hasWhite = game.WhiteID != nil || metadata["white_session_id"] != nil
+		hasBlack = game.BlackID != nil || metadata["black_session_id"] != nil
+		if hasWhite && hasBlack {
 			game.Status = models.GameStatusActive
 			now := time.Now().UTC()
 			game.StartedAt = &now
@@ -756,9 +836,14 @@ func boardFromFEN(fen string) (*chess.Game, error) {
 	return chess.NewGame(fenOption), nil
 }
 
-func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID int, payload *MakeMovePayload) (*models.Game, *models.Move, error) {
+func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *int, playerSessionID *string, payload *MakeMovePayload) (*models.Game, *models.Move, error) {
 	var game models.Game
 	var dbMove *models.Move
+
+	// Проверяем, что передан хотя бы один идентификатор
+	if playerID == nil && playerSessionID == nil {
+		return nil, nil, fmt.Errorf("either player_id or player_session_id must be provided")
+	}
 
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Блокируем игру
@@ -773,26 +858,54 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID i
 			return fmt.Errorf("game already finished")
 		}
 
-		if game.WhiteID == nil || game.BlackID == nil {
+		// Парсим metadata для проверки анонимных игроков
+		var metadata map[string]interface{}
+		if len(game.Metadata) > 0 {
+			if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
+				log.Printf("[MakeMove] Failed to unmarshal metadata: %v", err)
+				metadata = make(map[string]interface{})
+			}
+		} else {
+			metadata = make(map[string]interface{})
+		}
+
+		// Проверяем, присоединились ли оба игрока (учитывая user_id и session_id)
+		hasWhite := game.WhiteID != nil || metadata["white_session_id"] != nil
+		hasBlack := game.BlackID != nil || metadata["black_session_id"] != nil
+		if !hasWhite || !hasBlack {
 			return fmt.Errorf("cannot start game until second player joins")
 		}
 
-		// Проверяем, чей ход
-		var expectedPlayerID int
+		// Проверяем, чей ход и что это правильный игрок
+		whiteSessionID, _ := metadata["white_session_id"].(string)
+		blackSessionID, _ := metadata["black_session_id"].(string)
+
 		if game.NextTurn == models.SideWhite {
-			if game.WhiteID == nil {
+			// Проверяем, что ход делает белый игрок
+			if game.WhiteID != nil {
+				if playerID == nil || *playerID != *game.WhiteID {
+					return fmt.Errorf("not your turn")
+				}
+			} else if whiteSessionID != "" {
+				if playerSessionID == nil || *playerSessionID != whiteSessionID {
+					return fmt.Errorf("not your turn")
+				}
+			} else {
 				return fmt.Errorf("white player not found")
 			}
-			expectedPlayerID = *game.WhiteID
 		} else {
-			if game.BlackID == nil {
+			// Проверяем, что ход делает черный игрок
+			if game.BlackID != nil {
+				if playerID == nil || *playerID != *game.BlackID {
+					return fmt.Errorf("not your turn")
+				}
+			} else if blackSessionID != "" {
+				if playerSessionID == nil || *playerSessionID != blackSessionID {
+					return fmt.Errorf("not your turn")
+				}
+			} else {
 				return fmt.Errorf("black player not found")
 			}
-			expectedPlayerID = *game.BlackID
-		}
-
-		if playerID != expectedPlayerID {
-			return fmt.Errorf("not your turn")
 		}
 
 		// Создаем доску из текущей позиции
@@ -844,8 +957,12 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID i
 			return fmt.Errorf("failed to get last move: %w", err)
 		}
 
-		log.Printf("[MOVE START] game_id=%s player_id=%d move_index=%d turn=%s white_clock_before=%d black_clock_before=%d move_count=%d",
-			game.ID, playerID, game.MoveCount+1, currentTurn, game.WhiteClockMs, game.BlackClockMs, game.MoveCount)
+		playerIDStr := "anonymous"
+		if playerID != nil {
+			playerIDStr = fmt.Sprintf("%d", *playerID)
+		}
+		log.Printf("[MOVE START] game_id=%s player_id=%s move_index=%d turn=%s white_clock_before=%d black_clock_before=%d move_count=%d",
+			game.ID, playerIDStr, game.MoveCount+1, currentTurn, game.WhiteClockMs, game.BlackClockMs, game.MoveCount)
 
 		// Проверка таймаута
 		effectiveWhitePast, effectiveBlackPast, err := s.ComputeEffectiveClocks(ctx, &game, lastMove)
@@ -877,14 +994,14 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID i
 
 		if currentTurn == models.SideWhite {
 			if whiteFinish > 0 && effectiveWhitePast >= whiteFinish {
-				log.Printf("Move rejected: timeout - game_id=%s, player_id=%d, turn=white, effective_past=%d finish=%d",
-					game.ID, playerID, effectiveWhitePast, whiteFinish)
+				log.Printf("Move rejected: timeout - game_id=%s, player_id=%s, turn=white, effective_past=%d finish=%d",
+					game.ID, playerIDStr, effectiveWhitePast, whiteFinish)
 				return fmt.Errorf("white clock expired")
 			}
 		} else {
 			if blackFinish > 0 && effectiveBlackPast >= blackFinish {
-				log.Printf("Move rejected: timeout - game_id=%s, player_id=%d, turn=black, effective_past=%d finish=%d",
-					game.ID, playerID, effectiveBlackPast, blackFinish)
+				log.Printf("Move rejected: timeout - game_id=%s, player_id=%s, turn=black, effective_past=%d finish=%d",
+					game.ID, playerIDStr, effectiveBlackPast, blackFinish)
 				return fmt.Errorf("black clock expired")
 			}
 		}
@@ -922,7 +1039,7 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID i
 			UCI:         payload.UCI,
 			SAN:         &san,
 			FenAfter:    newFEN,
-			PlayerID:    &playerID,
+			PlayerID:    playerID,
 			ClocksAfter: clocksAfterJSON,
 			IsCapture:   isCapture,
 			Promotion:   payload.Promotion,
@@ -969,13 +1086,13 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID i
 		if outcome == chess.WhiteWon {
 			winner := models.SideWhite
 			reason := string(models.TerminationCheckmate)
-			if err := s.finishGame(ctx, tx, &game, &winner, reason, &playerID); err != nil {
+			if err := s.finishGame(ctx, tx, &game, &winner, reason, playerID); err != nil {
 				return err
 			}
 		} else if outcome == chess.BlackWon {
 			winner := models.SideBlack
 			reason := string(models.TerminationCheckmate)
-			if err := s.finishGame(ctx, tx, &game, &winner, reason, &playerID); err != nil {
+			if err := s.finishGame(ctx, tx, &game, &winner, reason, playerID); err != nil {
 				return err
 			}
 		} else if outcome == chess.Draw {
@@ -986,7 +1103,7 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID i
 			} else {
 				reason = "DRAW"
 			}
-			if err := s.finishGame(ctx, tx, &game, nil, reason, &playerID); err != nil {
+			if err := s.finishGame(ctx, tx, &game, nil, reason, playerID); err != nil {
 				return err
 			}
 		} else {

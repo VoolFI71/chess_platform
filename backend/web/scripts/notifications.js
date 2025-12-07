@@ -370,6 +370,13 @@
   // Обновление счетчика непрочитанных
   async function updateUnreadCount() {
     if (!window.apiFetch) return;
+    
+    // Проверяем, авторизован ли пользователь
+    const token = getAccessToken();
+    if (!token) {
+      // Для анонимных пользователей не обновляем счетчик
+      return;
+    }
 
     try {
       const res = await window.apiFetch('/api/notifications/me/unread-count');
@@ -378,7 +385,8 @@
         updateUnreadBadge(data.unread_count || 0);
       }
     } catch (e) {
-      console.error('[Notifications] Failed to update unread count:', e);
+      // Игнорируем ошибки для анонимных пользователей
+      // console.error('[Notifications] Failed to update unread count:', e);
     }
   }
 

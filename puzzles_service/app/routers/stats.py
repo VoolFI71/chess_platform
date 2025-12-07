@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db, sync_engine
 from ..models import Puzzle, PuzzleAttempt, PuzzleUserStats
-from ..schemas import PuzzleStatsResponse
+from ..schemas import PuzzleStatsResponse, PuzzleThemeStatsResponse, ThemeStats
 from ..security import get_current_user_id
 
 stats_router = APIRouter(prefix="/puzzles/stats", tags=["puzzle-stats"])
@@ -123,4 +123,105 @@ async def get_user_stats(
 			detail="Invalid user_id"
 		)
 	return await _get_stats_by_user_id(user_id, db)
+
+
+@stats_router.get("/{user_id}/themes", response_model=PuzzleThemeStatsResponse)
+async def get_user_theme_stats(
+	user_id: int,
+	db: AsyncSession = Depends(get_db),
+) -> PuzzleThemeStatsResponse:
+	"""Получить статистику пользователя по темам задач"""
+	if user_id <= 0:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Invalid user_id"
+		)
+	
+	# Получаем все попытки пользователя
+	attempts_query = select(
+		PuzzleAttempt.puzzle_id,
+		PuzzleAttempt.status
+	).where(
+		PuzzleAttempt.user_id == user_id
+	)
+	attempts_result = await db.execute(attempts_query)
+	attempts = attempts_result.all()
+	
+	if not attempts:
+		return PuzzleThemeStatsResponse(
+			user_id=user_id,
+			themes=[]
+		)
+	
+	# Группируем попытки по puzzle_id и определяем, была ли задача решена
+	# Задача считается решенной, если есть хотя бы одна успешная попытка
+	puzzle_status_map: dict[str, bool] = {}
+	for attempt in attempts:
+		puzzle_id = attempt.puzzle_id
+		if puzzle_id not in puzzle_status_map:
+			puzzle_status_map[puzzle_id] = False
+		# Если хотя бы одна попытка успешна, задача считается решенной
+		if attempt.status == "success":
+			puzzle_status_map[puzzle_id] = True
+	
+	# Получаем уникальные puzzle_id
+	puzzle_ids = list(puzzle_status_map.keys())
+	
+	# Получаем темы для всех задач, которые пользователь пытался решить
+	puzzles_query = select(
+		Puzzle.puzzle_id,
+		Puzzle.themes
+	).where(
+		Puzzle.puzzle_id.in_(puzzle_ids)
+	)
+	puzzles_result = await db.execute(puzzles_query)
+	puzzles = puzzles_result.all()
+	
+	# Создаем словарь puzzle_id -> themes
+	puzzle_themes_map = {puzzle.puzzle_id: puzzle.themes for puzzle in puzzles}
+	
+	# Подсчитываем статистику по темам
+	theme_stats: dict[str, dict[str, int]] = {}
+	
+	for puzzle_id, themes in puzzle_themes_map.items():
+		is_solved = puzzle_status_map.get(puzzle_id, False)
+		
+		for theme in themes:
+			if theme not in theme_stats:
+				theme_stats[theme] = {"solved": 0, "failed": 0}
+			
+			if is_solved:
+				theme_stats[theme]["solved"] += 1
+			else:
+				theme_stats[theme]["failed"] += 1
+	
+	# Формируем список ThemeStats
+	themes_list = []
+	for theme, stats in theme_stats.items():
+		total = stats["solved"] + stats["failed"]
+		accuracy = (stats["solved"] / total * 100) if total > 0 else 0.0
+		themes_list.append(ThemeStats(
+			theme=theme,
+			solved=stats["solved"],
+			failed=stats["failed"],
+			total=total,
+			accuracy=round(accuracy, 1)
+		))
+	
+	# Сортируем по количеству решенных задач (по убыванию)
+	themes_list.sort(key=lambda x: x.solved, reverse=True)
+	
+	return PuzzleThemeStatsResponse(
+		user_id=user_id,
+		themes=themes_list
+	)
+
+
+@stats_router.get("/me/themes", response_model=PuzzleThemeStatsResponse)
+async def get_my_theme_stats(
+	db: AsyncSession = Depends(get_db),
+	current_user_id: int = Depends(get_current_user_id),
+) -> PuzzleThemeStatsResponse:
+	"""Получить статистику текущего пользователя по темам"""
+	return await get_user_theme_stats(current_user_id, db)
 

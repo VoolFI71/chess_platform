@@ -18,3 +18,21 @@ class PuzzleStatsResponse(BaseModel):
 	class Config:
 		from_attributes = True
 
+
+class ThemeStats(BaseModel):
+	theme: str
+	solved: int
+	failed: int
+	total: int
+	accuracy: float
+
+	class Config:
+		from_attributes = True
+
+
+class PuzzleThemeStatsResponse(BaseModel):
+	user_id: int
+	themes: list[ThemeStats]
+
+	class Config:
+		from_attributes = True

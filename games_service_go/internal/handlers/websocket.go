@@ -128,7 +128,9 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 		}
 
 		token := c.Query("token")
+		sessionID := c.Query("session_id")
 		var userID *int
+		var playerSessionID *string
 
 		// Валидация JWT токена
 		if token != "" {
@@ -138,6 +140,16 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			} else {
 				log.Printf("[WS] JWT validation failed: %v", err)
 				// Не закрываем соединение, просто работаем как viewer
+			}
+		}
+
+		// Проверяем session_id для анонимных пользователей
+		if sessionID != "" && userID == nil {
+			// Валидируем формат UUID
+			if _, err := uuid.Parse(sessionID); err == nil {
+				playerSessionID = &sessionID
+			} else {
+				log.Printf("[WS] Invalid session_id format: %v", err)
 			}
 		}
 
@@ -165,8 +177,8 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			return
 		}
 
-		// Определяем роль
-		role := resolveRole(gameDetail.Game, userID)
+		// Определяем роль (учитывая session_id для анонимных игроков)
+		role := resolveRoleWithSession(gameDetail.Game, userID, playerSessionID)
 
 		// Регистрируем соединение
 		connInfo := &realtime.ConnectionInfo{
@@ -215,20 +227,28 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 				continue
 			}
 
-			if userID == nil {
+			if userID == nil && playerSessionID == nil {
 				wsManager.SendPersonal(ws, map[string]interface{}{
 					"type":           "move_rejected",
-					"message":        "Authentication required",
+					"message":        "Authentication or session_id required",
 					"client_move_id": payload.ClientMoveID,
 				})
 				continue
 			}
 
-			log.Printf("[WS RECEIVE MOVE] game_id=%s player_id=%d client_move_id=%s uci=%s",
-				gameID, *userID, payload.ClientMoveID, payload.UCI)
+			playerIDStr := "anonymous"
+			if userID != nil {
+				playerIDStr = fmt.Sprintf("%d", *userID)
+			}
+			clientMoveIDStr := ""
+			if payload.ClientMoveID != nil {
+				clientMoveIDStr = *payload.ClientMoveID
+			}
+			log.Printf("[WS RECEIVE MOVE] game_id=%s player_id=%s client_move_id=%s uci=%s",
+				gameID, playerIDStr, clientMoveIDStr, payload.UCI)
 
 			// Обработка хода через service.MakeMove()
-			updatedGame, move, err := service.MakeMove(ctx, gameID, *userID, &payload)
+			updatedGame, move, err := service.MakeMove(ctx, gameID, userID, playerSessionID, &payload)
 			if err != nil {
 				log.Printf("[WS] Move rejected: %v", err)
 				wsManager.SendPersonal(ws, map[string]interface{}{
@@ -267,8 +287,9 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			moveTimestampMs := move.CreatedAt.UnixMilli()
 			nowMs := time.Now().UTC().UnixMilli()
 
+			// Используем уже объявленную переменную clientMoveIDStr
 			log.Printf("[WS BROADCAST move_made] game_id=%s client_move_id=%s move_id=%d move_index=%d move_created_at=%s move_timestamp_ms=%d game_white_clock=%d game_black_clock=%d game_next_turn=%s now_ms=%d",
-				gameID, payload.ClientMoveID, move.ID, move.MoveIndex, move.CreatedAt.Format(time.RFC3339),
+				gameID, clientMoveIDStr, move.ID, move.MoveIndex, move.CreatedAt.Format(time.RFC3339),
 				moveTimestampMs, updatedGame.WhiteClockMs, updatedGame.BlackClockMs, updatedGame.NextTurn, nowMs)
 
 			// Broadcast обновления всем подключенным
@@ -318,5 +339,37 @@ func resolveRole(game models.Game, userID *int) realtime.Role {
 	if game.BlackID != nil && *game.BlackID == *userID {
 		return realtime.RoleBlack
 	}
+	return realtime.RoleViewer
+}
+
+// resolveRoleWithSession определяет роль игрока, учитывая user_id и session_id
+func resolveRoleWithSession(game models.Game, userID *int, sessionID *string) realtime.Role {
+	// Проверяем авторизованного пользователя
+	if userID != nil {
+		if game.WhiteID != nil && *game.WhiteID == *userID {
+			return realtime.RoleWhite
+		}
+		if game.BlackID != nil && *game.BlackID == *userID {
+			return realtime.RoleBlack
+		}
+	}
+
+	// Проверяем анонимного пользователя через session_id
+	if sessionID != nil {
+		var metadata map[string]interface{}
+		if len(game.Metadata) > 0 {
+			if err := json.Unmarshal(game.Metadata, &metadata); err == nil {
+				whiteSessionID, _ := metadata["white_session_id"].(string)
+				blackSessionID, _ := metadata["black_session_id"].(string)
+				if *sessionID == whiteSessionID {
+					return realtime.RoleWhite
+				}
+				if *sessionID == blackSessionID {
+					return realtime.RoleBlack
+				}
+			}
+		}
+	}
+
 	return realtime.RoleViewer
 }

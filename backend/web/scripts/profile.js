@@ -60,6 +60,162 @@ async function loadPuzzlesProgress(userId = null) {
 
   const streakEl = document.getElementById('puzzlesStreak');
   if (streakEl) streakEl.textContent = `${currentStreak} / ${bestStreak}`;
+  
+  // Загружаем статистику по темам
+  await loadPuzzleThemesStats(userId);
+}
+
+// Экспортируем функцию для использования в HTML
+window.loadPuzzleThemesStats = loadPuzzleThemesStats;
+
+// Загрузка статистики по темам задач
+async function loadPuzzleThemesStats(userId = null) {
+  try {
+    const themesPath = userId ? `/api/puzzles/stats/${userId}/themes` : '/api/puzzles/stats/me/themes';
+    
+    const res = userId 
+      ? await fetch(themesPath)
+      : (typeof window.apiFetch === 'function' ? await window.apiFetch(themesPath) : null);
+    
+    if (!res || !res.ok) {
+      throw new Error('Failed to load theme stats');
+    }
+    
+    const data = await res.json();
+    renderPuzzleThemesChart(data.themes || []);
+    renderPuzzleThemesList(data.themes || []);
+  } catch (e) {
+    console.error('Failed to load puzzle theme stats:', e);
+    const container = document.getElementById('puzzleThemesList');
+    if (container) {
+      container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">Не удалось загрузить статистику по категориям</div>';
+    }
+  }
+}
+
+// Отображение графика прогресса по темам
+function renderPuzzleThemesChart(themes) {
+  if (typeof Chart === 'undefined' || !themes || themes.length === 0) {
+    return;
+  }
+  
+  const ctx = document.getElementById('puzzleThemesChart')?.getContext('2d');
+  if (!ctx) return;
+  
+  const isDark = document.body.classList.contains('dark');
+  const textColor = isDark ? '#a0a0c0' : '#64748b';
+  const gridColor = isDark ? '#2a2a4a' : '#e2e8f0';
+  const tooltipBg = isDark ? '#1e1e3f' : '#ffffff';
+  const tooltipBorder = isDark ? '#2a2a4a' : '#e2e8f0';
+  
+  // Уничтожаем существующий график, если есть
+  const existingChart = Chart.getChart('puzzleThemesChart');
+  if (existingChart) existingChart.destroy();
+  
+  // Берем топ-10 тем
+  const topThemes = themes.slice(0, 10);
+  
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: topThemes.map(t => t.theme),
+      datasets: [
+        {
+          label: 'Решено',
+          data: topThemes.map(t => t.solved),
+          backgroundColor: '#10b981',
+          borderRadius: 8,
+          borderSkipped: false
+        },
+        {
+          label: 'Не решено',
+          data: topThemes.map(t => t.failed),
+          backgroundColor: '#ef4444',
+          borderRadius: 8,
+          borderSkipped: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            color: textColor,
+            padding: 15,
+            font: { size: 14 },
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          backgroundColor: tooltipBg,
+          titleColor: isDark ? '#ffffff' : '#0f172a',
+          bodyColor: textColor,
+          borderColor: tooltipBorder,
+          borderWidth: 1,
+          callbacks: {
+            afterLabel: function(context) {
+              const theme = themes[context.dataIndex];
+              if (theme) {
+                return `Точность: ${theme.accuracy}%`;
+              }
+              return '';
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: gridColor },
+          ticks: { color: textColor, stepSize: 1 }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: textColor }
+        }
+      }
+    }
+  });
+}
+
+// Отображение списка категорий
+function renderPuzzleThemesList(themes) {
+  const container = document.getElementById('puzzleThemesList');
+  if (!container) return;
+  
+  if (!themes || themes.length === 0) {
+    container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">Нет данных по категориям</div>';
+    return;
+  }
+  
+  container.innerHTML = '';
+  
+  themes.forEach(theme => {
+    const themeCard = document.createElement('div');
+    themeCard.className = 'theme-stat-card';
+    
+    const progressPercent = theme.total > 0 ? Math.round((theme.solved / theme.total) * 100) : 0;
+    
+    themeCard.innerHTML = `
+      <div class="theme-stat-header">
+        <div class="theme-stat-name">${theme.theme}</div>
+        <div class="theme-stat-accuracy">${theme.accuracy}%</div>
+      </div>
+      <div class="theme-stat-progress">
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
+        </div>
+        <div class="theme-stat-numbers">
+          <span>${theme.solved} / ${theme.total}</span>
+        </div>
+      </div>
+    `;
+    
+    container.appendChild(themeCard);
+  });
 }
 
 function createCourseCard(course, owned) {
@@ -348,120 +504,82 @@ function renderMatchHistory() {
 
   historyState.items.forEach((game) => {
     const card = document.createElement('div');
-    card.className = 'history-card';
+    card.className = 'activity-item';
 
     const result = describeResult(game);
     const color = getPlayerColor(game);
-    const colorLabel = color === 'white' ? 'Белыми' : color === 'black' ? 'Чёрными' : '—';
     const opponent = getOpponentId(game);
-    const termination = describeTermination(game.termination_reason);
     const matchDate = formatDate(game.finished_at || game.started_at || game.created_at);
-
-    // Создаем элементы безопасным способом
-    const topDiv = document.createElement('div');
-    topDiv.className = 'history-card-top';
+    const timeControl = describeTimeControl(game.time_control);
     
-    const resultDiv = document.createElement('div');
-    resultDiv.className = `history-result ${result.className}`;
-    const resultIcon = document.createElement('i');
-    resultIcon.className = 'fas fa-flag-checkered';
-    resultDiv.appendChild(resultIcon);
-    const resultText = document.createTextNode(` ${result.label}`);
-    resultDiv.appendChild(resultText);
+    // Определяем стиль иконки и цвета на основе результата
+    let iconClass = 'fas fa-minus';
+    let iconStyle = 'warning';
+    let ratingChange = '';
     
-    const dateDiv = document.createElement('div');
-    dateDiv.className = 'history-date';
-    dateDiv.textContent = matchDate;
-    
-    topDiv.appendChild(resultDiv);
-    topDiv.appendChild(dateDiv);
-    
-    const playersDiv = document.createElement('div');
-    playersDiv.className = 'history-players';
-    
-    const colorPill = document.createElement('span');
-    colorPill.className = `color-pill ${color || ''}`;
-    colorPill.textContent = colorLabel;
-    
-    const againstSpan = document.createElement('span');
-    againstSpan.style.opacity = '0.6';
-    againstSpan.textContent = 'против';
-    
-    const opponentSpan = document.createElement('span');
-    opponentSpan.className = 'opponent-name';
-    opponentSpan.textContent = playerLabel(opponent);
-    
-    playersDiv.appendChild(colorPill);
-    playersDiv.appendChild(againstSpan);
-    playersDiv.appendChild(opponentSpan);
-    
-    const metaDiv = document.createElement('div');
-    metaDiv.className = 'history-meta';
-    
-    const timeControlSpan = document.createElement('span');
-    const timeControlIcon = document.createElement('i');
-    timeControlIcon.className = 'fas fa-stopwatch';
-    timeControlSpan.appendChild(timeControlIcon);
-    timeControlSpan.appendChild(document.createTextNode(` ${describeTimeControl(game.time_control)}`));
-    
-    const moveCountSpan = document.createElement('span');
-    const moveCountIcon = document.createElement('i');
-    moveCountIcon.className = 'fas fa-list-ol';
-    moveCountSpan.appendChild(moveCountIcon);
-    moveCountSpan.appendChild(document.createTextNode(` Ходов: ${game.move_count || 0}`));
-    
-    const statusSpan = document.createElement('span');
-    const statusIcon = document.createElement('i');
-    statusIcon.className = 'fas fa-info-circle';
-    statusSpan.appendChild(statusIcon);
-    statusSpan.appendChild(document.createTextNode(` ${translateStatus(game.status)}`));
-    
-    metaDiv.appendChild(timeControlSpan);
-    metaDiv.appendChild(moveCountSpan);
-    metaDiv.appendChild(statusSpan);
-    
-    if (termination) {
-      const terminationSpan = document.createElement('span');
-      const terminationIcon = document.createElement('i');
-      terminationIcon.className = 'fas fa-skull-crossbones';
-      terminationSpan.appendChild(terminationIcon);
-      terminationSpan.appendChild(document.createTextNode(` ${termination}`));
-      metaDiv.appendChild(terminationSpan);
+    if (result.className === 'win') {
+      iconClass = 'fas fa-check';
+      iconStyle = 'success';
+      // TODO: Получить изменение рейтинга из API
+      ratingChange = '+15';
+    } else if (result.className === 'loss') {
+      iconClass = 'fas fa-times';
+      iconStyle = 'danger';
+      ratingChange = '-12';
+    } else {
+      ratingChange = '0';
     }
     
-    const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'history-actions';
+    // Создаем иконку
+    const iconDiv = document.createElement('div');
+    iconDiv.className = `activity-icon ${iconStyle}`;
+    const icon = document.createElement('i');
+    icon.className = iconClass;
+    iconDiv.appendChild(icon);
     
-    const viewBtn = document.createElement('button');
-    viewBtn.className = 'btn btn-primary';
-    viewBtn.type = 'button';
-    viewBtn.onclick = () => { window.location.href = `/match/${game.id}`; };
-    const viewIcon = document.createElement('i');
-    viewIcon.className = 'fas fa-eye';
-    viewBtn.appendChild(viewIcon);
-    viewBtn.appendChild(document.createTextNode(' Смотреть партию'));
+    // Создаем контент
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'activity-content';
     
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'btn btn-outline';
-    copyBtn.type = 'button';
-    copyBtn.onclick = () => { 
-      if (window.copyMatchLink) {
-        window.copyMatchLink(game.id);
-      }
+    // Текст активности
+    const textDiv = document.createElement('div');
+    textDiv.className = 'activity-text';
+    const resultText = document.createElement('strong');
+    resultText.textContent = result.label;
+    const againstText = document.createTextNode(' ');
+    const againstStrong = document.createElement('strong');
+    againstStrong.textContent = `@${playerLabel(opponent)}`;
+    if (result.className === 'win') {
+      textDiv.appendChild(resultText);
+      textDiv.appendChild(document.createTextNode(' против '));
+      textDiv.appendChild(againstStrong);
+    } else if (result.className === 'loss') {
+      textDiv.appendChild(resultText);
+      textDiv.appendChild(document.createTextNode(' от '));
+      textDiv.appendChild(againstStrong);
+    } else {
+      textDiv.appendChild(resultText);
+      textDiv.appendChild(document.createTextNode(' с '));
+      textDiv.appendChild(againstStrong);
+    }
+    
+    // Время активности
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'activity-time';
+    timeDiv.innerHTML = `${timeControl} | Рейтинг: <span style="color: var(--${iconStyle === 'success' ? 'success' : iconStyle === 'danger' ? 'danger' : 'warning'}); font-weight: 600;">${ratingChange}</span> | ${matchDate}`;
+    
+    contentDiv.appendChild(textDiv);
+    contentDiv.appendChild(timeDiv);
+    
+    card.appendChild(iconDiv);
+    card.appendChild(contentDiv);
+    
+    // Добавляем клик для просмотра партии
+    card.style.cursor = 'pointer';
+    card.onclick = () => {
+      window.location.href = `/match/${game.id}`;
     };
-    const copyIcon = document.createElement('i');
-    copyIcon.className = 'fas fa-link';
-    copyBtn.appendChild(copyIcon);
-    copyBtn.appendChild(document.createTextNode(' Скопировать ссылку'));
     
-    actionsDiv.appendChild(viewBtn);
-    actionsDiv.appendChild(copyBtn);
-    
-    card.appendChild(topDiv);
-    card.appendChild(playersDiv);
-    card.appendChild(metaDiv);
-    card.appendChild(actionsDiv);
-
     container.appendChild(card);
   });
   
@@ -938,6 +1056,8 @@ let friendsListState = {
   friends: [],
   filteredFriends: [],
   searchQuery: '',
+  statusFilter: 'all', // 'all', 'online', 'playing'
+  sortBy: 'name', // 'name', 'rating', 'recent'
 };
 
 function getInitials(username) {
@@ -963,120 +1083,404 @@ function createFriendCard(friendship) {
   const friend = friendship.user;
   if (!friend) return null;
   
+  // Определяем статус (пока что статично, позже можно получать из API)
+  const isOnline = friend.is_online || false;
+  const isPlaying = friend.is_playing || false;
+  
   const card = document.createElement('div');
   card.className = 'friend-card';
+  card.dataset.friendId = friend.id;
+  
+  // Header с аватаром и информацией
+  const header = document.createElement('div');
+  header.className = 'friend-card-header';
+  
+  // Avatar wrapper
+  const avatarWrapper = document.createElement('div');
+  avatarWrapper.className = 'friend-avatar-wrapper';
   
   const avatar = document.createElement('div');
   avatar.className = 'friend-avatar';
-  avatar.textContent = getInitials(friend.username || friend.display_name);
+  avatar.textContent = getInitials(friend.username || friend.display_name || '?');
   
+  // Статус онлайна
+  const status = document.createElement('div');
+  status.className = 'friend-status';
+  if (isPlaying) {
+    status.classList.add('playing');
+    status.title = 'Играет сейчас';
+  } else if (isOnline) {
+    status.classList.add('online');
+    status.title = 'Онлайн';
+  }
+  
+  avatarWrapper.appendChild(avatar);
+  avatarWrapper.appendChild(status);
+  
+  // Информация о друге
   const info = document.createElement('div');
-  info.style.flex = '1';
+  info.className = 'friend-info';
   
   const name = document.createElement('div');
   name.className = 'friend-name';
-  name.textContent = friend.username || friend.display_name || 'Неизвестно';
+  name.textContent = friend.display_name || friend.username || 'Неизвестно';
   
-  const rating = document.createElement('div');
-  rating.className = 'friend-rating';
+  const username = document.createElement('div');
+  username.className = 'friend-username';
+  username.textContent = `@${friend.username || friend.id}`;
+  
+  const meta = document.createElement('div');
+  meta.className = 'friend-meta';
+  
   const highestRating = getHighestRating(friend);
-  rating.innerHTML = `⭐ ${highestRating}`;
+  const rating = document.createElement('span');
+  rating.className = 'friend-rating';
+  const ratingIcon = document.createElement('i');
+  ratingIcon.className = 'fas fa-star';
+  ratingIcon.style.color = 'var(--warning)';
+  ratingIcon.style.fontSize = '0.75rem';
+  rating.appendChild(ratingIcon);
+  rating.appendChild(document.createTextNode(` ${highestRating}`));
+  
+  meta.appendChild(rating);
+  
+  // Активность (если есть информация)
+  if (friend.last_seen) {
+    const activity = document.createElement('span');
+    activity.className = 'friend-activity';
+    const activityIcon = document.createElement('i');
+    activityIcon.className = 'fas fa-clock';
+    activityIcon.style.fontSize = '0.75rem';
+    activity.appendChild(activityIcon);
+    activity.appendChild(document.createTextNode(` ${formatLastSeen(friend.last_seen)}`));
+    meta.appendChild(activity);
+  }
   
   info.appendChild(name);
-  info.appendChild(rating);
+  info.appendChild(username);
+  info.appendChild(meta);
   
-  // Кнопка удаления из друзей
+  header.appendChild(avatarWrapper);
+  header.appendChild(info);
+  
+  // Действия
   const actions = document.createElement('div');
-  actions.className = 'friend-actions';
+  actions.className = 'friend-card-actions';
   
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'btn btn-icon btn-danger';
-  removeBtn.title = 'Удалить из друзей';
-  removeBtn.innerHTML = '<i class="fas fa-user-minus"></i>';
-  removeBtn.onclick = async (e) => {
-    e.stopPropagation();
-    if (confirm(`Удалить ${friend.username || friend.display_name} из друзей?`)) {
-      const success = await deleteFriendship(friendship.id);
-      if (success) {
-        await loadFriendsList();
-      }
-    }
-  };
-  
-  // Кнопка пригласить в игру
-  const inviteBtn = document.createElement('button');
-  inviteBtn.className = 'btn btn-icon btn-primary';
-  inviteBtn.title = 'Пригласить в игру';
-  inviteBtn.innerHTML = '<i class="fas fa-chess"></i>';
-  inviteBtn.onclick = (e) => {
+  const playBtn = document.createElement('button');
+  playBtn.className = 'friend-action-btn primary';
+  const playIcon = document.createElement('i');
+  playIcon.className = 'fas fa-chess';
+  playBtn.appendChild(playIcon);
+  playBtn.appendChild(document.createTextNode(' Играть'));
+  playBtn.onclick = (e) => {
     e.stopPropagation();
     inviteFriendToGame(friend.id, friend.username || friend.display_name);
   };
   
-  actions.appendChild(inviteBtn);
-  actions.appendChild(removeBtn);
-  
-  // Добавляем ссылку на профиль
-  card.style.cursor = 'pointer';
-  card.onclick = () => {
+  const profileBtn = document.createElement('button');
+  profileBtn.className = 'friend-action-btn';
+  const profileIcon = document.createElement('i');
+  profileIcon.className = 'fas fa-user';
+  profileBtn.appendChild(profileIcon);
+  profileBtn.appendChild(document.createTextNode(' Профиль'));
+  profileBtn.onclick = (e) => {
+    e.stopPropagation();
     window.location.href = `/profile/${encodeURIComponent(friend.username || friend.id)}`;
   };
   
-  card.appendChild(avatar);
-  card.appendChild(info);
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'friend-action-btn danger';
+  const removeIcon = document.createElement('i');
+  removeIcon.className = 'fas fa-user-times';
+  removeBtn.appendChild(removeIcon);
+  removeBtn.appendChild(document.createTextNode(' Удалить'));
+  removeBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (confirm(`Удалить ${friend.username || friend.display_name} из друзей?`)) {
+      deleteFriendship(friendship.id);
+    }
+  };
+  
+  actions.appendChild(playBtn);
+  actions.appendChild(profileBtn);
+  actions.appendChild(removeBtn);
+  
+  card.appendChild(header);
   card.appendChild(actions);
+  
+  // Клик по карточке ведет на профиль
+  card.onclick = (e) => {
+    if (!e.target.closest('button')) {
+      window.location.href = `/profile/${encodeURIComponent(friend.username || friend.id)}`;
+    }
+  };
   
   return card;
 }
 
-function filterFriends(friendships, query) {
-  if (!query || query.trim().length === 0) {
-    return friendships;
+function formatLastSeen(lastSeen) {
+  if (!lastSeen) return '';
+  const date = new Date(lastSeen);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return 'Только что';
+  if (diffMins < 60) return `${diffMins} мин назад`;
+  if (diffHours < 24) return `${diffHours} ч назад`;
+  if (diffDays < 7) return `${diffDays} дн назад`;
+  return date.toLocaleDateString('ru-RU');
+}
+
+function filterFriends(friendships, query, statusFilter) {
+  let filtered = friendships;
+  
+  // Фильтр по поиску
+  if (query && query.trim().length > 0) {
+    const searchTerm = query.toLowerCase().trim();
+    filtered = filtered.filter(friendship => {
+      const friend = friendship.user;
+      if (!friend) return false;
+      const username = (friend.username || '').toLowerCase();
+      const displayName = (friend.display_name || '').toLowerCase();
+      return username.includes(searchTerm) || displayName.includes(searchTerm);
+    });
   }
   
-  const searchTerm = query.toLowerCase().trim();
-  return friendships.filter(friendship => {
-    const friend = friendship.user;
-    if (!friend) return false;
-    const username = (friend.username || '').toLowerCase();
-    const displayName = (friend.display_name || '').toLowerCase();
-    return username.includes(searchTerm) || displayName.includes(searchTerm);
+  // Фильтр по статусу
+  if (statusFilter !== 'all') {
+    filtered = filtered.filter(friendship => {
+      const friend = friendship.user;
+      if (!friend) return false;
+      if (statusFilter === 'online') {
+        return friend.is_online || false;
+      } else if (statusFilter === 'playing') {
+        return friend.is_playing || false;
+      }
+      return true;
+    });
+  }
+  
+  return filtered;
+}
+
+function sortFriends(friendships, sortBy) {
+  const sorted = [...friendships];
+  
+  sorted.sort((a, b) => {
+    const friendA = a.user;
+    const friendB = b.user;
+    if (!friendA || !friendB) return 0;
+    
+    switch (sortBy) {
+      case 'name':
+        const nameA = (friendA.display_name || friendA.username || '').toLowerCase();
+        const nameB = (friendB.display_name || friendB.username || '').toLowerCase();
+        return nameA.localeCompare(nameB, 'ru');
+      
+      case 'rating':
+        const ratingA = getHighestRating(friendA);
+        const ratingB = getHighestRating(friendB);
+        return ratingB - ratingA;
+      
+      case 'recent':
+        // Сортировка по последней активности (если есть)
+        const lastSeenA = friendA.last_seen ? new Date(friendA.last_seen).getTime() : 0;
+        const lastSeenB = friendB.last_seen ? new Date(friendB.last_seen).getTime() : 0;
+        return lastSeenB - lastSeenA;
+      
+      default:
+        return 0;
+    }
   });
+  
+  return sorted;
+}
+
+function groupFriends(friendships) {
+  const online = [];
+  const playing = [];
+  const others = [];
+  
+  friendships.forEach(friendship => {
+    const friend = friendship.user;
+    if (!friend) return;
+    
+    if (friend.is_playing) {
+      playing.push(friendship);
+    } else if (friend.is_online) {
+      online.push(friendship);
+    } else {
+      others.push(friendship);
+    }
+  });
+  
+  return { online, playing, others };
 }
 
 function renderFriendsList(friendships) {
   const container = document.getElementById('friendsList');
+  const onlineContainer = document.getElementById('friendsOnlineList');
+  const playingContainer = document.getElementById('friendsPlayingList');
+  const othersContainer = document.getElementById('friendsOtherList');
+  const countElement = document.getElementById('friendsCount');
+  
   if (!container) return;
   
-  // Применяем фильтр поиска
-  const filtered = filterFriends(friendships, friendsListState.searchQuery);
+  // Применяем фильтры и сортировку
+  let filtered = filterFriends(friendships, friendsListState.searchQuery, friendsListState.statusFilter);
+  filtered = sortFriends(filtered, friendsListState.sortBy);
   friendsListState.filteredFriends = filtered;
   
-  container.innerHTML = '';
-  
-  if (!filtered || filtered.length === 0) {
-    const emptyDiv = document.createElement('div');
-    emptyDiv.style.cssText = 'text-align: center; padding: 3rem; color: var(--muted-foreground); grid-column: 1 / -1;';
-    const icon = document.createElement('i');
-    icon.className = friendsListState.searchQuery ? 'fas fa-search' : 'fas fa-user-friends';
-    icon.style.cssText = 'font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;';
-    emptyDiv.appendChild(icon);
-    const text = document.createElement('div');
-    text.textContent = friendsListState.searchQuery 
-      ? 'Друзья не найдены' 
-      : 'У вас пока нет друзей';
-    text.style.fontSize = '1.125rem';
-    emptyDiv.appendChild(text);
-    container.appendChild(emptyDiv);
-    return;
+  // Обновляем счетчик
+  if (countElement) {
+    const total = friendships.length;
+    const filteredCount = filtered.length;
+    if (friendsListState.searchQuery || friendsListState.statusFilter !== 'all') {
+      countElement.textContent = `Показано ${filteredCount} из ${total} друзей`;
+    } else {
+      countElement.textContent = `${total} ${getPluralForm(total, 'друг', 'друга', 'друзей')}`;
+    }
   }
   
-  filtered.forEach(friendship => {
-    const card = createFriendCard(friendship);
-    if (card) {
-      container.appendChild(card);
+  // Если фильтр "all" и нет поиска - группируем
+  if (friendsListState.statusFilter === 'all' && !friendsListState.searchQuery) {
+    const groups = groupFriends(filtered);
+    
+    // Показываем/скрываем группы
+    const onlineGroup = document.getElementById('friendsOnlineGroup');
+    const playingGroup = document.getElementById('friendsPlayingGroup');
+    const otherGroup = document.getElementById('friendsOtherGroup');
+    
+    // Онлайн друзья
+    if (onlineContainer && onlineGroup) {
+      if (groups.online.length > 0) {
+        onlineGroup.style.display = 'block';
+        onlineContainer.innerHTML = '';
+        groups.online.forEach(friendship => {
+          const card = createFriendCard(friendship);
+          if (card) onlineContainer.appendChild(card);
+        });
+        const onlineCount = document.getElementById('onlineCount');
+        if (onlineCount) onlineCount.textContent = groups.online.length;
+      } else {
+        onlineGroup.style.display = 'none';
+      }
     }
-  });
+    
+    // Играют сейчас
+    if (playingContainer && playingGroup) {
+      if (groups.playing.length > 0) {
+        playingGroup.style.display = 'block';
+        playingContainer.innerHTML = '';
+        groups.playing.forEach(friendship => {
+          const card = createFriendCard(friendship);
+          if (card) playingContainer.appendChild(card);
+        });
+        const playingCount = document.getElementById('playingCount');
+        if (playingCount) playingCount.textContent = groups.playing.length;
+      } else {
+        playingGroup.style.display = 'none';
+      }
+    }
+    
+    // Остальные
+    if (othersContainer && otherGroup) {
+      if (groups.others.length > 0) {
+        otherGroup.style.display = 'block';
+        othersContainer.innerHTML = '';
+        groups.others.forEach(friendship => {
+          const card = createFriendCard(friendship);
+          if (card) othersContainer.appendChild(card);
+        });
+        const otherCount = document.getElementById('otherCount');
+        if (otherCount) otherCount.textContent = groups.others.length;
+      } else {
+        otherGroup.style.display = 'none';
+      }
+    }
+    
+    // Скрываем основной список
+    container.style.display = 'none';
+  } else {
+    // Показываем обычный список при фильтрации
+    const onlineGroup = document.getElementById('friendsOnlineGroup');
+    const playingGroup = document.getElementById('friendsPlayingGroup');
+    const otherGroup = document.getElementById('friendsOtherGroup');
+    if (onlineGroup) onlineGroup.style.display = 'none';
+    if (playingGroup) playingGroup.style.display = 'none';
+    if (otherGroup) otherGroup.style.display = 'none';
+    
+    container.style.display = 'grid';
+    container.innerHTML = '';
+    
+    if (!filtered || filtered.length === 0) {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'friends-empty';
+      const icon = document.createElement('div');
+      icon.className = 'friends-empty-icon';
+      const iconEl = document.createElement('i');
+      iconEl.className = friendsListState.searchQuery ? 'fas fa-search' : 'fas fa-user-friends';
+      icon.appendChild(iconEl);
+      
+      const title = document.createElement('div');
+      title.className = 'friends-empty-title';
+      title.textContent = friendsListState.searchQuery 
+        ? 'Друзья не найдены' 
+        : 'У вас пока нет друзей';
+      
+      const text = document.createElement('div');
+      text.className = 'friends-empty-text';
+      text.textContent = friendsListState.searchQuery
+        ? 'Попробуйте изменить параметры поиска'
+        : 'Начните искать новых друзей, чтобы играть вместе';
+      
+      const actions = document.createElement('div');
+      actions.className = 'friends-empty-actions';
+      const addBtn = document.createElement('button');
+      addBtn.className = 'btn btn-primary';
+      addBtn.innerHTML = '<i class="fas fa-user-plus"></i> Добавить друга';
+      addBtn.onclick = () => {
+        if (typeof showAddFriendModal === 'function') {
+          showAddFriendModal();
+        }
+      };
+      actions.appendChild(addBtn);
+      
+      emptyDiv.appendChild(icon);
+      emptyDiv.appendChild(title);
+      emptyDiv.appendChild(text);
+      emptyDiv.appendChild(actions);
+      container.appendChild(emptyDiv);
+      return;
+    }
+    
+    filtered.forEach(friendship => {
+      const card = createFriendCard(friendship);
+      if (card) {
+        container.appendChild(card);
+      }
+    });
+  }
+}
+
+function getPluralForm(n, one, few, many) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  
+  if (mod100 >= 11 && mod100 <= 19) {
+    return many;
+  }
+  if (mod10 === 1) {
+    return one;
+  }
+  if (mod10 >= 2 && mod10 <= 4) {
+    return few;
+  }
+  return many;
 }
 
 async function loadFriendsList() {
@@ -1094,16 +1498,71 @@ async function loadFriendsList() {
   
   friendsListState.loading = true;
   
-  // Показываем индикатор загрузки
+  // Показываем skeleton loaders
   container.innerHTML = '';
-  const loadingDiv = document.createElement('div');
-  loadingDiv.style.cssText = 'text-align: center; padding: 2rem; color: var(--muted-foreground); grid-column: 1 / -1;';
-  const spinner = document.createElement('i');
-  spinner.className = 'fas fa-spinner fa-spin';
-  spinner.style.cssText = 'font-size: 2rem; margin-bottom: 1rem;';
-  loadingDiv.appendChild(spinner);
-  loadingDiv.appendChild(document.createTextNode('Загрузка друзей...'));
-  container.appendChild(loadingDiv);
+  container.className = 'friends-list';
+  container.style.display = 'grid';
+  
+  // Скрываем группы при загрузке
+  const onlineGroup = document.getElementById('friendsOnlineGroup');
+  const playingGroup = document.getElementById('friendsPlayingGroup');
+  const otherGroup = document.getElementById('friendsOtherGroup');
+  if (onlineGroup) onlineGroup.style.display = 'none';
+  if (playingGroup) playingGroup.style.display = 'none';
+  if (otherGroup) otherGroup.style.display = 'none';
+  
+  // Создаем 6 skeleton карточек
+  for (let i = 0; i < 6; i++) {
+    const skeletonCard = document.createElement('div');
+    skeletonCard.className = 'friend-card-skeleton';
+    
+    const skeletonHeader = document.createElement('div');
+    skeletonHeader.className = 'friend-card-header';
+    
+    const skeletonAvatar = document.createElement('div');
+    skeletonAvatar.className = 'skeleton-avatar';
+    
+    const skeletonInfo = document.createElement('div');
+    skeletonInfo.style.flex = '1';
+    skeletonInfo.style.display = 'flex';
+    skeletonInfo.style.flexDirection = 'column';
+    skeletonInfo.style.gap = '0.5rem';
+    
+    const skeletonName = document.createElement('div');
+    skeletonName.className = 'skeleton-text medium';
+    skeletonName.style.height = '1.25rem';
+    
+    const skeletonUsername = document.createElement('div');
+    skeletonUsername.className = 'skeleton-text short';
+    skeletonUsername.style.height = '0.875rem';
+    
+    skeletonInfo.appendChild(skeletonName);
+    skeletonInfo.appendChild(skeletonUsername);
+    
+    skeletonHeader.appendChild(skeletonAvatar);
+    skeletonHeader.appendChild(skeletonInfo);
+    
+    const skeletonActions = document.createElement('div');
+    skeletonActions.className = 'friend-card-actions';
+    skeletonActions.style.marginTop = '0.5rem';
+    
+    const skeletonBtn1 = document.createElement('div');
+    skeletonBtn1.className = 'skeleton-text';
+    skeletonBtn1.style.height = '2.25rem';
+    skeletonBtn1.style.borderRadius = 'var(--radius-md)';
+    
+    const skeletonBtn2 = document.createElement('div');
+    skeletonBtn2.className = 'skeleton-text';
+    skeletonBtn2.style.height = '2.25rem';
+    skeletonBtn2.style.borderRadius = 'var(--radius-md)';
+    
+    skeletonActions.appendChild(skeletonBtn1);
+    skeletonActions.appendChild(skeletonBtn2);
+    
+    skeletonCard.appendChild(skeletonHeader);
+    skeletonCard.appendChild(skeletonActions);
+    container.appendChild(skeletonCard);
+  }
   
   try {
     const res = await window.apiFetch('/api/friendships/me?status=accepted&limit=100');
@@ -1114,6 +1573,12 @@ async function loadFriendsList() {
     const data = await res.json();
     friendsListState.friends = data.friendships || [];
     friendsListState.loaded = true;
+    
+    // Обновляем счетчик при загрузке
+    const countElement = document.getElementById('friendsCount');
+    if (countElement && friendsListState.friends.length === 0) {
+      countElement.textContent = 'Нет друзей';
+    }
     
     renderFriendsList(friendsListState.friends);
   } catch (e) {
@@ -1177,6 +1642,30 @@ function initFriendsSearch() {
       searchInput.value = '';
       friendsListState.searchQuery = '';
       searchClear.style.display = 'none';
+      renderFriendsList(friendsListState.friends);
+    });
+  }
+  
+  // Инициализация фильтров по статусу
+  const filterButtons = document.querySelectorAll('.filter-btn[data-filter]');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Убираем active со всех кнопок
+      filterButtons.forEach(b => b.classList.remove('active'));
+      // Добавляем active к нажатой
+      btn.classList.add('active');
+      // Обновляем фильтр
+      friendsListState.statusFilter = btn.dataset.filter;
+      renderFriendsList(friendsListState.friends);
+    });
+  });
+  
+  // Инициализация сортировки
+  const sortSelect = document.getElementById('friendsSortSelect');
+  if (sortSelect) {
+    sortSelect.value = friendsListState.sortBy;
+    sortSelect.addEventListener('change', (e) => {
+      friendsListState.sortBy = e.target.value;
       renderFriendsList(friendsListState.friends);
     });
   }
@@ -1921,24 +2410,44 @@ async function loadGameStats(username = null) {
     if (totalGamesEl) totalGamesEl.textContent = stats.total_games || 0;
     if (overallWinRateEl) overallWinRateEl.textContent = `${stats.overall_win_rate || 0}%`;
     
-    // Вычисляем средний рейтинг (взвешенный по количеству партий)
-    let totalRating = 0;
-    let totalWeight = 0;
-    if (stats.by_format && stats.by_format.length > 0) {
-      stats.by_format.forEach(fmt => {
-        const weight = fmt.games_played;
-        let rating = 0;
-        if (fmt.format === 'bullet') rating = stats.bullet_rating || 1200;
-        else if (fmt.format === 'blitz') rating = stats.blitz_rating || 1200;
-        else if (fmt.format === 'rapid') rating = stats.rapid_rating || 1200;
-        else if (fmt.format === 'classical') rating = stats.rapid_rating || 1200;
-        
-        totalRating += rating * weight;
-        totalWeight += weight;
-      });
+    // Вычисляем общий рейтинг как сумму рейтингов блица, рапида, пули и задач
+    const blitzRating = stats.blitz_rating || 1200;
+    const rapidRating = stats.rapid_rating || 1200;
+    const bulletRating = stats.bullet_rating || 1200;
+    const puzzleRating = stats.puzzle_rating || 1200;
+    const overallRating = blitzRating + rapidRating + bulletRating + puzzleRating;
+    
+    if (overallRatingEl) overallRatingEl.textContent = overallRating;
+    
+    // Обновляем hero section с рейтингом
+    if (typeof window.updateHeroSection === 'function' && currentUser) {
+      const userWithRating = { ...currentUser, rating: overallRating };
+      window.updateHeroSection(userWithRating);
     }
-    const avgRating = totalWeight > 0 ? Math.round(totalRating / totalWeight) : (stats.blitz_rating || stats.bullet_rating || stats.rapid_rating || 1200);
-    if (overallRatingEl) overallRatingEl.textContent = avgRating;
+    
+    // Обновляем график статистики побед
+    if (typeof window.updateWinRateChart === 'function') {
+      const wins = stats.total_wins || 0;
+      const draws = stats.total_draws || 0;
+      const losses = stats.total_losses || 0;
+      window.updateWinRateChart(wins, draws, losses);
+      
+      // Обновляем статистику в footer графика
+      const winRateStat = document.getElementById('winRateStat');
+      const totalGamesStat = document.getElementById('totalGamesStat');
+      const totalGames = wins + draws + losses;
+      const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+      if (winRateStat) winRateStat.textContent = `${winRate}%`;
+      if (totalGamesStat) totalGamesStat.textContent = totalGames;
+    }
+    
+    // Обновляем график форматов
+    if (typeof window.updateFormatStatsChart === 'function' && stats.by_format) {
+      window.updateFormatStatsChart(stats);
+    }
+    
+    // Обновляем виджеты dashboard
+    updateDashboardWidgets(stats);
     
     // Обновляем статистику по форматам
     const formatStatsGrid = document.getElementById('formatStatsGrid');
@@ -2099,6 +2608,49 @@ async function loadGameStats(username = null) {
   }
 }
 
+// Обновление виджетов dashboard
+function updateDashboardWidgets(stats) {
+  // Обновляем активность (игры сегодня и на неделе)
+  // TODO: Получать эти данные из API когда будет доступно
+  const gamesToday = document.getElementById('gamesToday');
+  const gamesThisWeek = document.getElementById('gamesThisWeek');
+  if (gamesToday) gamesToday.textContent = '0'; // Заглушка
+  if (gamesThisWeek) gamesThisWeek.textContent = '0'; // Заглушка
+  
+  // Обновляем рекорды
+  const bestRating = document.getElementById('bestRating');
+  const bestWinStreak = document.getElementById('bestWinStreak');
+  
+  // Находим лучший рейтинг среди всех форматов
+  if (bestRating) {
+    const ratings = [
+      stats.blitz_rating || 0,
+      stats.rapid_rating || 0,
+      stats.bullet_rating || 0
+    ].filter(r => r > 0);
+    const maxRating = ratings.length > 0 ? Math.max(...ratings) : 1200;
+    bestRating.textContent = maxRating;
+  }
+  
+  // Лучшая серия побед (пока заглушка, нужно получать из API)
+  if (bestWinStreak) bestWinStreak.textContent = '—';
+}
+
+// Обновление графика форматов
+window.updateFormatStatsChart = function(stats) {
+  if (typeof Chart === 'undefined') return;
+  
+  const chart = Chart.getChart('formatStatsChart');
+  if (!chart) return;
+  
+  const blitzGames = stats.by_format?.find(f => f.format === 'blitz')?.games_played || 0;
+  const rapidGames = stats.by_format?.find(f => f.format === 'rapid')?.games_played || 0;
+  const bulletGames = stats.by_format?.find(f => f.format === 'bullet')?.games_played || 0;
+  
+  chart.data.datasets[0].data = [blitzGames, rapidGames, bulletGames];
+  chart.update();
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     // Определяем username из URL (для страницы профиля)
@@ -2129,6 +2681,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       // Загружаем прогресс по задачам этого пользователя
       await loadPuzzlesProgress(profileUser.id);
+      
+      // Обновляем hero section
+      if (typeof window.updateHeroSection === 'function') {
+        window.updateHeroSection(profileUser);
+      }
+      
+      // Обновляем количество решенных задач в hero section
+      if (currentPuzzleStats && typeof document !== 'undefined') {
+        const puzzlesSolvedHero = document.getElementById('puzzlesSolvedHero');
+        if (puzzlesSolvedHero) {
+          puzzlesSolvedHero.textContent = currentPuzzleStats.solved_count || 0;
+        }
+      }
       
       // Загружаем текущего пользователя для проверки дружбы
       // Кнопка дружбы показывается только для авторизованных пользователей
@@ -2200,6 +2765,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Загружаем прогресс по задачам (для своего профиля по умолчанию)
     await loadPuzzlesProgress();
+    
+    // Обновляем hero section
+    if (typeof window.updateHeroSection === 'function') {
+      window.updateHeroSection(currentUser);
+    }
+    
+    // Обновляем количество решенных задач в hero section
+    if (currentPuzzleStats && typeof document !== 'undefined') {
+      const puzzlesSolvedHero = document.getElementById('puzzlesSolvedHero');
+      if (puzzlesSolvedHero) {
+        puzzlesSolvedHero.textContent = currentPuzzleStats.solved_count || 0;
+      }
+    }
     
     // НЕ загружаем историю партий при инициализации - только при клике на вкладку
     

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/yourorg/games_service_go/internal/models"
 	"github.com/yourorg/games_service_go/internal/services"
 )
 
@@ -18,18 +19,38 @@ func createGame(service *services.GameService) gin.HandlerFunc {
 			return
 		}
 
-		userID, ok := c.Get("user_id")
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
+		var creatorID *int
+		var creatorSessionID *string
+
+		// Проверяем авторизованного пользователя
+		if userID, ok := c.Get("user_id"); ok {
+			if id, ok := userID.(int); ok {
+				creatorID = &id
+			}
 		}
-		creatorID, ok := userID.(int)
-		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_id type"})
+
+		// Проверяем анонимного пользователя через session_id
+		if sessionID, ok := c.Get("session_id"); ok {
+			if sid, ok := sessionID.(string); ok {
+				creatorSessionID = &sid
+			}
+		}
+
+		// Если нет ни user_id, ни session_id - требуем аутентификацию
+		if creatorID == nil && creatorSessionID == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication or session_id required"})
 			return
 		}
 
-		game, err := service.CreateGame(c.Request.Context(), creatorID, &req)
+		var game *models.GameDetail
+		var err error
+
+		if creatorID != nil {
+			game, err = service.CreateGame(c.Request.Context(), creatorID, nil, &req)
+		} else {
+			game, err = service.CreateGame(c.Request.Context(), nil, creatorSessionID, &req)
+		}
+
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -67,18 +88,36 @@ func joinGame(service *services.GameService) gin.HandlerFunc {
 			return
 		}
 
-		userID, ok := c.Get("user_id")
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
+		var playerID *int
+		var playerSessionID *string
+
+		// Проверяем авторизованного пользователя
+		if userID, ok := c.Get("user_id"); ok {
+			if id, ok := userID.(int); ok {
+				playerID = &id
+			}
 		}
-		playerID, ok := userID.(int)
-		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_id type"})
+
+		// Проверяем анонимного пользователя через session_id
+		if sessionID, ok := c.Get("session_id"); ok {
+			if sid, ok := sessionID.(string); ok {
+				playerSessionID = &sid
+			}
+		}
+
+		// Если нет ни user_id, ни session_id - требуем аутентификацию
+		if playerID == nil && playerSessionID == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication or session_id required"})
 			return
 		}
 
-		game, err := service.JoinGame(c.Request.Context(), gameID, playerID)
+		var game *models.GameDetail
+		if playerID != nil {
+			game, err = service.JoinGame(c.Request.Context(), gameID, playerID, nil)
+		} else {
+			game, err = service.JoinGame(c.Request.Context(), gameID, nil, playerSessionID)
+		}
+
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

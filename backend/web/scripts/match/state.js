@@ -42,13 +42,32 @@
   const haveBothPlayersJoined = (game = state.game) => {
     if (!game) return false;
     const { white_id: whiteId, black_id: blackId } = game;
-    return isAssigned(whiteId) && isAssigned(blackId);
+    const metadata = game.metadata || {};
+    // Проверяем наличие игроков, включая анонимных через session_id
+    const hasWhite = isAssigned(whiteId) || metadata.white_session_id;
+    const hasBlack = isAssigned(blackId) || metadata.black_session_id;
+    return hasWhite && hasBlack;
   };
 
   const getCurrentUserRole = () => {
-    if (!state.currentUser || !state.game) return null;
-    if (state.currentUser.id === state.game.white_id) return 'white';
-    if (state.currentUser.id === state.game.black_id) return 'black';
+    if (!state.game) return null;
+    
+    // Проверяем авторизованного пользователя
+    if (state.currentUser) {
+      if (state.currentUser.id === state.game.white_id) return 'white';
+      if (state.currentUser.id === state.game.black_id) return 'black';
+    }
+    
+    // Проверяем анонимного пользователя через session_id
+    if (typeof window.getSessionId === 'function') {
+      const sessionId = window.getSessionId();
+      if (sessionId) {
+        const metadata = state.game.metadata || {};
+        if (sessionId === metadata.white_session_id) return 'white';
+        if (sessionId === metadata.black_session_id) return 'black';
+      }
+    }
+    
     return null;
   };
 

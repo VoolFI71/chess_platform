@@ -140,6 +140,36 @@
   }
 
   const describeWinner = utilsDescribeWinner;
+  // Вспомогательная функция для получения имени игрока по роли
+  const getPlayerNameByRole = (role) => {
+    if (!state.game) return '—';
+    const metadata = state.game.metadata || {};
+    const id = role === 'white' ? state.game.white_id : state.game.black_id;
+    const sessionId = role === 'white' ? metadata.white_session_id : metadata.black_session_id;
+    
+    // Если есть user_id, отображаем как обычно
+    if (id !== null && id !== undefined) {
+      if (state.currentUser && state.currentUser.id === id) {
+        return state.currentUser.username ? `Вы (${state.currentUser.username})` : 'Вы';
+      }
+      return titleName(id);
+    }
+    
+    // Если нет user_id, но есть session_id - это анонимный игрок
+    if (sessionId) {
+      // Проверяем, является ли текущий пользователь этим анонимным игроком
+      if (typeof window.getSessionId === 'function') {
+        const currentSessionId = window.getSessionId();
+        if (currentSessionId === sessionId) {
+          return 'Вы (Гость)';
+        }
+      }
+      return 'Гость';
+    }
+    
+    return '—';
+  };
+
   const labelPlayer = (id) => {
     if (id === null || id === undefined) return '—';
     if (state.currentUser && state.currentUser.id === id) {
@@ -159,8 +189,8 @@
     const matchTitle = document.getElementById('matchTitle');
     if (matchTitle) {
       if (state.game) {
-        const whiteName = titleName(state.game.white_id);
-        const blackName = titleName(state.game.black_id);
+        const whiteName = getPlayerNameByRole('white');
+        const blackName = getPlayerNameByRole('black');
         matchTitle.textContent = `${whiteName} vs ${blackName}`;
       } else {
         matchTitle.textContent = 'Партия не найдена';
@@ -169,12 +199,12 @@
 
     const whiteLabel = document.getElementById('whitePlayerLabel');
     if (whiteLabel) {
-      whiteLabel.textContent = state.game ? labelPlayer(state.game.white_id) : '—';
+      whiteLabel.textContent = state.game ? getPlayerNameByRole('white') : '—';
     }
 
     const blackLabel = document.getElementById('blackPlayerLabel');
     if (blackLabel) {
-      blackLabel.textContent = state.game ? labelPlayer(state.game.black_id) : '—';
+      blackLabel.textContent = state.game ? getPlayerNameByRole('black') : '—';
     }
 
     const topLabel = document.getElementById('topPlayerLabel');
@@ -189,8 +219,8 @@
         if (bottomColor) bottomColor.textContent = '—';
       } else {
         const { topRole, bottomRole } = getPanelRoles();
-        if (topLabel) topLabel.textContent = labelPlayer(getPlayerIdByRole(topRole));
-        if (bottomLabel) bottomLabel.textContent = labelPlayer(getPlayerIdByRole(bottomRole));
+        if (topLabel) topLabel.textContent = getPlayerNameByRole(topRole);
+        if (bottomLabel) bottomLabel.textContent = getPlayerNameByRole(bottomRole);
         if (topColor) topColor.textContent = getRoleLabel(topRole);
         if (bottomColor) bottomColor.textContent = getRoleLabel(bottomRole);
       }
@@ -199,8 +229,14 @@
 
   const getAvailableSeat = (game) => {
     if (!game) return null;
-    if (game.white_id == null) return 'white';
-    if (game.black_id == null) return 'black';
+    
+    // Проверяем наличие игроков, включая анонимных через session_id
+    const metadata = game.metadata || {};
+    const hasWhite = (game.white_id !== null && game.white_id !== undefined) || metadata.white_session_id;
+    const hasBlack = (game.black_id !== null && game.black_id !== undefined) || metadata.black_session_id;
+    
+    if (!hasWhite) return 'white';
+    if (!hasBlack) return 'black';
     return null;
   };
 
@@ -247,11 +283,25 @@
   }
 
   async function fetchCurrentUser() {
+    // Проверяем, есть ли токен доступа - если нет, пропускаем запрос
+    const token = getAccessToken();
+    if (!token) {
+      setState({ currentUser: null }, 'fetchCurrentUser:noToken');
+      updateAuthPanel();
+      updatePlayerLabelsAndTitle();
+      if (state.game) {
+        updateLegalMoves();
+        renderBoard();
+      }
+      return;
+    }
+    
     try {
       const res = await authedFetch('/api/auth/me');
       const currentUser = res && res.ok ? await res.json() : null;
       setState({ currentUser }, 'fetchCurrentUser:success');
     } catch {
+      // Игнорируем ошибки для анонимных пользователей
       setState({ currentUser: null }, 'fetchCurrentUser:error');
     }
     updateAuthPanel();
@@ -741,17 +791,48 @@
   }
 
   const canJoinGame = () => {
-    if (!state.currentUser || !state.game) return false;
+    if (!state.game) return false;
     if (state.game.status !== 'CREATED') return false;
-    if (state.currentUser.id === state.game.white_id || state.currentUser.id === state.game.black_id) return false;
+    
+    // Проверяем, авторизован ли пользователь или есть session_id
+    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    const hasSession = typeof window.getSessionId === 'function' && window.getSessionId() !== null;
+    
+    if (!isAuth && !hasSession) return false;
+    
+    // Проверяем, не участвует ли уже игрок
+    if (isAuth && state.currentUser) {
+      if (state.currentUser.id === state.game.white_id || state.currentUser.id === state.game.black_id) return false;
+    } else if (hasSession) {
+      // Для анонимных игроков проверяем session_id в metadata
+      const metadata = state.game.metadata || {};
+      const sessionId = window.getSessionId();
+      if (sessionId === metadata.white_session_id || sessionId === metadata.black_session_id) return false;
+    }
+    
     return getAvailableSeat(state.game) !== null;
   };
 
   const shouldAutoJoin = () => {
     if (!state.game || state.autoJoinAttempted) return false;
     if (state.game.status !== 'CREATED') return false;
-    if (!state.currentUser) return false;
-    if (state.currentUser.id === state.game.white_id || state.currentUser.id === state.game.black_id) return false;
+    
+    // Проверяем, авторизован ли пользователь или есть session_id
+    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    const hasSession = typeof window.getSessionId === 'function' && window.getSessionId() !== null;
+    
+    if (!isAuth && !hasSession) return false;
+    
+    // Проверяем, не участвует ли уже игрок
+    if (isAuth && state.currentUser) {
+      if (state.currentUser.id === state.game.white_id || state.currentUser.id === state.game.black_id) return false;
+    } else if (hasSession) {
+      // Для анонимных игроков проверяем session_id в metadata
+      const metadata = state.game.metadata || {};
+      const sessionId = window.getSessionId();
+      if (sessionId === metadata.white_session_id || sessionId === metadata.black_session_id) return false;
+    }
+    
     return getAvailableSeat(state.game) !== null;
   };
 
@@ -819,14 +900,18 @@
   }
 
   function maybeAutoJoin() {
-    if (!state.currentUser && !state.loginPromptShown) {
+    // Проверяем авторизацию или наличие session_id
+    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    const hasSession = typeof window.getSessionId === 'function' && window.getSessionId() !== null;
+    
+    if (!isAuth && !hasSession && !state.loginPromptShown) {
       const token = getAccessToken();
       if (token) {
         setTimeout(() => {
           if (shouldAutoJoin()) {
             setState({ autoJoinAttempted: true }, 'maybeAutoJoin:autoAttempt');
             joinGame(true);
-          } else if (!state.currentUser && !state.loginPromptShown) {
+          } else if (!isAuth && !hasSession && !state.loginPromptShown) {
             setState({ loginPromptShown: true }, 'maybeAutoJoin:prompt');
             showToast('Войдите, чтобы занять место соперника', 'error');
           }
@@ -840,17 +925,22 @@
       joinGame(true);
       return;
     }
+    
+    // Проверяем, можно ли присоединиться (для анонимных тоже)
     if (
       !state.game ||
       state.game.status !== 'CREATED' ||
       !getAvailableSeat(state.game) ||
-      state.currentUser ||
       state.loginPromptShown
     ) {
       return;
     }
-    setState({ loginPromptShown: true }, 'maybeAutoJoin:prompt');
-    showToast('Войдите, чтобы занять место соперника', 'error');
+    
+    // Если нет авторизации и нет session_id, показываем сообщение
+    if (!isAuth && !hasSession) {
+      setState({ loginPromptShown: true }, 'maybeAutoJoin:prompt');
+      showToast('У вас нет токена сессии', 'error');
+    }
   }
 
   function copyGameId() {
@@ -1042,6 +1132,8 @@
   }
 
   function connectWebSocket(gameId, options = {}) {
+    // Поддержка анонимных игр через session_id
+    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
     if (!gameId) return;
     const { isReconnect = false } = options;
     if (!isReconnect) {
@@ -1058,7 +1150,23 @@
     updateWsIndicator('offline');
     const token = getAccessToken();
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const url = `${protocol}://${window.location.host}/ws/games/${gameId}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    
+    // Формируем URL с токеном или session_id
+    let url = `${protocol}://${window.location.host}/ws/games/${gameId}`;
+    const params = new URLSearchParams();
+    
+    if (token) {
+      params.append('token', token);
+    } else if (typeof window.getSessionId === 'function') {
+      const sessionId = window.getSessionId();
+      if (sessionId) {
+        params.append('session_id', sessionId);
+      }
+    }
+    
+    if (params.toString()) {
+      url += '?' + params.toString();
+    }
     try {
       const ws = new WebSocket(url);
       setState({ ws }, 'connectWebSocket:init');
@@ -1145,28 +1253,69 @@
 
   async function joinGame(autoTriggered = false) {
     if (!state.matchId) return;
-    if (!state.currentUser) {
-      if (autoTriggered) {
-        if (!state.loginPromptShown) {
-          setState({ loginPromptShown: true }, 'joinGame:autoTriggerLoginPrompt');
-          showToast('Войдите, чтобы занять место соперника', 'error');
+    
+    // Проверяем авторизацию или используем анонимную сессию
+    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    
+    // Для анонимных пользователей проверяем наличие session_id функции
+    if (!isAuth) {
+      if (typeof window.getOrCreateSessionId !== 'function' || typeof window.getAnonymousHeaders !== 'function') {
+        if (autoTriggered) {
+          if (!state.loginPromptShown) {
+            setState({ loginPromptShown: true }, 'joinGame:autoTriggerLoginPrompt');
+            showToast('Войдите, чтобы занять место соперника', 'error');
+          }
+        } else {
+          showToast('Войдите в аккаунт, чтобы присоединиться', 'error');
         }
-      } else {
-        showToast('Войдите в аккаунт, чтобы присоединиться', 'error');
+        return;
       }
-      return;
+      // Создаем session_id заранее для анонимных пользователей
+      window.getOrCreateSessionId();
     }
+    
     setState({ autoJoinAttempted: true }, 'joinGame:attempt');
     try {
-      const res = await authedFetch(`/api/games/${state.matchId}/join`, { method: 'POST' });
-      if (!res.ok) throw new Error(await res.text());
+      let res;
+      if (isAuth) {
+        res = await authedFetch(`/api/games/${state.matchId}/join`, { method: 'POST' });
+      } else {
+        // Анонимный запрос с session_id
+        if (typeof window.getAnonymousHeaders !== 'function') {
+          showToast('Ошибка: не удалось создать сессию для анонимной игры', 'error');
+          return;
+        }
+        
+        const headers = window.getAnonymousHeaders();
+        console.log('[joinGame] Анонимное присоединение, session_id:', headers['X-Session-ID']);
+        
+        res = await fetch(`/api/games/${state.matchId}/join`, {
+          method: 'POST',
+          headers,
+        });
+      }
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[joinGame] Ошибка присоединения:', res.status, errorText);
+        let errorMessage = 'Не удалось присоединиться к партии';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+      
       const detail = await res.json();
       applyGameDetail(detail);
       connectWebSocket(state.matchId);
       showToast('Вы присоединились к партии', 'success');
     } catch (err) {
-      console.error(err);
-      showToast('Не удалось присоединиться к партии', 'error');
+      console.error('[joinGame] Ошибка:', err);
+      const errorMessage = err.message || 'Не удалось присоединиться к партии';
+      showToast(errorMessage, 'error');
     }
   }
 
@@ -1321,11 +1470,11 @@
   }
 
   function handleLoginRedirect() {
-    window.location.href = '/login.html';
+    window.location.href = '/login';
   }
 
   function handleRegisterRedirect() {
-    window.location.href = '/register.html';
+    window.location.href = '/register';
   }
 
   function handleLogout() {

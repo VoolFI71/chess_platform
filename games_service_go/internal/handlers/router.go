@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/yourorg/games_service_go/internal/config"
@@ -41,12 +42,12 @@ func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, cfg *conf
 	// Поэтому обрабатываем маршруты с префиксом /api/games/
 	api := router.Group("/api/games")
 	{
-		api.POST("", authMiddleware(cfg), createGame(gameService))
-		api.POST("/", authMiddleware(cfg), createGame(gameService))
+		api.POST("", optionalAuthMiddleware(cfg), createGame(gameService))
+		api.POST("/", optionalAuthMiddleware(cfg), createGame(gameService))
 		api.GET("", listGames(gameService))
 		api.GET("/", listGames(gameService))
 		api.GET("/:game_id", getGame(gameService))
-		api.POST("/:game_id/join", authMiddleware(cfg), joinGame(gameService))
+		api.POST("/:game_id/join", optionalAuthMiddleware(cfg), joinGame(gameService))
 		api.POST("/:game_id/resign", authMiddleware(cfg), resignGame(gameService))
 		api.POST("/:game_id/timeout", authMiddleware(cfg), timeoutGame(gameService))
 		api.GET("/:game_id/moves", getMoves(gameService))
@@ -98,6 +99,41 @@ func authMiddleware(cfg *config.Config) gin.HandlerFunc {
 		}
 
 		c.Set("user_id", userID)
+		c.Next()
+	}
+}
+
+// optionalAuthMiddleware - опциональный middleware, который позволяет анонимных пользователей через X-Session-ID
+func optionalAuthMiddleware(cfg *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Проверяем JWT токен
+		tokenString := c.GetHeader("Authorization")
+		if tokenString == "" {
+			tokenString = c.Query("token")
+		}
+
+		if tokenString != "" {
+			// Валидация JWT токена
+			userID, err := validateJWT(tokenString, cfg.JWTSecret)
+			if err == nil {
+				c.Set("user_id", userID)
+				c.Next()
+				return
+			}
+		}
+
+		// Если нет токена, проверяем session_id для анонимных пользователей
+		sessionID := c.GetHeader("X-Session-ID")
+		if sessionID != "" {
+			// Валидируем формат UUID
+			if _, err := uuid.Parse(sessionID); err == nil {
+				c.Set("session_id", sessionID)
+				c.Next()
+				return
+			}
+		}
+
+		// Если нет ни токена, ни session_id - продолжаем без аутентификации (для просмотра)
 		c.Next()
 	}
 }

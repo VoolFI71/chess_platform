@@ -73,7 +73,7 @@
   };
 
   // Check authentication and redirect if needed
-  const requireAuth = (redirectTo = '/login.html') => {
+  const requireAuth = (redirectTo = '/login') => {
     if (!isAuthenticated()) {
       if (typeof window.showToast === 'function') {
         window.showToast('Войдите в аккаунт, чтобы создать партию', 'error');
@@ -106,9 +106,11 @@
       onError = null,
     } = options;
 
-    if (!requireAuth()) {
-      return null;
-    }
+    // Проверяем авторизацию или используем анонимную сессию
+    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    
+    // Функция createGame автоматически поддерживает анонимных игроков через session_id
+    // Если нет авторизации и нет session_id, createGame вернет ошибку
 
     const payload = {
       initial_fen: initialFen === 'startpos' ? 'startpos' : initialFen,
@@ -125,10 +127,26 @@
     };
 
     try {
-      const res = await authedFetch('/api/games/', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      // Если авторизован, используем authedFetch, иначе обычный fetch с session_id
+      let res;
+      if (isAuth) {
+        res = await authedFetch('/api/games/', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Анонимный запрос с session_id
+        const headers = typeof window.getAnonymousHeaders === 'function' 
+          ? window.getAnonymousHeaders() 
+          : {};
+        headers['Content-Type'] = 'application/json';
+        
+        res = await fetch('/api/games/', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        });
+      }
 
       if (!res.ok) {
         let errorText = 'Не удалось создать партию';
@@ -322,6 +340,38 @@
     await Promise.all(fetchIds.map((id) => fetchUsername(id)));
   }
 
+  // Вспомогательная функция для получения имени игрока с учетом анонимных пользователей
+  const getPlayerName = (game, role) => {
+    if (!game) return '—';
+    const metadata = game.metadata || {};
+    const id = role === 'white' ? game.white_id : game.black_id;
+    const sessionId = role === 'white' ? metadata.white_session_id : metadata.black_session_id;
+    
+    // Если есть user_id, отображаем как обычно
+    if (id !== null && id !== undefined) {
+      if (state.currentUser && state.currentUser.id === id) {
+        return state.currentUser.username ? `Вы (${state.currentUser.username})` : 'Вы';
+      }
+      const cached = usernameFromCache(id);
+      if (cached) return cached;
+      return `ID ${id}`;
+    }
+    
+    // Если нет user_id, но есть session_id - это анонимный игрок
+    if (sessionId) {
+      // Проверяем, является ли текущий пользователь этим анонимным игроком
+      if (typeof window.getSessionId === 'function') {
+        const currentSessionId = window.getSessionId();
+        if (currentSessionId === sessionId) {
+          return 'Вы (Гость)';
+        }
+      }
+      return 'Гость';
+    }
+    
+    return '—';
+  };
+
   const labelPlayer = (id) => {
     if (!id) return '—';
     if (state.currentUser && state.currentUser.id === id) {
@@ -412,7 +462,7 @@
           <span class="pill ${statusClass(game.status)}">${translateStatus(game.status)}</span>
           <span style="font-size:0.85rem;color:rgba(248,250,252,0.7);">${describeTimeControl(game.time_control)}</span>
         </div>
-        <div class="players">${labelPlayer(game.white_id)} <span style="opacity:.6;">vs</span> ${labelPlayer(game.black_id)}</div>
+        <div class="players">${getPlayerName(game, 'white')} <span style="opacity:.6;">vs</span> ${getPlayerName(game, 'black')}</div>
         <div class="meta-row">
           <span>Ходы: ${game.move_count}</span>
           <span>ID ${game.id.slice(0, 8)}</span>
@@ -535,8 +585,8 @@
     }
     document.getElementById('gameTimeControl').textContent = describeTimeControl(state.selectedGame.time_control);
     document.getElementById('gameResult').textContent = state.selectedGame.result || '—';
-    document.getElementById('whitePlayerLabel').textContent = labelPlayer(state.selectedGame.white_id);
-    document.getElementById('blackPlayerLabel').textContent = labelPlayer(state.selectedGame.black_id);
+    document.getElementById('whitePlayerLabel').textContent = getPlayerName(state.selectedGame, 'white');
+    document.getElementById('blackPlayerLabel').textContent = getPlayerName(state.selectedGame, 'black');
 
     renderMoves();
     renderActions();
@@ -759,12 +809,30 @@
   // -------------------- Actions -----------------------
   async function joinGame() {
     if (!state.selectedGameId) return;
-    if (!state.currentUser) {
+    
+    // Проверяем авторизацию или используем анонимную сессию
+    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    
+    if (!isAuth && typeof window.getOrCreateSessionId !== 'function') {
       showToast('Войдите в аккаунт, чтобы присоединиться', 'error');
       return;
     }
+    
     try {
-      const res = await authedFetch(`/api/games/${state.selectedGameId}/join`, { method: 'POST' });
+      let res;
+      if (isAuth) {
+        res = await authedFetch(`/api/games/${state.selectedGameId}/join`, { method: 'POST' });
+      } else {
+        // Анонимный запрос с session_id
+        const headers = typeof window.getAnonymousHeaders === 'function' 
+          ? window.getAnonymousHeaders() 
+          : {};
+        
+        res = await fetch(`/api/games/${state.selectedGameId}/join`, {
+          method: 'POST',
+          headers,
+        });
+      }
       if (!res.ok) throw new Error(await res.text());
       const detail = await res.json();
       state.selectedGame = detail;
@@ -834,7 +902,7 @@
 
   async function handleCreateGame(event) {
     event.preventDefault();
-    if (!requireAuth()) return;
+    // Функция createGame сама обработает анонимных игроков через session_id
     
     const variant = document.getElementById('variant').value;
     const fen = variant === 'custom' ? document.getElementById('customFen').value.trim() : null;
@@ -936,12 +1004,12 @@
 
   const handleLoginRedirect = () => {
     closeMobileMenu();
-    window.location.href = '/login.html';
+    window.location.href = '/login';
   };
 
   const handleRegisterRedirect = () => {
     closeMobileMenu();
-    window.location.href = '/register.html';
+    window.location.href = '/register';
   };
 
   function handleLogout() {
@@ -1188,8 +1256,8 @@
         const timeStr = `${minutes}+${increment}`;
         
         // Используем кэш имен пользователей, если доступен
-        const whitePlayer = game.white_id ? (usernameFromCache(game.white_id) || `ID ${game.white_id}`) : '—';
-        const blackPlayer = game.black_id ? (usernameFromCache(game.black_id) || `ID ${game.black_id}`) : '—';
+        const whitePlayer = getPlayerName(game, 'white');
+        const blackPlayer = getPlayerName(game, 'black');
         
         item.innerHTML = `
           <div class="tv-live-badge">
@@ -1223,7 +1291,7 @@
     const token = getAccessToken();
     if (!token) {
       showToast('Войдите в аккаунт, чтобы присоединиться', 'error');
-      window.location.href = '/login.html';
+      window.location.href = '/login';
       return;
     }
     
@@ -1679,9 +1747,10 @@ function startWaitingForOpponent(gameId) {
 
             const game = await res.json();
             
-            // Check if both players have joined
-            const whiteReady = game.white_id !== null && game.white_id !== undefined;
-            const blackReady = game.black_id !== null && game.black_id !== undefined;
+            // Check if both players have joined (including anonymous players via session_id)
+            const metadata = game.metadata || {};
+            const whiteReady = (game.white_id !== null && game.white_id !== undefined) || metadata.white_session_id;
+            const blackReady = (game.black_id !== null && game.black_id !== undefined) || metadata.black_session_id;
             
             if (whiteReady && blackReady) {
                 // Stop polling

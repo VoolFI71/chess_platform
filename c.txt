@@ -1,0 +1,192 @@
+import time
+import numpy as np
+from random import uniform
+
+def iterative_operations(size, matrix_rows, matrix_cols):
+    """Выполнение операций с использованием явных циклов"""
+    print("1. Сложение элементов массивов (итеративный подход):")
+    
+    array_one = np.zeros(size)
+    array_two = np.zeros(size)
+    
+    for idx in range(size):
+        array_one[idx] = uniform(0, 100)
+        array_two[idx] = uniform(0, 1)
+    
+    result_sum = np.zeros(size)
+    time_start = time.perf_counter()
+    for idx in range(size):
+        result_sum[idx] = array_one[idx] + array_two[idx]
+    time_end = time.perf_counter()
+    elapsed = time_end - time_start
+    print(f'   Затраченное время: {elapsed:.3e} секунд')
+    
+    print("2. Умножение матриц (итеративный подход):")
+    
+    matrix_one = np.zeros((matrix_rows, matrix_cols))
+    matrix_two = np.zeros((matrix_cols, matrix_rows))
+    
+    for col_idx in range(matrix_cols):
+        matrix_one[:, col_idx] = array_one
+    
+    for row_idx in range(matrix_rows):
+        matrix_two[row_idx, :] = array_two
+    
+    result_product = np.zeros((matrix_rows, matrix_rows))
+    time_start = time.perf_counter()
+    for row_idx in range(matrix_rows):
+        for col_idx in range(matrix_rows):
+            for inner_idx in range(matrix_cols):
+                result_product[row_idx, col_idx] += matrix_one[row_idx, inner_idx] * matrix_two[inner_idx, col_idx]
+    time_end = time.perf_counter()
+    elapsed = time_end - time_start
+    print(f'   Затраченное время: {elapsed:.3e} секунд')
+    
+    return result_sum, result_product
+
+def vectorized_operations(size, matrix_rows, matrix_cols):
+    """Выполнение операций с использованием векторизации NumPy"""
+    print("1. Сложение элементов массивов (векторизация NumPy):")
+    
+    array_one = np.random.uniform(0, 100, size)
+    array_two = np.random.random(size)
+    
+    time_start = time.perf_counter()
+    result_sum = array_one + array_two
+    time_end = time.perf_counter()
+    elapsed = time_end - time_start
+    print(f'   Затраченное время: {elapsed:.3e} секунд')
+    
+    print("2. Умножение матриц (векторизация NumPy):")
+    
+    matrix_one = np.zeros((matrix_rows, matrix_cols))
+    matrix_two = np.zeros((matrix_cols, matrix_rows))
+    
+    matrix_one[:] = array_one.reshape(-1, 1)
+    matrix_two[:] = array_two.reshape(1, -1)
+    
+    time_start = time.perf_counter()
+    result_product = np.dot(matrix_one, matrix_two)
+    time_end = time.perf_counter()
+    elapsed = time_end - time_start
+    print(f'   Затраченное время: {elapsed:.3e} секунд')
+    
+    return result_sum, result_product
+
+def run_comparison():
+    array_size = 1000
+    rows = 100
+    cols = 100
+    
+    print("=" * 50)
+    print("ИТЕРАТИВНЫЙ ПОДХОД (ЦИКЛЫ):")
+    print("=" * 50)
+    iter_sum, iter_prod = iterative_operations(array_size, rows, cols)
+    
+    print("\n" + "=" * 50)
+    print("ВЕКТОРИЗОВАННЫЙ ПОДХОД (NUMPY):")
+    print("=" * 50)
+    vec_sum, vec_prod = vectorized_operations(array_size, rows, cols)
+    
+    print("\n" + "=" * 50)
+    print("СРАВНЕНИЕ РЕЗУЛЬТАТОВ:")
+    print("=" * 50)
+    
+    print("Сложение (первые 5 элементов):")
+    print("Итеративный:", iter_sum[:5])
+    print("Векторизованный:", vec_sum[:5])
+    
+    print("\nУмножение матриц (первые 2x2 элемента):")
+    print("Итеративный:")
+    print(iter_prod[:2, :2])
+    print("Векторизованный:")
+    print(vec_prod[:2, :2])
+    
+    max_diff_sum = np.max(np.abs(iter_sum - vec_sum))
+    max_diff_prod = np.max(np.abs(iter_prod - vec_prod))
+    print(f"\nМаксимальное расхождение в результатах сложения: {max_diff_sum:.2e}")
+    print(f"Максимальное расхождение в результатах умножения: {max_diff_prod:.2e}")
+
+if __name__ == "__main__":
+    run_comparison()
+
+
+
+1. Разница между arange() и linspace()
+· arange(start, stop, step) генерирует массив с заданным шагом, похоже на встроенную функцию range()
+· linspace(start, stop, num) создаёт массив с заданным количеством элементов, равномерно распределённых от start до stop (обе границы включены)
+
+2. Определение среза массива
+Срез массива представляет собой механизм выборки подмножества элементов через синтаксис [start:stop:step]. Это эффективный способ работы с частями массивов без необходимости создания копий данных.
+
+3. Обозначения m[:, j] и m[i, :] для двумерного массива m
+
+· m[:, j] - выбор всех элементов j-го столбца
+· m[i, :] - выбор всех элементов i-й строки
+
+4. Использование отрицательных индексов в срезах
+Отрицательные индексы позволяют обращаться к элементам с конца массива:
+
+· arr[-1] - последний элемент массива
+· arr[-2] - второй элемент с конца
+· arr[-3:] - последние три элемента
+
+5. Определение позиций минимального и максимального элементов
+Для быстрого нахождения индексов минимального и максимального элементов используются функции NumPy:
+
+· np.argmin(arr) - возвращает индекс минимального элемента
+· np.argmax(arr) - возвращает индекс максимального элемента
+
+6. Понятие универсальных функций
+Универсальные функции (ufunc) в NumPy представляют собой функции, применяемые поэлементно к массивам. Они поддерживают векторизацию и механизм broadcasting. Примерами служат np.sin(), np.exp(), np.add().
+
+Данная программа демонстрирует эффективность векторизованных операций NumPy по сравнению с итеративными циклами - операции выполняются существенно быстрее, что особенно заметно при работе с большими объёмами данных.
+
+
+СТР 91-93
+
+
+1. Возвращаемое значение integrate.quad()
+
+Функция integrate.quad() возвращает кортеж, состоящий из двух значений:
+
+· Первое значение - численный результат вычисления определённого интеграла
+· Второе значение - оценка абсолютной погрешности вычисления, характеризующая точность полученного результата
+
+2. Модуль для решения ОДУ
+
+Функциональность для решения обыкновенных дифференциальных уравнений реализована в модуле scipy.integrate. Данный модуль включает различные численные методы интегрирования, охватывающие как вычисление определённых интегралов, так и решение дифференциальных уравнений.
+
+3. Формат систем ОДУ для odeint()
+
+Функция odeint() решает системы обыкновенных дифференциальных уравнений первого порядка, представленные в виде:
+
+dy/dt = f(y, t)
+
+где:
+
+· y - вектор искомых функций (может быть скаляром или вектором)
+· t - независимая переменная (чаще всего время)
+· f(y, t) - функция, определяющая правую часть системы
+
+Данная функция предназначена для решения задач с начальными условиями (задача Коши).
+
+4. Альтернативные функции для решения ОДУ в integrate
+
+Кроме odeint(), модуль scipy.integrate содержит следующие основные функции для решения ОДУ:
+
+· solve_ivp - современный универсальный решатель начальных задач для ОДУ, рекомендуется как замена odeint
+· ode - объектно-ориентированный интерфейс для решения ОДУ, обеспечивающий расширенный контроль над процессом решения
+· complex_ode - специализированный решатель для систем ОДУ с комплексными переменными
+
+5. Результат команды interp1d(g, f, 'cubic')
+
+Команда G = interp1d(g, f, 'cubic') создаёт объект интерполяционной функции, где:
+
+· g - массив узлов интерполяции (значения по оси x)
+· f - массив значений функции в узлах интерполяции (значения по оси y)
+· 'cubic' - указание типа интерполяции (кубические сплайны)
+
+Тип возвращаемого значения G - это вызываемый объект (callable object) класса интерполяции.
+
+Итог: G представляет собой функцию, которая для любого значения между минимальным и максимальным элементами массива g вычисляет соответствующее значение, используя гладкую кривую (кубические сплайны), проходящую через заданные точки. Это даёт возможность получать значения функции в промежуточных точках между известными узлами.

@@ -83,7 +83,17 @@
       const winnerIsWhite = game.result === '1-0';
       const colorLabel = winnerIsWhite ? 'Белые' : 'Чёрные';
       const winnerId = winnerIsWhite ? game.white_id : game.black_id;
-      const winnerName = window.MatchUtils.titleName(winnerId);
+      const metadata = game.metadata || {};
+      const winnerSessionId = winnerIsWhite ? metadata.white_session_id : metadata.black_session_id;
+      
+      // Если победитель - анонимный игрок (нет user_id, но есть session_id)
+      let winnerName;
+      if ((winnerId === null || winnerId === undefined) && winnerSessionId) {
+        winnerName = 'Гость';
+      } else {
+        winnerName = window.MatchUtils.titleName(winnerId);
+      }
+      
       const suffix = reasonLabel ? ` (${reasonLabel})` : '';
       return `${colorLabel}: ${winnerName} победили${suffix}`;
     },

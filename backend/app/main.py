@@ -126,6 +126,10 @@ def serve_profile_page():
 
 @app.get("/profile/{username}")
 def serve_profile_page_with_username(username: str):
+    # Block access to URLs with .html extension
+    if username.endswith('.html'):
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    
     # Always serve profile.html for pretty URL, frontend reads username from path
     profile_file = WEB_DIR / "profile.html"
     if not profile_file.is_file():
@@ -157,6 +161,10 @@ def serve_favicon_ico():
 def serve_frontend(full_path: str):
     # Don't serve API routes as static files
     if full_path.startswith("api/"):
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    
+    # Block access to .html files directly
+    if full_path.endswith('.html'):
         return JSONResponse({"detail": "Not Found"}, status_code=404)
     
     resolved = _resolve_web_path(full_path)
