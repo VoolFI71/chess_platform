@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Политика конфиденциальности — ChessMint</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Политика конфиденциальности платформы ChessMint. Сбор и обработка персональных данных.">
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="https://chessmint.ru/privacy">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chessmint.ru/privacy">
+    <meta property="og:title" content="Политика конфиденциальности — ChessMint">
+    <meta property="og:description" content="Политика конфиденциальности платформы ChessMint. Сбор и обработка персональных данных в соответствии с 152-ФЗ.">
+    <meta property="og:image" content="https://chessmint.ru/favicon.svg">
+    <meta property="og:image:width" content="120">
+    <meta property="og:image:height" content="120">
+    <meta property="og:image:alt" content="ChessMint - Политика конфиденциальности">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:site_name" content="ChessMint">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:url" content="https://chessmint.ru/privacy">
+    <meta name="twitter:title" content="Политика конфиденциальности — ChessMint">
+    <meta name="twitter:description" content="Политика конфиденциальности платформы ChessMint. Сбор и обработка персональных данных в соответствии с 152-ФЗ.">
+    <meta name="twitter:image" content="https://chessmint.ru/favicon.svg">
+    <meta name="twitter:image:alt" content="ChessMint - Политика конфиденциальности">
+    <meta name="twitter:site" content="@chessmint">
+    
+    <!-- Загрузка темы до отрисовки страницы, чтобы избежать мерцания -->
+    <script>
+      (function() {
+        try {
+          const saved = localStorage.getItem('theme');
+          if (saved === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
+          }
+        } catch {}
+      })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/styles/base/variables.css">
+    <link rel="stylesheet" href="/styles/base/common.css">
+    <link rel="stylesheet" href="/styles/components/header.css">
+    <link rel="stylesheet" href="/styles/components/footer.css">
+    <link rel="stylesheet" href="/styles/pages/legal.css">
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="120x120" href="/favicon.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/favicon.png">
+    
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105743222', 'ym');
+        ym(105743222, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/105743222" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div>
+                        <div class="gradient-text">ChessMint</div>
+                    </div>
+                </a>
+                <nav class="nav">
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                </nav>
+                <div class="header-actions">
+                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()">
+                        <i class="fas fa-sun" id="themeIcon"></i>
+                    </button>
+                    <a href="/login" class="auth-icon-btn" title="Войти / Регистрация">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </a>
+                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars" id="menuIcon"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Mobile Menu -->
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu" id="mobileMenu">
+                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div>
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">Играть</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">Задачи</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">Рейтинг</button>
+                    <a href="/login" class="btn btn-primary" style="margin-top: 1rem;">Войти</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="legal-page">
+        <div class="container">
+            <div class="legal-content">
+                <h1>Политика конфиденциальности</h1>
+                <p class="legal-updated">Последнее обновление: 21 января 2025 года</p>
+
+                <nav class="legal-nav">
+                    <a href="#section-1">1. Общие положения</a>
+                    <a href="#section-2">2. Собираемые данные</a>
+                    <a href="#section-3">3. Цели обработки</a>
+                    <a href="#section-4">4. Способы обработки</a>
+                    <a href="#section-5">5. Передача данных</a>
+                    <a href="#section-6">6. Безопасность данных</a>
+                    <a href="#section-7">7. Права пользователя</a>
+                    <a href="#section-8">8. Хранение данных</a>
+                    <a href="#section-9">9. Cookies и отслеживание</a>
+                    <a href="#section-10">10. Изменения в политике</a>
+                    <a href="#section-11">11. Контакты</a>
+                </nav>
+
+                <div class="legal-text">
+                    <section id="section-1">
+                        <h2>1. Общие положения</h2>
+                        <p>
+                            Настоящая Политика конфиденциальности (далее — «Политика») определяет порядок сбора, 
+                            хранения и использования персональных данных пользователей платформы ChessMint 
+                            (далее — «Платформа», «Сервис»).
+                        </p>
+                        <p>
+                            Настоящая Политика разработана в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ 
+                            «О персональных данных» и другими применимыми нормативными актами Российской Федерации.
+                        </p>
+                        <p>
+                            Используя Платформу, вы соглашаетесь с условиями обработки персональных данных, 
+                            изложенными в настоящей Политике.
+                        </p>
+                    </section>
+
+                    <section id="section-2">
+                        <h2>2. Собираемые данные</h2>
+                        <h3>2.1. Данные, предоставляемые пользователем</h3>
+                        <p>При регистрации и использовании Платформы мы собираем следующие данные:</p>
+                        <ul>
+                            <li><strong>Email адрес</strong> — для идентификации аккаунта и связи с пользователем</li>
+                            <li><strong>Имя пользователя (username)</strong> — для отображения на Платформе</li>
+                            <li><strong>Пароль</strong> — хранится в зашифрованном виде (хеш)</li>
+                            <li><strong>Рейтинги</strong> — рейтинги по различным форматам игры (blitz, bullet, rapid, puzzle)</li>
+                            <li><strong>Статистика игр</strong> — количество сыгранных партий, результаты</li>
+                            <li><strong>История партий</strong> — запись всех сыгранных партий</li>
+                            <li><strong>Статистика решения задач</strong> — количество решенных задач, результаты</li>
+                            <li><strong>Список друзей/подписок</strong> — связи между пользователями</li>
+                        </ul>
+                        <h3>2.2. Данные, собираемые автоматически</h3>
+                        <p>При использовании Платформы автоматически собираются:</p>
+                        <ul>
+                            <li><strong>IP адрес</strong> — для обеспечения безопасности и предотвращения злоупотреблений</li>
+                            <li><strong>User-Agent</strong> — информация о браузере и устройстве</li>
+                            <li><strong>Данные аналитики</strong> — через сервис Yandex.Metrika (анонимная статистика посещений, 
+                                поведение пользователей, технические данные)</li>
+                            <li><strong>Session ID</strong> — для анонимных пользователей (хранится в localStorage браузера)</li>
+                            <li><strong>Предпочтения темы</strong> — светлая/темная тема (хранится в localStorage)</li>
+                        </ul>
+                    </section>
+
+                    <section id="section-3">
+                        <h2>3. Цели обработки персональных данных</h2>
+                        <p>Персональные данные обрабатываются в следующих целях:</p>
+                        <ul>
+                            <li><strong>Предоставление услуг</strong> — обеспечение функционала Платформы (игры, задачи, курсы)</li>
+                            <li><strong>Идентификация пользователя</strong> — авторизация и управление аккаунтом</li>
+                            <li><strong>Расчет рейтингов</strong> — определение силы игры и рейтинга пользователя</li>
+                            <li><strong>Отображение статистики</strong> — показ истории игр, достижений, рейтингов</li>
+                            <li><strong>Улучшение сервиса</strong> — анализ использования Платформы для улучшения функционала</li>
+                            <li><strong>Безопасность</strong> — предотвращение мошенничества, злоупотреблений и нарушений правил</li>
+                            <li><strong>Коммуникация</strong> — связь с пользователем по вопросам использования Платформы</li>
+                            <li><strong>Аналитика</strong> — сбор анонимной статистики для улучшения работы Платформы</li>
+                        </ul>
+                    </section>
+
+                    <section id="section-4">
+                        <h2>4. Способы обработки персональных данных</h2>
+                        <h3>4.1. Хранение данных</h3>
+                        <p>
+                            Персональные данные хранятся в базе данных PostgreSQL на серверах, расположенных на территории 
+                            Российской Федерации. Доступ к данным имеет ограниченный круг лиц, необходимый для обеспечения 
+                            работы Платформы.
+                        </p>
+                        <h3>4.2. Использование cookies и localStorage</h3>
+                        <p>
+                            Платформа использует технологию localStorage браузера для хранения:
+                        </p>
+                        <ul>
+                            <li>Токенов авторизации (access_token, refresh_token)</li>
+                            <li>Предпочтений темы (темная/светлая)</li>
+                            <li>Session ID для анонимных пользователей</li>
+                        </ul>
+                        <p>
+                            Cookies используются опосредованно через сервис Yandex.Metrika для сбора аналитических данных.
+                        </p>
+                    </section>
+
+                    <section id="section-5">
+                        <h2>5. Передача данных третьим лицам</h2>
+                        <h3>5.1. Yandex.Metrika</h3>
+                        <p>
+                            Платформа использует сервис Yandex.Metrika для сбора анонимной аналитики. Данные передаются 
+                            в анонимизированном виде и не позволяют идентифицировать конкретного пользователя. 
+                            Подробнее о политике конфиденциальности Yandex.Metrika: 
+                            <a href="https://yandex.ru/legal/confidential/" target="_blank" rel="noopener">https://yandex.ru/legal/confidential/</a>
+                        </p>
+                        <h3>5.2. Облачные сервисы</h3>
+                        <p>
+                            Данные могут храниться на серверах облачных провайдеров, предоставляющих услуги хостинга. 
+                            Все такие провайдеры обязаны соблюдать требования законодательства о защите персональных данных.
+                        </p>
+                        <h3>5.3. Требования законодательства</h3>
+                        <p>
+                            Администрация Платформы может раскрыть персональные данные в случаях, предусмотренных 
+                            законодательством Российской Федерации, по запросам уполномоченных государственных органов.
+                        </p>
+                    </section>
+
+                    <section id="section-6">
+                        <h2>6. Безопасность данных</h2>
+                        <h3>6.1. Меры защиты</h3>
+                        <p>
+                            Администрация Платформы принимает необходимые технические и организационные меры для защиты 
+                            персональных данных от неправомерного доступа, уничтожения, изменения или раскрытия:
+                        </p>
+                        <ul>
+                            <li>Использование современных протоколов шифрования (HTTPS)</li>
+                            <li>Хеширование паролей с использованием стойких алгоритмов</li>
+                            <li>Ограничение доступа к персональным данным</li>
+                            <li>Регулярное резервное копирование данных</li>
+                            <li>Мониторинг и логирование доступа к данным</li>
+                        </ul>
+                        <h3>6.2. Ответственность пользователя</h3>
+                        <p>
+                            Пользователь несет ответственность за сохранение конфиденциальности данных для входа в аккаунт. 
+                            При обнаружении несанкционированного доступа необходимо немедленно изменить пароль и уведомить 
+                            администрацию Платформы.
+                        </p>
+                    </section>
+
+                    <section id="section-7">
+                        <h2>7. Права пользователя</h2>
+                        <p>
+                            В соответствии с законодательством Российской Федерации, пользователь имеет следующие права:
+                        </p>
+                        <ul>
+                            <li><strong>Право на доступ</strong> — получение информации о своих персональных данных</li>
+                            <li><strong>Право на исправление</strong> — внесение изменений в некорректные данные</li>
+                            <li><strong>Право на удаление</strong> — удаление персональных данных (с возможным сохранением 
+                                анонимизированной статистики)</li>
+                            <li><strong>Право на отзыв согласия</strong> — прекращение обработки персональных данных</li>
+                            <li><strong>Право на ограничение обработки</strong> — в случаях, предусмотренных законом</li>
+                            <li><strong>Право на возражение</strong> — против обработки данных в определенных случаях</li>
+                        </ul>
+                        <p>
+                            Для реализации своих прав пользователь может обратиться к администрации Платформы по адресу 
+                            <a href="mailto:support@chessmint.ru">support@chessmint.ru</a>.
+                        </p>
+                    </section>
+
+                    <section id="section-8">
+                        <h2>8. Хранение данных</h2>
+                        <h3>8.1. Сроки хранения</h3>
+                        <p>
+                            Персональные данные хранятся в течение всего срока использования Платформы пользователем и 
+                            в течение 3 (трех) лет после удаления аккаунта, если иное не предусмотрено законодательством.
+                        </p>
+                        <h3>8.2. Удаление данных</h3>
+                        <p>
+                            При удалении аккаунта пользователя удаляется следующая информация:
+                        </p>
+                        <ul>
+                            <li>Email адрес</li>
+                            <li>Имя пользователя</li>
+                            <li>Пароль (хеш)</li>
+                            <li>Личная статистика (по запросу)</li>
+                        </ul>
+                        <p>
+                            Статистика и рейтинги могут быть сохранены в анонимизированном виде для ведения общих 
+                            статистических данных Платформы.
+                        </p>
+                        <h3>8.3. Архивное хранение</h3>
+                        <p>
+                            В соответствии с требованиями законодательства некоторые данные могут храниться в архиве 
+                            в течение установленных законом сроков.
+                        </p>
+                    </section>
+
+                    <section id="section-9">
+                        <h2>9. Cookies и отслеживание</h2>
+                        <h3>9.1. Использование cookies</h3>
+                        <p>
+                            Платформа использует cookies опосредованно через сервис Yandex.Metrika для сбора аналитики. 
+                            Cookies — это небольшие текстовые файлы, которые сохраняются на устройстве пользователя.
+                        </p>
+                        <h3>9.2. Yandex.Metrika</h3>
+                        <p>
+                            Платформа использует Yandex.Metrika для сбора анонимной статистики о посещениях и использовании 
+                            Платформы. Собираемые данные включают:
+                        </p>
+                        <ul>
+                            <li>Количество посещений и просмотров страниц</li>
+                            <li>Время, проведенное на страницах</li>
+                            <li>Источники трафика</li>
+                            <li>Технические данные (браузер, устройство, разрешение экрана)</li>
+                            <li>Географические данные (страна, регион — без привязки к конкретному пользователю)</li>
+                        </ul>
+                        <p>
+                            Данные собираются в анонимном виде и не позволяют идентифицировать конкретного пользователя.
+                        </p>
+                        <h3>9.3. Отключение отслеживания</h3>
+                        <p>
+                            Пользователь может отключить cookies и отслеживание в настройках своего браузера. 
+                            Однако это может повлиять на функциональность Платформы.
+                        </p>
+                    </section>
+
+                    <section id="section-10">
+                        <h2>10. Изменения в политике</h2>
+                        <p>
+                            Администрация Платформы оставляет за собой право вносить изменения в настоящую Политику 
+                            конфиденциальности. Все изменения вступают в силу с момента их публикации на Платформе.
+                        </p>
+                        <p>
+                            При существенных изменениях пользователи будут уведомлены путем размещения уведомления на 
+                            Платформе или отправки уведомления на указанный email адрес.
+                        </p>
+                        <p>
+                            Рекомендуется периодически просматривать настоящую Политику для ознакомления с актуальной 
+                            информацией о защите персональных данных.
+                        </p>
+                    </section>
+
+                    <section id="section-11">
+                        <h2>11. Контакты</h2>
+                        <p>
+                            По всем вопросам, связанным с обработкой персональных данных и реализацией прав пользователя, 
+                            вы можете обращаться:
+                        </p>
+                        <ul>
+                            <li><strong>Email:</strong> <a href="mailto:support@chessmint.ru">support@chessmint.ru</a></li>
+                            <li><strong>Платформа:</strong> chessmint.ru</li>
+                        </ul>
+                        <p>
+                            Администрация Платформы обязуется рассмотреть обращение в течение 30 календарных дней 
+                            с момента его получения.
+                        </p>
+                        <p>
+                            В случае несогласия с условиями обработки персональных данных пользователь имеет право 
+                            прекратить использование Платформы и удалить свой аккаунт.
+                        </p>
+                    </section>
+
+                    <div class="legal-footer">
+                        <p>
+                            <a href="/terms">Пользовательское соглашение</a> | 
+                            <a href="/">На главную</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-top">
+            <div class="container">
+                <div class="footer-ornament">
+                    <span>♔</span><span>♕</span><span>♖</span><span>♗</span><span>♘</span><span>♙</span>
+                </div>
+            </div>
+        </div>
+        <div class="footer-content">
+            <div class="container">
+                <div class="footer-grid">
+                    <div class="footer-brand">
+                        <h3>ChessMint</h3>
+                        <p>
+                            Революционная платформа для изучения шахмат. Онлайн обучение, курсы, мастер-классы от гроссмейстеров.
+                        </p>
+                        <div class="social-links">
+                            <a href="https://t.me/chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="Telegram - ChessMint" aria-label="Telegram">
+                                <i class="fab fa-telegram"></i>
+                            </a>
+                            <a href="https://youtube.com/@chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="YouTube - ChessMint" aria-label="YouTube">
+                                <i class="fab fa-youtube"></i>
+                            </a>
+                            <a href="https://vk.com/chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="VK - ChessMint" aria-label="VK">
+                                <i class="fab fa-vk"></i>
+                            </a>
+                            <a href="https://instagram.com/chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="Instagram - ChessMint" aria-label="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="footer-section">
+                        <h4>Обучение</h4>
+                        <ul class="footer-links">
+                            <li><a href="/course">♟ Курсы</a></li>
+                            <li><a href="/tasks">♟ Решение задач</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-section">
+                        <h4>Сообщество</h4>
+                        <ul class="footer-links">
+                            <li><a href="/leaderboard">♟ Рейтинг</a></li>
+                            <li><a href="/games">♟ Играть</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-section">
+                        <h4>Поддержка</h4>
+                        <ul class="footer-links">
+                            <li><a href="/privacy">♟ Конфиденциальность</a></li>
+                            <li><a href="/terms">♟ Пользовательское соглашение</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="container">
+                <div class="footer-bottom-content">
+                    <div class="footer-copyright">
+                        &copy; 2024 ChessMint. Все права защищены. Создано с ♔ для шахматистов.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/scripts/mobile-menu.js"></script>
+    <script>
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark');
+            document.documentElement.classList.toggle('dark', isDark);
+            try {
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                const icon = document.getElementById('themeIcon');
+                if (icon) icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+            } catch {}
+        }
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            const overlay = document.getElementById('mobileMenuOverlay');
+            if (menu && overlay) {
+                menu.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
+        }
+        function closeMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            const overlay = document.getElementById('mobileMenuOverlay');
+            if (menu && overlay) {
+                menu.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>
+

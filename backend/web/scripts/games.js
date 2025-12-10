@@ -95,6 +95,17 @@
   };
 
   // Unified function to create a game
+  // Get selected game type (rated or casual)
+  const getSelectedGameType = () => {
+    const selected = document.querySelector('input[name="gameType"]:checked');
+    if (selected) {
+      return selected.value === 'rated';
+    }
+    // По умолчанию для анонимных пользователей - casual, для авторизованных - rated
+    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    return isAuth; // true для авторизованных (rated), false для анонимных (casual)
+  };
+
   const createGame = async (options = {}) => {
     const {
       minutes = 5,
@@ -109,12 +120,36 @@
     // Проверяем авторизацию или используем анонимную сессию
     const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
     
+    // Анонимные пользователи не могут создавать рейтинговые партии
+    if (!isAuth && isRated) {
+      const errorMessage = 'Для создания рейтинговой партии необходимо войти в аккаунт';
+      if (onError && typeof onError === 'function') {
+        onError(new Error(errorMessage), errorMessage);
+      } else if (typeof window.showToast === 'function') {
+        window.showToast(errorMessage, 'error');
+      }
+      // Перенаправляем на страницу входа
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
+      return null;
+    }
+    
     // Функция createGame автоматически поддерживает анонимных игроков через session_id
     // Если нет авторизации и нет session_id, createGame вернет ошибку
 
+    // Если выбран "random", выбираем случайный цвет перед отправкой
+    // Важно: сервер не понимает "random", поэтому всегда отправляем конкретный цвет
+    let finalCreatorColor = creatorColor;
+    if (creatorColor === 'random' || !creatorColor || (creatorColor !== 'white' && creatorColor !== 'black')) {
+      // Если цвет не указан или указан неправильно, выбираем случайный
+      finalCreatorColor = Math.random() < 0.5 ? 'white' : 'black';
+      console.log('[createGame] Выбран случайный цвет:', finalCreatorColor);
+    }
+    
     const payload = {
       initial_fen: initialFen === 'startpos' ? 'startpos' : initialFen,
-      creator_color: creatorColor,
+      creator_color: finalCreatorColor,
       time_control: {
         initial_ms: Math.max(1, minutes) * 60000,
         increment_ms: Math.max(0, increment) * 1000,
@@ -136,12 +171,62 @@
         });
       } else {
         // Анонимный запрос с session_id
-        const headers = typeof window.getAnonymousHeaders === 'function' 
-          ? window.getAnonymousHeaders() 
-          : {};
-        headers['Content-Type'] = 'application/json';
+        if (typeof window.getAnonymousHeaders !== 'function') {
+          const errorMessage = 'Ошибка: не удалось создать сессию для анонимной игры';
+          if (onError && typeof onError === 'function') {
+            onError(new Error(errorMessage), errorMessage);
+          } else if (typeof window.showToast === 'function') {
+            window.showToast(errorMessage, 'error');
+          }
+          return null;
+        }
         
-        res = await fetch('/api/games/', {
+        // Создаем session_id заранее для анонимных пользователей
+        if (typeof window.getOrCreateSessionId === 'function') {
+          window.getOrCreateSessionId();
+        }
+        
+        const sessionHeaders = window.getAnonymousHeaders();
+        const headers = {
+          ...sessionHeaders,
+          'Content-Type': 'application/json'
+        };
+        
+        const url = buildUrl('/api/games/');
+        const sessionId = sessionHeaders['X-Session-ID'];
+        console.log('[createGame] Анонимное создание партии:', {
+          url,
+          headers,
+          payload,
+          sessionId,
+          hasSessionId: !!sessionId,
+          creatorColor: finalCreatorColor
+        });
+        
+        if (!sessionId) {
+          const errorMessage = 'Ошибка: не удалось получить session_id';
+          if (onError && typeof onError === 'function') {
+            onError(new Error(errorMessage), errorMessage);
+          } else if (typeof window.showToast === 'function') {
+            window.showToast(errorMessage, 'error');
+          }
+          return null;
+        }
+        
+        // Логируем все заголовки для отладки
+        console.log('[createGame] Отправка запроса:', {
+          method: 'POST',
+          url,
+          headers: Object.keys(headers).reduce((acc, key) => {
+            acc[key] = headers[key];
+            return acc;
+          }, {}),
+          hasXSessionID: 'X-Session-ID' in headers,
+          xSessionIDValue: headers['X-Session-ID'],
+          payload
+        });
+        
+        res = await fetch(url, {
           method: 'POST',
           headers,
           body: JSON.stringify(payload),
@@ -153,10 +238,18 @@
         try {
           const errorData = await res.json();
           errorText = errorData.detail || errorData.message || errorText;
+          console.error('[createGame] Server error response:', errorData);
         } catch {
           const text = await res.text();
           errorText = text || errorText;
+          console.error('[createGame] Server error text:', text);
         }
+        console.error('[createGame] Request failed:', {
+          status: res.status,
+          statusText: res.statusText,
+          url: res.url,
+          payload: payload
+        });
         throw new Error(errorText);
       }
 
@@ -966,6 +1059,9 @@
     const mobileUser = document.getElementById('mobileUserActions');
     const mobileAuth = document.getElementById('mobileAuthButtons');
 
+    // Проверяем, является ли устройство мобильным
+    const isDesktop = window.innerWidth >= 1024;
+
     // Hide user info pills (name) on games page
     if (info) info.style.display = 'none';
     if (infoMobile) infoMobile.style.display = 'none';
@@ -973,8 +1069,22 @@
     if (state.currentUser) {
       loginBtns.forEach((btn) => { if (btn) btn.style.display = 'none'; });
       registerBtns.forEach((btn) => { if (btn) btn.style.display = 'none'; });
-      logoutBtns.forEach((btn) => { if (btn) btn.style.display = 'inline-flex'; });
-      if (userActions) userActions.style.display = 'flex';
+      // На мобильных устройствах кнопка выхода не должна отображаться в хедере
+      logoutBtns.forEach((btn) => {
+        if (btn) {
+          // Проверяем, находится ли кнопка в header-actions (не в mobile меню)
+          const isInHeaderActions = btn.closest('.header-actions') && !btn.closest('.mobile-menu');
+          if (isInHeaderActions && !isDesktop) {
+            btn.style.display = 'none'; // Скрываем на мобильных в хедере
+          } else if (isInHeaderActions && isDesktop) {
+            btn.style.display = 'inline-flex'; // Показываем на десктопе в хедере
+          } else if (!isInHeaderActions) {
+            btn.style.display = 'inline-flex'; // Показываем в мобильном меню
+          }
+        }
+      });
+      // На мобильных устройствах userActions не должен отображаться в хедере
+      if (userActions) userActions.style.display = isDesktop ? 'flex' : 'none';
       if (authButtons) authButtons.style.display = 'none';
       if (mobileUser) mobileUser.style.display = 'flex';
       if (mobileAuth) mobileAuth.style.display = 'none';
@@ -983,7 +1093,7 @@
       registerBtns.forEach((btn) => { if (btn) btn.style.display = 'inline-flex'; });
       logoutBtns.forEach((btn) => { if (btn) btn.style.display = 'none'; });
       if (userActions) userActions.style.display = 'none';
-      if (authButtons) authButtons.style.display = 'flex';
+      if (authButtons) authButtons.style.display = isDesktop ? 'flex' : 'none';
       if (mobileUser) mobileUser.style.display = 'none';
       if (mobileAuth) mobileAuth.style.display = 'flex';
     }
@@ -1126,53 +1236,95 @@
     if (icon) icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
   }
 
-  function toggleMobileMenu() {
-    // Используем window.toggleMobileMenu из auth.js, если доступен
-    if (window.toggleMobileMenu && typeof window.toggleMobileMenu === 'function') {
-      window.toggleMobileMenu();
-      return;
-    }
-    // Fallback
-    const menu = document.getElementById('mobileMenu');
-    const icon = document.getElementById('menuIcon');
-    if (!menu || !icon) return;
-    menu.classList.toggle('active');
-    icon.className = menu.classList.contains('active') ? 'fas fa-times' : 'fas fa-bars';
-  }
+  // Mobile menu functions теперь в mobile-menu.js
+  // Используем функции из window.toggleMobileMenu и window.closeMobileMenu
 
-  function closeMobileMenu() {
-    const menu = document.getElementById('mobileMenu');
-    const icon = document.getElementById('menuIcon');
-    if (!menu || !icon) return;
-    menu.classList.remove('active');
-    icon.className = 'fas fa-bars';
-  }
-
-  // Экспортируем функции для мобильного меню только если они не определены в auth.js
-  if (!window.toggleMobileMenu) {
-    window.toggleMobileMenu = toggleMobileMenu;
-  }
-  if (!window.closeMobileMenu) {
-    window.closeMobileMenu = closeMobileMenu;
-  }
+  // Store original games for filtering
+  let allWaitingGames = [];
+  let currentLobbyFilter = 'all';
 
   // Load waiting room games
   async function loadWaitingRoomGames() {
+    if (typeof window.showLobbyLoading === 'function') {
+      window.showLobbyLoading();
+    }
+    
     try {
       const res = await authedFetch('/api/games/?status=CREATED&limit=50');
       if (!res.ok) throw new Error('Failed to load games');
       const games = await res.json();
       
-      const waitingRoom = document.querySelector('#lobby-tab .waiting-room');
-      if (!waitingRoom) return;
-      
-      if (!games || games.length === 0) {
-        waitingRoom.innerHTML = '<div class="empty-state">Нет партий в ожидании. Создайте свою!</div>';
+      const waitingRoom = document.getElementById('waitingRoom');
+      if (!waitingRoom) {
+        if (typeof window.hideLobbyLoading === 'function') {
+          window.hideLobbyLoading();
+        }
         return;
       }
       
-      waitingRoom.innerHTML = '';
-      games.forEach(game => {
+      // Filter games where both players haven't joined
+      allWaitingGames = (games || []).filter(game => {
+        const hasBothPlayers = game.white_id && game.black_id;
+        return !hasBothPlayers;
+      });
+      
+      if (allWaitingGames.length === 0) {
+        if (typeof window.showLobbyEmpty === 'function') {
+          window.showLobbyEmpty();
+        } else {
+          waitingRoom.innerHTML = '<div class="empty-state">Нет партий в ожидании. Создайте свою!</div>';
+        }
+        return;
+      }
+      
+      // Apply current filter
+      filterLobbyGames(currentLobbyFilter);
+    } catch (err) {
+      console.error('Failed to load waiting room games:', err);
+      const waitingRoom = document.getElementById('waitingRoom');
+      if (waitingRoom) {
+        if (typeof window.showLobbyEmpty === 'function') {
+          window.showLobbyEmpty();
+        } else {
+          waitingRoom.innerHTML = '<div class="empty-state">Ошибка загрузки партий</div>';
+        }
+      }
+    } finally {
+      if (typeof window.hideLobbyLoading === 'function') {
+        window.hideLobbyLoading();
+      }
+    }
+  }
+
+  // Filter lobby games
+  function filterLobbyGames(filter) {
+    currentLobbyFilter = filter;
+    const waitingRoom = document.getElementById('waitingRoom');
+    if (!waitingRoom) return;
+    
+    let filteredGames = allWaitingGames;
+    
+    if (filter === 'rated') {
+      filteredGames = allWaitingGames.filter(game => game.metadata?.rated === true);
+    } else if (filter === 'casual') {
+      filteredGames = allWaitingGames.filter(game => !game.metadata?.rated);
+    }
+    
+    if (filteredGames.length === 0) {
+      if (typeof window.showLobbyEmpty === 'function') {
+        window.showLobbyEmpty();
+      } else {
+        waitingRoom.innerHTML = '<div class="empty-state">Нет партий с выбранным фильтром</div>';
+      }
+      return;
+    }
+    
+    if (typeof window.showLobbyContent === 'function') {
+      window.showLobbyContent();
+    }
+    
+    waitingRoom.innerHTML = '';
+    filteredGames.forEach(game => {
         const item = document.createElement('div');
         item.className = 'waiting-item';
         
@@ -1209,41 +1361,50 @@
         
         waitingRoom.appendChild(item);
       });
-    } catch (err) {
-      console.error('Failed to load waiting room games:', err);
-      const waitingRoom = document.querySelector('#lobby-tab .waiting-room');
-      if (waitingRoom) {
-        waitingRoom.innerHTML = '<div class="empty-state">Ошибка загрузки партий</div>';
-      }
-    }
   }
 
+  // Export functions
+  window.loadWaitingGames = loadWaitingRoomGames;
+  window.filterLobbyGames = filterLobbyGames;
+
   async function loadTVGames() {
+    if (typeof window.showTVLoading === 'function') {
+      window.showTVLoading();
+    }
+    
     try {
       const res = await authedFetch('/api/games/?status=ACTIVE&limit=50');
       if (!res.ok) throw new Error('Failed to load games');
       const games = await res.json();
       
-      const tvGames = document.querySelector('#tv-tab .tv-games');
-      if (!tvGames) return;
-      
-      if (!games || games.length === 0) {
-        tvGames.innerHTML = '<div class="empty-state">Пока нет активных матчей.</div>';
+      const tvGames = document.getElementById('tvGames');
+      if (!tvGames) {
+        if (typeof window.hideTVLoading === 'function') {
+          window.hideTVLoading();
+        }
         return;
       }
       
-      tvGames.innerHTML = '';
-      
       // Фильтруем только активные партии, где оба игрока присоединились
-      const activeGames = games.filter(game => {
+      const activeGames = (games || []).filter(game => {
         // Показываем только партии со статусом ACTIVE, где оба игрока присоединились
-        return game.status === 'ACTIVE' && game.white_id && game.black_id;
+        return game.status === 'ACTIVE' && (game.white_id || game.metadata?.white_session_id) && (game.black_id || game.metadata?.black_session_id);
       });
       
       if (activeGames.length === 0) {
-        tvGames.innerHTML = '<div class="empty-state">Пока нет активных матчей.</div>';
+        if (typeof window.showTVEmpty === 'function') {
+          window.showTVEmpty();
+        } else {
+          tvGames.innerHTML = '<div class="empty-state">Пока нет активных матчей.</div>';
+        }
         return;
       }
+      
+      if (typeof window.showTVContent === 'function') {
+        window.showTVContent();
+      }
+      
+      tvGames.innerHTML = '';
       
       activeGames.forEach(game => {
         const item = document.createElement('div');
@@ -1279,9 +1440,17 @@
       });
     } catch (err) {
       console.error('Failed to load TV games:', err);
-      const tvGames = document.querySelector('#tv-tab .tv-games');
+      const tvGames = document.getElementById('tvGames');
       if (tvGames) {
-        tvGames.innerHTML = '<div class="empty-state">Ошибка загрузки партий</div>';
+        if (typeof window.showTVEmpty === 'function') {
+          window.showTVEmpty();
+        } else {
+          tvGames.innerHTML = '<div class="empty-state">Ошибка загрузки партий</div>';
+        }
+      }
+    } finally {
+      if (typeof window.hideTVLoading === 'function') {
+        window.hideTVLoading();
       }
     }
   }
@@ -1326,14 +1495,17 @@
 
   // Export functions for use outside IIFE
   window.loadWaitingRoomGames = loadWaitingRoomGames;
+  window.loadWaitingGames = loadWaitingRoomGames; // Alias for compatibility
   window.loadTVGames = loadTVGames;
   window.joinWaitingGame = joinWaitingGame;
+  window.filterLobbyGames = filterLobbyGames;
   window.authedFetch = authedFetch;
   window.showToast = showToast;
   window.isAuthenticated = isAuthenticated;
   window.getAccessToken = getAccessToken;
   window.requireAuth = requireAuth;
   window.createGame = createGame;
+  window.getSelectedGameType = getSelectedGameType;
 
   // -------------------- Init --------------------------
   document.addEventListener('DOMContentLoaded', async () => {
@@ -1362,12 +1534,52 @@
 
 // Initialize UI elements when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+  // Проверяем авторизацию и настраиваем UI для анонимных пользователей
+  const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (typeof window.getAccessToken === 'function' && window.getAccessToken() !== null && window.getAccessToken() !== '');
+  
+  // Отключаем рейтинговую опцию для анонимных пользователей
+  if (!isAuth) {
+    // Для радиокнопок в Quick Game
+    const ratedRadio = document.querySelector('input[name="gameType"][value="rated"]');
+    const casualRadio = document.querySelector('input[name="gameType"][value="casual"]');
+    if (ratedRadio && casualRadio) {
+      ratedRadio.disabled = true;
+      ratedRadio.parentElement.style.opacity = '0.5';
+      ratedRadio.parentElement.style.pointerEvents = 'none';
+      casualRadio.checked = true;
+    }
+    
+    // Для кнопок в других формах
+    document.querySelectorAll('.type-option[data-type="rated"]').forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.pointerEvents = 'none';
+    });
+    
+    // Активируем casual опцию
+    document.querySelectorAll('.type-option[data-type="casual"]').forEach(btn => {
+      btn.classList.add('active');
+    });
+    
+    // Деактивируем rated опцию
+    document.querySelectorAll('.type-option[data-type="rated"]').forEach(btn => {
+      btn.classList.remove('active');
+    });
+  }
+  
 // Game type toggle
 document.querySelectorAll('.game-type-toggle').forEach(toggle => {
     const options = toggle.querySelectorAll('.type-option');
     options.forEach(option => {
         option.addEventListener('click', (e) => {
             e.preventDefault();
+            // Не позволяем анонимным пользователям выбирать рейтинговую опцию
+            if (!isAuth && option.dataset.type === 'rated') {
+              if (typeof window.showToast === 'function') {
+                window.showToast('Для создания рейтинговой партии необходимо войти в аккаунт', 'error');
+              }
+              return;
+            }
             options.forEach(o => o.classList.remove('active'));
             option.classList.add('active');
         });
@@ -1386,47 +1598,46 @@ document.querySelectorAll('#colorToggle, #friendColorToggle').forEach(toggle => 
     });
 });
 
-  // Mode card click - Open friend game modal with selected time
-document.querySelectorAll('.mode-card').forEach(card => {
-      card.addEventListener('click', () => {
+  // Mode card click - Create game directly with selected time
+document.querySelectorAll('.mode-card[data-time]').forEach(card => {
+      card.addEventListener('click', async () => {
         const time = card.dataset.time;
-          if (!time) return; // Skip custom game button
-
-        // Check authentication
-          if (!window.requireAuth || !window.requireAuth()) {
-            return;
-        }
+          if (!time) return; // Skip if no time data
 
           // Parse time control (format: "minutes+increment" or "minutes")
           const parts = time.split('+').map(Number);
           const minutes = parts[0] || 5;
           const increment = parts[1] || 0;
 
-          // Get friend game modal elements
-          const friendGameModal = document.getElementById('friendGameModal');
-          const friendSetupScreen = document.getElementById('friendSetupScreen');
-          const friendShareScreen = document.getElementById('friendShareScreen');
-          const friendMinutesSlider = document.getElementById('friendMinutesSlider');
-          const friendMinutesValue = document.getElementById('friendMinutesValue');
-          const friendIncrementSlider = document.getElementById('friendIncrementSlider');
-          const friendIncrementValue = document.getElementById('friendIncrementValue');
+          // Show loading state
+          card.style.opacity = '0.6';
+          card.style.pointerEvents = 'none';
 
-          if (!friendGameModal || !friendSetupScreen) return;
-
-          // Set slider values
-          if (friendMinutesSlider) {
-              friendMinutesSlider.value = minutes;
-              if (friendMinutesValue) friendMinutesValue.textContent = minutes;
-            }
-          if (friendIncrementSlider) {
-              friendIncrementSlider.value = increment || 0;
-              if (friendIncrementValue) friendIncrementValue.textContent = increment || 0;
+          try {
+            // Create game with selected type (rated/casual from selector)
+            // Для быстрой игры используем 'white' по умолчанию (можно изменить на 'random' если нужно)
+            const game = await createGame({
+              minutes,
+              increment,
+              isRated: window.getSelectedGameType(),
+              creatorColor: 'white', // Используем конкретный цвет вместо 'random'
+              onSuccess: (game) => {
+                if (game && game.id) {
+                  window.location.href = `/match/${game.id}`;
+                }
+              },
+              onError: (err, message) => {
+                showToast(message || 'Не удалось создать партию', 'error');
+              }
+            });
+          } catch (err) {
+            console.error('[Mode card click] Error:', err);
+            showToast('Не удалось создать партию', 'error');
+          } finally {
+            // Restore card state
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
           }
-
-          // Open modal and show setup screen
-          friendGameModal.classList.add('active');
-          friendSetupScreen.style.display = 'block';
-          if (friendShareScreen) friendShareScreen.classList.remove('active');
     });
 });
 
@@ -1798,4 +2009,104 @@ if (copyLinkBtn) {
         }
     });
 }
+
+  // Lobby filters functionality
+  const filterButtons = document.querySelectorAll('.lobby-filters .filter-btn[data-filter]');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const filter = this.dataset.filter;
+      
+      if (filter === 'refresh') {
+        // Refresh lobby games
+        if (typeof loadWaitingGames === 'function') {
+          loadWaitingGames();
+        }
+        // Animate refresh button
+        this.style.transform = 'rotate(360deg)';
+        setTimeout(() => {
+          this.style.transform = 'rotate(0deg)';
+        }, 500);
+        return;
+      }
+      
+      // Update active state
+      filterButtons.forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      this.classList.add('active');
+      this.setAttribute('aria-pressed', 'true');
+      
+      // Filter games (this will be implemented in games.js)
+      if (typeof filterLobbyGames === 'function') {
+        filterLobbyGames(filter);
+      }
+    });
+  });
+
+  // Show/hide loading indicators
+  window.showLobbyLoading = function() {
+    const loading = document.getElementById('lobbyLoading');
+    const empty = document.getElementById('lobbyEmpty');
+    const room = document.getElementById('waitingRoom');
+    if (loading) loading.style.display = 'flex';
+    if (empty) empty.style.display = 'none';
+    if (room) room.style.display = 'none';
+  };
+
+  window.hideLobbyLoading = function() {
+    const loading = document.getElementById('lobbyLoading');
+    if (loading) loading.style.display = 'none';
+  };
+
+  window.showLobbyEmpty = function() {
+    const loading = document.getElementById('lobbyLoading');
+    const empty = document.getElementById('lobbyEmpty');
+    const room = document.getElementById('waitingRoom');
+    if (loading) loading.style.display = 'none';
+    if (empty) empty.style.display = 'flex';
+    if (room) room.style.display = 'none';
+  };
+
+  window.showLobbyContent = function() {
+    const loading = document.getElementById('lobbyLoading');
+    const empty = document.getElementById('lobbyEmpty');
+    const room = document.getElementById('waitingRoom');
+    if (loading) loading.style.display = 'none';
+    if (empty) empty.style.display = 'none';
+    if (room) room.style.display = 'block';
+  };
+
+  // TV loading indicators
+  window.showTVLoading = function() {
+    const loading = document.getElementById('tvLoading');
+    const empty = document.getElementById('tvEmpty');
+    const games = document.getElementById('tvGames');
+    if (loading) loading.style.display = 'flex';
+    if (empty) empty.style.display = 'none';
+    if (games) games.style.display = 'none';
+  };
+
+  window.hideTVLoading = function() {
+    const loading = document.getElementById('tvLoading');
+    if (loading) loading.style.display = 'none';
+  };
+
+  window.showTVEmpty = function() {
+    const loading = document.getElementById('tvLoading');
+    const empty = document.getElementById('tvEmpty');
+    const games = document.getElementById('tvGames');
+    if (loading) loading.style.display = 'none';
+    if (empty) empty.style.display = 'flex';
+    if (games) games.style.display = 'none';
+  };
+
+  window.showTVContent = function() {
+    const loading = document.getElementById('tvLoading');
+    const empty = document.getElementById('tvEmpty');
+    const games = document.getElementById('tvGames');
+    if (loading) loading.style.display = 'none';
+    if (empty) empty.style.display = 'none';
+    if (games) games.style.display = 'block';
+  };
 }); // End of DOMContentLoaded

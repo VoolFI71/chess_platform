@@ -726,6 +726,10 @@ func (s *GameService) updateRatings(ctx context.Context, tx *gorm.DB, game *mode
 	whiteRatingAfter := calculateEloRating(whiteRating, blackRating, whiteScore)
 	blackRatingAfter := calculateEloRating(blackRating, whiteRating, blackScore)
 
+	// Рассчитываем изменение рейтинга
+	whiteRatingChange := whiteRatingAfter - whiteRating
+	blackRatingChange := blackRatingAfter - blackRating
+
 	// Обновляем рейтинги
 	ratingColumn := fmt.Sprintf("%s_rating", formatType)
 	if err := tx.WithContext(ctx).Exec(fmt.Sprintf("UPDATE users SET %s = ? WHERE id = ?", ratingColumn), whiteRatingAfter, *game.WhiteID).Error; err != nil {
@@ -734,6 +738,39 @@ func (s *GameService) updateRatings(ctx context.Context, tx *gorm.DB, game *mode
 
 	if err := tx.WithContext(ctx).Exec(fmt.Sprintf("UPDATE users SET %s = ? WHERE id = ?", ratingColumn), blackRatingAfter, *game.BlackID).Error; err != nil {
 		return fmt.Errorf("failed to update black rating: %w", err)
+	}
+
+	// Сохраняем изменение рейтинга в metadata игры (только для рейтинговых игр)
+	var metadata map[string]interface{}
+	if len(game.Metadata) > 0 {
+		if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
+			log.Printf("Warning: failed to unmarshal metadata: %v", err)
+			metadata = make(map[string]interface{})
+		}
+	} else {
+		metadata = make(map[string]interface{})
+	}
+
+	// Проверяем, является ли игра рейтинговой (метод вызывается только для рейтинговых игр, но для безопасности проверяем)
+	isRated := false
+	if rated, ok := metadata["rated"].(bool); ok {
+		isRated = rated
+	}
+
+	// Добавляем изменение рейтинга в metadata только для рейтинговых игр
+	if isRated {
+		metadata["white_rating_change"] = whiteRatingChange
+		metadata["black_rating_change"] = blackRatingChange
+
+		metadataJSON, err := json.Marshal(metadata)
+		if err != nil {
+			log.Printf("Warning: failed to marshal metadata: %v", err)
+		} else {
+			game.Metadata = metadataJSON
+			if err := tx.WithContext(ctx).Model(game).Update("metadata", metadataJSON).Error; err != nil {
+				log.Printf("Warning: failed to update game metadata with rating changes: %v", err)
+			}
+		}
 	}
 
 	// Сохраняем историю рейтингов (если таблица существует)

@@ -65,7 +65,7 @@ func (cm *ConnectionManager) Broadcast(gameID uuid.UUID, message interface{}) er
 	// Создаем снимок соединений под блокировкой для избежания race conditions
 	cm.mu.RLock()
 	conns := cm.connections[gameID]
-	if conns == nil || len(conns) == 0 {
+	if len(conns) == 0 {
 		cm.mu.RUnlock()
 		return nil
 	}
@@ -107,4 +107,25 @@ func (cm *ConnectionManager) SendPersonal(ws *websocket.Conn, message interface{
 	}
 
 	return nil
+}
+
+// GetOnlineStats возвращает статистику онлайн пользователей и активных игр
+func (cm *ConnectionManager) GetOnlineStats() (onlinePlayers int, activeGames int) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	uniqueUsers := make(map[int]bool)
+	activeGames = len(cm.connections)
+
+	// Подсчитываем уникальных пользователей среди всех активных соединений
+	for _, conns := range cm.connections {
+		for _, conn := range conns {
+			if conn.UserID != nil {
+				uniqueUsers[*conn.UserID] = true
+			}
+		}
+	}
+
+	onlinePlayers = len(uniqueUsers)
+	return onlinePlayers, activeGames
 }

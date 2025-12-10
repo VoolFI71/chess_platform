@@ -7,16 +7,16 @@
     }
     
     h1 {
-        font-size: 2.2rem !important;
-        line-height: 1.2 !important;
+        font-size: 2.2rem;
+        line-height: 1.2;
     }
     
     h2 {
-        font-size: 1.75rem !important;
+        font-size: 1.75rem;
     }
     
     h3 {
-        font-size: 1.25rem !important;
+        font-size: 1.25rem;
     }
     
     p {
@@ -31,7 +31,7 @@
 
 @media (max-width: 640px) {
     h1 {
-        font-size: 2rem !important;
+        font-size: 2rem;
     }
 }
 
@@ -41,11 +41,11 @@
     }
     
     h1 {
-        font-size: 1.9rem !important;
+        font-size: 1.9rem;
     }
     
     h2 {
-        font-size: 1.5rem !important;
+        font-size: 1.5rem;
     }
     
     .container {
@@ -56,11 +56,11 @@
 
 @media (max-width: 360px) {
     h1 {
-        font-size: 1.6rem !important;
+        font-size: 1.6rem;
     }
     
     h2 {
-        font-size: 1.35rem !important;
+        font-size: 1.35rem;
     }
 }
 
@@ -70,15 +70,15 @@
     }
     
     h1 {
-        font-size: 1.5rem !important;
+        font-size: 1.5rem;
     }
     
     h2 {
-        font-size: 1.25rem !important;
+        font-size: 1.25rem;
     }
     
     h3 {
-        font-size: 1.1rem !important;
+        font-size: 1.1rem;
     }
     
     .container {
@@ -102,7 +102,7 @@
     
     /* Увеличить пространство между кнопками */
     .hero [style*="gap: 1rem"] {
-        gap: 1.25rem !important;
+        gap: 1.25rem;
     }
 }
 
@@ -207,7 +207,7 @@
 /* Footer на мобильных */
 @media (max-width: 768px) {
     .footer-grid {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: 1fr;
         gap: 2rem;
     }
     
@@ -273,7 +273,7 @@
     }
     
     h1 {
-        font-size: 1.75rem !important;
+        font-size: 1.75rem;
     }
     
     .stats-grid {
@@ -314,7 +314,7 @@
     }
     
     .section-title {
-        font-size: 1.4rem !important;
+        font-size: 1.4rem;
     }
     
     .section-description {

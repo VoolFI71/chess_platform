@@ -2,15 +2,23 @@
 (() => {
   async function updateOnlineCount() {
     try {
-      // TODO: Реализовать эндпоинт /api/stats/online
-      // Пока используем рандомное число для демонстрации
-      const count = Math.floor(Math.random() * 50) + 150; // 150-200
+      const res = await fetch('/api/stats/online');
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const count = data.online_players || 0;
       const el = document.getElementById('heroOnlineCount');
       if (el) {
         el.innerHTML = `<span style="font-weight: 600; color: #10b981;">${count}</span> игроков онлайн`;
       }
     } catch (err) {
       console.log('Failed to update online count:', err);
+      // При ошибке показываем заглушку
+      const el = document.getElementById('heroOnlineCount');
+      if (el) {
+        el.innerHTML = `<span style="font-weight: 600; color: #10b981;">—</span> игроков онлайн`;
+      }
     }
   }
 

@@ -4,10 +4,8 @@ Disallow: /api/
 Disallow: /scripts/
 Disallow: /styles/
 Disallow: /profile
-Disallow: /login
-Disallow: /register
 Disallow: /*.html$
 
 
 # Sitemap
-Sitemap: https://power-chess.ru/sitemap.xml
+Sitemap: https://chessmint.ru/sitemap.xml

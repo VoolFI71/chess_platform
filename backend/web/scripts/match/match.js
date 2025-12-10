@@ -260,14 +260,31 @@
     const mobileUser = document.getElementById('mobileUserActions');
     const mobileAuth = document.getElementById('mobileAuthButtons');
 
+    // Проверяем, является ли устройство мобильным
+    const isDesktop = window.innerWidth >= 1024;
+
     if (info) info.style.display = 'none';
     if (infoMobile) infoMobile.style.display = 'none';
 
     if (state.currentUser) {
       loginBtns.forEach((btn) => { if (btn) btn.style.display = 'none'; });
       registerBtns.forEach((btn) => { if (btn) btn.style.display = 'none'; });
-      logoutBtns.forEach((btn) => { if (btn) btn.style.display = 'inline-flex'; });
-      if (userActions) userActions.style.display = 'flex';
+      // На мобильных устройствах кнопка выхода не должна отображаться в хедере
+      logoutBtns.forEach((btn) => {
+        if (btn) {
+          // Проверяем, находится ли кнопка в header-actions (не в mobile меню)
+          const isInHeaderActions = btn.closest('.header-actions') && !btn.closest('.mobile-menu');
+          if (isInHeaderActions && !isDesktop) {
+            btn.style.display = 'none'; // Скрываем на мобильных в хедере
+          } else if (isInHeaderActions && isDesktop) {
+            btn.style.display = 'inline-flex'; // Показываем на десктопе в хедере
+          } else if (!isInHeaderActions) {
+            btn.style.display = 'inline-flex'; // Показываем в мобильном меню
+          }
+        }
+      });
+      // На мобильных устройствах userActions не должен отображаться в хедере
+      if (userActions) userActions.style.display = isDesktop ? 'flex' : 'none';
       if (authButtons) authButtons.style.display = 'none';
       if (mobileUser) mobileUser.style.display = 'flex';
       if (mobileAuth) mobileAuth.style.display = 'none';
@@ -276,7 +293,7 @@
       registerBtns.forEach((btn) => { if (btn) btn.style.display = 'inline-flex'; });
       logoutBtns.forEach((btn) => { if (btn) btn.style.display = 'none'; });
       if (userActions) userActions.style.display = 'none';
-      if (authButtons) authButtons.style.display = 'flex';
+      if (authButtons) authButtons.style.display = isDesktop ? 'flex' : 'none';
       if (mobileUser) mobileUser.style.display = 'none';
       if (mobileAuth) mobileAuth.style.display = 'flex';
     }
@@ -798,6 +815,12 @@
     const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
     const hasSession = typeof window.getSessionId === 'function' && window.getSessionId() !== null;
     
+    // Проверяем, является ли партия рейтинговой
+    const isRated = state.game.metadata?.rated === true;
+    
+    // Анонимные пользователи не могут присоединяться к рейтинговым партиям
+    if (!isAuth && isRated) return false;
+    
     if (!isAuth && !hasSession) return false;
     
     // Проверяем, не участвует ли уже игрок
@@ -1115,14 +1138,101 @@
       const res = await fetch(buildUrl(`/api/games/${state.matchId}?moves_limit=200`));
       if (!res.ok) throw new Error(await res.text());
       const detail = await res.json();
+      
+      // Проверяем, является ли партия рейтинговой и аноним ли пользователь
+      const isRated = detail.metadata?.rated === true;
+      const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+      
+      if (isRated && !isAuth) {
+        // Анонимный пользователь пытается зайти на рейтинговую партию - перенаправляем на логин
+        showToast('Для участия в рейтинговой партии необходимо войти в аккаунт', 'error');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
+        return;
+      }
+      
       applyGameDetail(detail);
       connectWebSocket(state.matchId);
+      
+      // Запускаем polling, если игра в статусе CREATED и оба игрока еще не присоединились
+      if (detail.status === 'CREATED' && !haveBothPlayersJoined(detail)) {
+        startGamePolling();
+      }
     } catch (err) {
       console.error(err);
       showToast('Не удалось загрузить партию', 'error');
       setState({ game: null, moves: [] }, 'loadMatch:error');
       updateUI();
     }
+  }
+
+  function stopGamePolling() {
+    if (state.gamePollingInterval) {
+      clearInterval(state.gamePollingInterval);
+      setState({ gamePollingInterval: null }, 'stopGamePolling');
+    }
+  }
+
+  async function pollGameState() {
+    if (!state.matchId) return;
+    
+    try {
+      const res = await fetch(buildUrl(`/api/games/${state.matchId}?moves_limit=200`));
+      if (!res.ok) {
+        if (res.status === 404) {
+          stopGamePolling();
+          showToast('Партия не найдена', 'error');
+        }
+        return;
+      }
+      
+      const detail = await res.json();
+      const previousGame = state.game;
+      const previousBothJoined = haveBothPlayersJoined(previousGame);
+      const previousStatus = previousGame?.status;
+      const currentBothJoined = haveBothPlayersJoined(detail);
+      
+      // Применяем обновления
+      applyGameDetail(detail);
+      
+      // Если оба игрока присоединились впервые
+      if (!previousBothJoined && currentBothJoined) {
+        updateLegalMoves();
+        renderBoard();
+        showToast('Соперник присоединился! Теперь можно начинать игру', 'success');
+        // Начинаем отсчет времени, если игра активна
+        if (detail.status === 'ACTIVE') {
+          updateClockDisplays(true);
+        }
+      }
+      
+      // Если игра стала активной
+      if (previousStatus === 'CREATED' && detail.status === 'ACTIVE') {
+        showToast('Игра началась! Теперь вы можете делать ходы', 'success');
+        updateClockDisplays(true);
+      }
+      
+      // Останавливаем polling, если оба игрока присоединились или игра завершена/отменена
+      if (currentBothJoined || detail.status === 'FINISHED' || detail.status === 'CANCELLED' || detail.status === 'ABANDONED') {
+        stopGamePolling();
+      }
+    } catch (err) {
+      console.error('[pollGameState] Error:', err);
+    }
+  }
+
+  function startGamePolling() {
+    stopGamePolling();
+    // Poll каждые 2 секунды, если игра еще в статусе CREATED и оба игрока не присоединились
+    const interval = setInterval(() => {
+      if (!state.game || state.game.status !== 'CREATED' || haveBothPlayersJoined()) {
+        stopGamePolling();
+        return;
+      }
+      pollGameState();
+    }, 2000);
+    setState({ gamePollingInterval: interval }, 'startGamePolling');
   }
 
   function wsLog(level, message, data = null) {
@@ -1217,8 +1327,8 @@
     }
     if (payload.type === 'state' || payload.type === 'game_finished' || payload.type === 'move_made') {
       const previousStatus = state.game?.status;
-      const previousWhiteId = state.game?.white_id;
-      const previousBlackId = state.game?.black_id;
+      const previousGame = state.game;
+      const previousBothJoined = haveBothPlayersJoined(previousGame);
       const isRealtimeMove = payload.type === 'move_made';
       const moveTimestamp = isRealtimeMove && payload.move?.created_at 
         ? new Date(payload.move.created_at).getTime() 
@@ -1229,17 +1339,28 @@
         updatePlayerLabelsAndTitle();
         updateWinnerDisplay();
       });
-      if (previousStatus === 'CREATED' && payload.game.status === 'ACTIVE') {
-        showToast('Игра началась! Теперь вы можете делать ходы', 'success');
-      }
-      const bothJoined = payload.game.white_id && payload.game.black_id;
-      const wasWaiting = !previousWhiteId || !previousBlackId;
-
-      if (wasWaiting && bothJoined) {
+      
+      const currentBothJoined = haveBothPlayersJoined(payload.game);
+      const wasWaiting = !previousBothJoined;
+      
+      // Если оба игрока присоединились впервые
+      if (wasWaiting && currentBothJoined) {
+        stopGamePolling(); // Останавливаем polling, так как оба игрока присоединились
         updateLegalMoves();
         renderBoard();
         showToast('Соперник присоединился! Теперь можно начинать игру', 'success');
+        // Начинаем отсчет времени, если игра активна
+        if (payload.game.status === 'ACTIVE') {
+          updateClockDisplays(true);
+        }
       }
+      
+      if (previousStatus === 'CREATED' && payload.game.status === 'ACTIVE') {
+        stopGamePolling(); // Останавливаем polling, так как игра началась
+        showToast('Игра началась! Теперь вы можете делать ходы', 'success');
+        updateClockDisplays(true);
+      }
+      
       if (payload.type === 'move_made') {
         requestAnimationFrame(() => {
           updateLegalMoves();
@@ -1256,6 +1377,27 @@
     
     // Проверяем авторизацию или используем анонимную сессию
     const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    
+    // Проверяем, является ли партия рейтинговой
+    const isRated = state.game?.metadata?.rated === true;
+    
+    // Анонимные пользователи не могут присоединяться к рейтинговым партиям
+    if (!isAuth && isRated) {
+      const errorMessage = 'Для участия в рейтинговой партии необходимо войти в аккаунт';
+      if (autoTriggered) {
+        if (!state.loginPromptShown) {
+          setState({ loginPromptShown: true }, 'joinGame:ratedGamePrompt');
+          showToast(errorMessage, 'error');
+        }
+      } else {
+        showToast(errorMessage, 'error');
+      }
+      // Перенаправляем на страницу входа
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
+      return;
+    }
     
     // Для анонимных пользователей проверяем наличие session_id функции
     if (!isAuth) {
@@ -1512,21 +1654,8 @@
     }
   }
 
-  function toggleMobileMenu() {
-    const menu = document.getElementById('mobileMenu');
-    const icon = document.getElementById('menuIcon');
-    if (!menu || !icon) return;
-    menu.classList.toggle('active');
-    icon.className = menu.classList.contains('active') ? 'fas fa-times' : 'fas fa-bars';
-  }
-
-  function closeMobileMenu() {
-    const menu = document.getElementById('mobileMenu');
-    const icon = document.getElementById('menuIcon');
-    if (!menu || !icon) return;
-    menu.classList.remove('active');
-    icon.className = 'fas fa-bars';
-  }
+  // Mobile menu functions теперь в mobile-menu.js
+  // Используем функции из window.toggleMobileMenu и window.closeMobileMenu
 
   function handleHeaderScroll() {
     const header = document.getElementById('header');
@@ -1583,8 +1712,12 @@
     await loadMatch();
   }
 
-  window.toggleMobileMenu = toggleMobileMenu;
-  window.closeMobileMenu = closeMobileMenu;
+  // Mobile menu functions теперь в mobile-menu.js
+
+  // Очистка polling при закрытии страницы
+  window.addEventListener('beforeunload', () => {
+    stopGamePolling();
+  });
 
   document.addEventListener('DOMContentLoaded', init);
 })();

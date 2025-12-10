@@ -95,7 +95,6 @@
       const headerCard = document.getElementById('puzzleHeaderCard');
       const modeLabel = document.getElementById('currentModeLabel');
       const ratingLabel = document.getElementById('currentPuzzleRating');
-      const movesLabel = document.getElementById('currentPuzzleMoves');
       
       if (headerCard) {
         if (puzzle) {
@@ -117,29 +116,6 @@
         ratingLabel.innerHTML = `
           <i class="fas fa-chess"></i>
           Рейтинг: ${value}
-        `;
-      }
-
-      if (movesLabel) {
-        let movesCount = '—';
-        if (puzzle && puzzle.moves && Array.isArray(puzzle.moves)) {
-          const initialActiveColor = TasksState.initialActiveColor || 'w';
-          const playerColor = TasksState.playerColor || 'b';
-          let nextColor = initialActiveColor;
-          let playerMovesCount = 0;
-          
-          for (const _move of puzzle.moves) {
-            if (nextColor === playerColor) {
-              playerMovesCount += 1;
-            }
-            nextColor = nextColor === 'w' ? 'b' : 'w';
-          }
-          
-          movesCount = playerMovesCount;
-        }
-        movesLabel.innerHTML = `
-          <i class="fas fa-arrows-alt"></i>
-          Ходов: ${movesCount}
         `;
       }
 

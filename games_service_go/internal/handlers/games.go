@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/yourorg/games_service_go/internal/models"
+	"github.com/yourorg/games_service_go/internal/realtime"
 	"github.com/yourorg/games_service_go/internal/services"
 )
 
@@ -242,5 +243,15 @@ func getUserStats(service *services.GameService) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, stats)
+	}
+}
+
+func getOnlineStats(wsManager *realtime.ConnectionManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		onlinePlayers, activeGames := wsManager.GetOnlineStats()
+		c.JSON(http.StatusOK, gin.H{
+			"online_players": onlinePlayers,
+			"active_games":   activeGames,
+		})
 	}
 }

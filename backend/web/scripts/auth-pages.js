@@ -317,6 +317,8 @@
     window.toggleTheme = toggleTheme;
   }
 
+  // Mobile menu functions теперь в mobile-menu.js
+
   document.addEventListener('DOMContentLoaded', () => {
     loadStoredTheme();
     initThemeToggle();

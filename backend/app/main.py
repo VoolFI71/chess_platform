@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from common.observability import configure_observability
 
 from .config import get_settings
-from .routers import stats
+from .routers import notifications, stats
 
 
 settings = get_settings()
@@ -23,6 +23,7 @@ configure_observability(app, settings=settings, get_db=None)
 
 # Include routers
 app.include_router(stats.router)
+app.include_router(notifications.router)
 
 
 # Frontend serving
@@ -139,15 +140,22 @@ def serve_profile_page_with_username(username: str):
 
 @app.get("/favicon.ico")
 def serve_favicon_ico():
-    """Serve favicon.ico - redirect to favicon.svg or serve PNG if available"""
-    # Try to serve favicon.png first (120x120 as required by Yandex)
+    """Serve favicon.ico - для Яндекс Вебмастера должен быть настоящий ICO файл"""
+    # Приоритет 1: Настоящий ICO файл (рекомендуется Яндексом)
+    ico_path = WEB_DIR / "favicon.ico"
+    if ico_path.is_file():
+        response = FileResponse(str(ico_path))
+        response.headers["Content-Type"] = "image/x-icon"
+        return response
+    
+    # Fallback 1: PNG файл (если ICO еще не создан)
     png_path = WEB_DIR / "favicon.png"
     if png_path.is_file():
         response = FileResponse(str(png_path))
         response.headers["Content-Type"] = "image/png"
         return response
     
-    # Fallback to SVG
+    # Fallback 2: SVG файл
     svg_path = WEB_DIR / "favicon.svg"
     if svg_path.is_file():
         response = FileResponse(str(svg_path))

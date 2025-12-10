@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пользовательское соглашение — ChessMint</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Пользовательское соглашение платформы ChessMint. Условия использования сервиса.">
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="https://chessmint.ru/terms">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chessmint.ru/terms">
+    <meta property="og:title" content="Пользовательское соглашение — ChessMint">
+    <meta property="og:description" content="Пользовательское соглашение платформы ChessMint. Условия использования сервиса.">
+    <meta property="og:image" content="https://chessmint.ru/favicon.svg">
+    <meta property="og:image:width" content="120">
+    <meta property="og:image:height" content="120">
+    <meta property="og:image:alt" content="ChessMint - Пользовательское соглашение">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:site_name" content="ChessMint">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:url" content="https://chessmint.ru/terms">
+    <meta name="twitter:title" content="Пользовательское соглашение — ChessMint">
+    <meta name="twitter:description" content="Пользовательское соглашение платформы ChessMint. Условия использования сервиса.">
+    <meta name="twitter:image" content="https://chessmint.ru/favicon.svg">
+    <meta name="twitter:image:alt" content="ChessMint - Пользовательское соглашение">
+    <meta name="twitter:site" content="@chessmint">
+    
+    <!-- Загрузка темы до отрисовки страницы, чтобы избежать мерцания -->
+    <script>
+      (function() {
+        try {
+          const saved = localStorage.getItem('theme');
+          if (saved === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
+          }
+        } catch {}
+      })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/styles/base/variables.css">
+    <link rel="stylesheet" href="/styles/base/common.css">
+    <link rel="stylesheet" href="/styles/components/header.css">
+    <link rel="stylesheet" href="/styles/components/footer.css">
+    <link rel="stylesheet" href="/styles/pages/legal.css">
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="120x120" href="/favicon.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/favicon.png">
+    
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105743222', 'ym');
+        ym(105743222, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/105743222" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div>
+                        <div class="gradient-text">ChessMint</div>
+                    </div>
+                </a>
+                <nav class="nav">
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                </nav>
+                <div class="header-actions">
+                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()">
+                        <i class="fas fa-sun" id="themeIcon"></i>
+                    </button>
+                    <a href="/login" class="auth-icon-btn" title="Войти / Регистрация">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </a>
+                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars" id="menuIcon"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Mobile Menu -->
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu" id="mobileMenu">
+                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div>
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">Играть</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">Задачи</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">Рейтинг</button>
+                    <a href="/login" class="btn btn-primary" style="margin-top: 1rem;">Войти</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="legal-page">
+        <div class="container">
+            <div class="legal-content">
+                <h1>Пользовательское соглашение</h1>
+                <p class="legal-updated">Последнее обновление: 21 января 2025 года</p>
+
+                <nav class="legal-nav">
+                    <a href="#section-1">1. Преамбула</a>
+                    <a href="#section-2">2. Термины и определения</a>
+                    <a href="#section-3">3. Регистрация и аккаунт</a>
+                    <a href="#section-4">4. Использование платформы</a>
+                    <a href="#section-5">5. Интеллектуальная собственность</a>
+                    <a href="#section-6">6. Рейтинги и статистика</a>
+                    <a href="#section-7">7. Ответственность</a>
+                    <a href="#section-8">8. Прекращение доступа</a>
+                    <a href="#section-9">9. Изменение соглашения</a>
+                    <a href="#section-10">10. Разрешение споров</a>
+                    <a href="#section-11">11. Контакты</a>
+                </nav>
+
+                <div class="legal-text">
+                    <section id="section-1">
+                        <h2>1. Преамбула</h2>
+                        <p>
+                            Настоящее Пользовательское соглашение (далее — «Соглашение») определяет условия использования 
+                            платформы ChessMint (далее — «Платформа», «Сервис») и регулирует отношения между администрацией 
+                            Платформы и Пользователем.
+                        </p>
+                        <p>
+                            Используя Платформу, вы принимаете условия настоящего Соглашения. Если вы не согласны с условиями, 
+                            пожалуйста, прекратите использование Платформы.
+                        </p>
+                    </section>
+
+                    <section id="section-2">
+                        <h2>2. Термины и определения</h2>
+                        <ul>
+                            <li><strong>Платформа (Сервис)</strong> — веб-сайт chessmint.ru и все связанные с ним сервисы и функции.</li>
+                            <li><strong>Пользователь</strong> — физическое лицо, использующее Платформу.</li>
+                            <li><strong>Аккаунт</strong> — учетная запись Пользователя на Платформе.</li>
+                            <li><strong>Контент</strong> — любая информация, размещенная на Платформе (тексты, изображения, видео и т.д.).</li>
+                            <li><strong>Рейтинг</strong> — числовое значение, отражающее силу игры Пользователя.</li>
+                        </ul>
+                    </section>
+
+                    <section id="section-3">
+                        <h2>3. Регистрация и аккаунт</h2>
+                        <h3>3.1. Возрастные ограничения</h3>
+                        <p>
+                            Для использования Платформы вы должны быть не моложе 14 лет. Пользователи младше 14 лет могут 
+                            использовать Платформу только с согласия родителей или законных представителей.
+                        </p>
+                        <h3>3.2. Регистрация</h3>
+                        <p>
+                            Для доступа к полному функционалу Платформы необходимо создать аккаунт, указав корректные данные. 
+                            Вы несете ответственность за достоверность предоставленной информации.
+                        </p>
+                        <h3>3.3. Безопасность аккаунта</h3>
+                        <p>
+                            Вы обязаны сохранять конфиденциальность данных для входа в аккаунт и нести полную ответственность 
+                            за все действия, совершенные под вашим аккаунтом. При обнаружении несанкционированного доступа 
+                            немедленно уведомите администрацию Платформы.
+                        </p>
+                        <h3>3.4. Ограничения</h3>
+                        <p>
+                            Каждый Пользователь может иметь только один аккаунт. Создание нескольких аккаунтов одним лицом 
+                            может привести к блокировке всех аккаунтов.
+                        </p>
+                    </section>
+
+                    <section id="section-4">
+                        <h2>4. Использование платформы</h2>
+                        <h3>4.1. Разрешенное использование</h3>
+                        <p>Вы можете использовать Платформу для:</p>
+                        <ul>
+                            <li>Игры в шахматы онлайн</li>
+                            <li>Решение тактических задач</li>
+                            <li>Обучения шахматам через курсы и уроки</li>
+                            <li>Просмотра статистики и рейтингов</li>
+                        </ul>
+                        <h3>4.2. Запрещенные действия</h3>
+                        <p>При использовании Платформы запрещено:</p>
+                        <ul>
+                            <li>Использование читов, ботов или других программ, дающих нечестное преимущество</li>
+                            <li>Манипулирование рейтингом (сговор, сдача партий и т.д.)</li>
+                            <li>Оскорбления, угрозы, распространение ненависти в адрес других Пользователей</li>
+                            <li>Распространение спама, рекламы, вредоносного контента</li>
+                            <li>Нарушение авторских прав</li>
+                            <li>Попытки взлома, DDOS-атаки или иные действия, направленные на нарушение работы Платформы</li>
+                            <li>Использование аккаунта в коммерческих целях без разрешения администрации</li>
+                        </ul>
+                        <h3>4.3. Правила поведения</h3>
+                        <p>
+                            Пользователи обязаны соблюдать этические нормы и уважительно относиться к другим участникам 
+                            Платформы. Нарушение правил может привести к блокировке аккаунта.
+                        </p>
+                    </section>
+
+                    <section id="section-5">
+                        <h2>5. Интеллектуальная собственность</h2>
+                        <h3>5.1. Права на Платформу</h3>
+                        <p>
+                            Все материалы Платформы (дизайн, тексты, изображения, программное обеспечение и т.д.) 
+                            являются собственностью администрации и защищены законодательством об интеллектуальной собственности.
+                        </p>
+                        <h3>5.2. Права Пользователя</h3>
+                        <p>
+                            При размещении контента на Платформе вы предоставляете администрации неисключительную лицензию 
+                            на использование, копирование и распространение этого контента в рамках функционирования Платформы.
+                        </p>
+                    </section>
+
+                    <section id="section-6">
+                        <h2>6. Рейтинги и статистика</h2>
+                        <h3>6.1. Система рейтингов</h3>
+                        <p>
+                            Платформа использует систему рейтингов ELO для оценки силы игры Пользователей. Рейтинг рассчитывается 
+                            автоматически на основе результатов партий.
+                        </p>
+                        <h3>6.2. Прозрачность расчетов</h3>
+                        <p>
+                            Алгоритмы расчета рейтингов являются публичными и могут быть изменены администрацией для улучшения 
+                            справедливости системы.
+                        </p>
+                        <h3>6.3. Корректировка рейтингов</h3>
+                        <p>
+                            Администрация оставляет за собой право корректировать или обнулять рейтинги при обнаружении 
+                            читерства, манипуляций или нарушений правил Платформы.
+                        </p>
+                    </section>
+
+                    <section id="section-7">
+                        <h2>7. Ответственность</h2>
+                        <h3>7.1. Ограничение ответственности</h3>
+                        <p>
+                            Администрация Платформы не несет ответственности за:
+                        </p>
+                        <ul>
+                            <li>Качество интернет-соединения Пользователя</li>
+                            <li>Технические сбои, не зависящие от администрации</li>
+                            <li>Ущерб, причиненный в результате использования или невозможности использования Платформы</li>
+                            <li>Потерю данных вследствие действий Пользователя</li>
+                        </ul>
+                        <h3>7.2. Гарантии</h3>
+                        <p>
+                            Платформа предоставляется «как есть». Администрация не гарантирует отсутствие ошибок, 
+                            бесперебойную работу и соответствие Платформы ожиданиям Пользователя.
+                        </p>
+                        <h3>7.3. Компенсация ущерба</h3>
+                        <p>
+                            В случае причинения ущерба администрации в результате нарушений настоящего Соглашения, 
+                            Пользователь обязан возместить причиненный ущерб в полном объеме.
+                        </p>
+                    </section>
+
+                    <section id="section-8">
+                        <h2>8. Прекращение доступа</h2>
+                        <h3>8.1. Условия блокировки</h3>
+                        <p>
+                            Администрация имеет право временно или permanently заблокировать аккаунт Пользователя при:
+                        </p>
+                        <ul>
+                            <li>Нарушении условий настоящего Соглашения</li>
+                            <li>Обнаружении читерства или манипуляций</li>
+                            <li>Распространении вредоносного контента</li>
+                            <li>Других действиях, наносящих вред Платформе или другим Пользователям</li>
+                        </ul>
+                        <h3>8.2. Удаление аккаунта</h3>
+                        <p>
+                            Пользователь может удалить свой аккаунт в любое время через настройки профиля. 
+                            При удалении аккаунта удаляется персональная информация, но статистика может быть сохранена 
+                            в анонимизированном виде.
+                        </p>
+                    </section>
+
+                    <section id="section-9">
+                        <h2>9. Изменение соглашения</h2>
+                        <p>
+                            Администрация оставляет за собой право в любое время изменять условия настоящего Соглашения. 
+                            Об изменениях Пользователи уведомляются путем публикации новой версии Соглашения на Платформе. 
+                            Продолжение использования Платформы после внесения изменений означает согласие с новыми условиями.
+                        </p>
+                        <p>
+                            При существенных изменениях Пользователи будут уведомлены дополнительно.
+                        </p>
+                    </section>
+
+                    <section id="section-10">
+                        <h2>10. Разрешение споров</h2>
+                        <h3>10.1. Применимое право</h3>
+                        <p>
+                            Настоящее Соглашение регулируется законодательством Российской Федерации.
+                        </p>
+                        <h3>10.2. Претензионный порядок</h3>
+                        <p>
+                            Все споры решаются путем переговоров. В случае невозможности достижения соглашения, 
+                            споры разрешаются в соответствии с законодательством РФ.
+                        </p>
+                    </section>
+
+                    <section id="section-11">
+                        <h2>11. Контакты</h2>
+                        <p>
+                            По всем вопросам, связанным с использованием Платформы, вы можете обращаться:
+                        </p>
+                        <ul>
+                            <li><strong>Email:</strong> support@chessmint.ru</li>
+                            <li><strong>Платформа:</strong> chessmint.ru</li>
+                        </ul>
+                        <p>
+                            Администрация обязуется рассмотреть обращение в течение 30 календарных дней.
+                        </p>
+                    </section>
+
+                    <div class="legal-footer">
+                        <p>
+                            <a href="/privacy">Политика конфиденциальности</a> | 
+                            <a href="/">На главную</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-top">
+            <div class="container">
+                <div class="footer-ornament">
+                    <span>♔</span><span>♕</span><span>♖</span><span>♗</span><span>♘</span><span>♙</span>
+                </div>
+            </div>
+        </div>
+        <div class="footer-content">
+            <div class="container">
+                <div class="footer-grid">
+                    <div class="footer-brand">
+                        <h3>ChessMint</h3>
+                        <p>
+                            Революционная платформа для изучения шахмат. Онлайн обучение, курсы, мастер-классы от гроссмейстеров.
+                        </p>
+                        <div class="social-links">
+                            <a href="https://t.me/chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="Telegram - ChessMint" aria-label="Telegram">
+                                <i class="fab fa-telegram"></i>
+                            </a>
+                            <a href="https://youtube.com/@chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="YouTube - ChessMint" aria-label="YouTube">
+                                <i class="fab fa-youtube"></i>
+                            </a>
+                            <a href="https://vk.com/chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="VK - ChessMint" aria-label="VK">
+                                <i class="fab fa-vk"></i>
+                            </a>
+                            <a href="https://instagram.com/chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="Instagram - ChessMint" aria-label="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="footer-section">
+                        <h4>Обучение</h4>
+                        <ul class="footer-links">
+                            <li><a href="/course">♟ Курсы</a></li>
+                            <li><a href="/tasks">♟ Решение задач</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-section">
+                        <h4>Сообщество</h4>
+                        <ul class="footer-links">
+                            <li><a href="/leaderboard">♟ Рейтинг</a></li>
+                            <li><a href="/games">♟ Играть</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-section">
+                        <h4>Поддержка</h4>
+                        <ul class="footer-links">
+                            <li><a href="/privacy">♟ Конфиденциальность</a></li>
+                            <li><a href="/terms">♟ Пользовательское соглашение</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="container">
+                <div class="footer-bottom-content">
+                    <div class="footer-copyright">
+                        &copy; 2024 ChessMint. Все права защищены. Создано с ♔ для шахматистов.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/scripts/mobile-menu.js"></script>
+    <script>
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark');
+            document.documentElement.classList.toggle('dark', isDark);
+            try {
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                const icon = document.getElementById('themeIcon');
+                if (icon) icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+            } catch {}
+        }
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            const overlay = document.getElementById('mobileMenuOverlay');
+            if (menu && overlay) {
+                menu.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
+        }
+        function closeMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            const overlay = document.getElementById('mobileMenuOverlay');
+            if (menu && overlay) {
+                menu.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>
+

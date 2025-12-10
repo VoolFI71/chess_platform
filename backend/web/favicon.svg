@@ -1,35 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
-  <defs>
-    <linearGradient id="crown-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffd700" />
-      <stop offset="50%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#ffd700" />
-    </linearGradient>
-    <linearGradient id="lightning-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffd700" />
-      <stop offset="100%" stop-color="#ffed4e" />
-    </linearGradient>
-  </defs>
-  
-  <!-- Background circle -->
-  <circle cx="60" cy="60" r="58" fill="#1e293b" stroke="#ffd700" stroke-width="2"/>
-  
-  <!-- Crown base -->
-  <rect x="15" y="80" width="90" height="18" fill="url(#crown-gradient)" stroke="#fff" stroke-width="1" rx="9"/>
-  
-  <!-- Crown shape -->
-  <path d="M20 80 L20 30 L35 55 L60 10 L85 55 L100 30 L100 80 H20Z" 
-        fill="url(#crown-gradient)" 
-        stroke="#fff" 
-        stroke-width="2"/>
-  
-  <!-- Center gem -->
-  <circle cx="60" cy="35" r="7" fill="#e11d48" stroke="#fff" stroke-width="1"/>
-  
-  <!-- Lightning bolt -->
-  <path d="M60 50 L55 70 L65 70 L60 50 Z M55 70 L65 70 L57 85 L67 85 L55 70 Z" 
-        fill="url(#lightning-gradient)" 
-        stroke="#fff" 
-        stroke-width="1.5"/>
-</svg>
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
+ "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+ width="240.000000pt" height="240.000000pt" viewBox="0 0 240.000000 240.000000"
+ preserveAspectRatio="xMidYMid meet">
 
+<g transform="translate(0.000000,240.000000) scale(0.100000,-0.100000)"
+fill="#000000" stroke="none">
+<path d="M562 1948 c-8 -8 -12 -59 -12 -163 l0 -150 80 -80 80 -80 0 -315 0
+-315 -29 -51 c-16 -28 -41 -58 -55 -68 -25 -16 -26 -20 -26 -111 l0 -95 -68 0
+c-40 0 -73 -5 -80 -12 -16 -16 -16 -200 0 -216 17 -17 1479 -17 1496 0 16 16
+16 200 0 216 -7 7 -40 12 -80 12 l-68 0 0 95 c0 91 -1 95 -26 111 -14 10 -39
+40 -55 68 l-29 51 0 315 0 315 80 80 80 80 0 150 c0 104 -4 155 -12 163 -8 8
+-52 12 -133 12 -81 0 -125 -4 -133 -12 -7 -7 -12 -32 -12 -55 l0 -44 -92 3
+-93 3 -3 40 c-5 64 -8 65 -172 65 -164 0 -167 -1 -172 -65 l-3 -40 -92 -3 -93
+-3 0 44 c0 23 -5 48 -12 55 -8 8 -52 12 -133 12 -81 0 -125 -4 -133 -12z m198
+-113 c0 -34 5 -47 19 -55 11 -5 82 -10 160 -10 159 0 171 5 171 71 l0 39 90 0
+90 0 0 -39 c0 -66 12 -71 171 -71 78 0 149 5 160 10 14 8 19 21 19 55 l0 45
+65 0 65 0 0 -100 0 -100 -570 0 -570 0 0 100 0 100 65 0 65 0 0 -45z m960
+-212 c0 -4 -19 -27 -42 -50 l-42 -43 -435 0 -435 0 -43 42 c-24 23 -43 46 -43
+50 0 4 234 8 520 8 286 0 520 -3 520 -7z m-110 -443 l0 -310 -410 0 -410 0 0
+310 0 310 410 0 410 0 0 -310z m23 -400 l28 -50 -461 0 -461 0 28 50 28 50
+405 0 405 0 28 -50z m87 -195 l0 -65 -520 0 -520 0 0 65 0 65 520 0 520 0 0
+-65z m160 -185 l0 -40 -680 0 -680 0 0 40 0 40 680 0 680 0 0 -40z"/>
+</g>
+</svg>

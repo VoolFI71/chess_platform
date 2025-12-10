@@ -200,8 +200,8 @@ services:
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@power-chess.ru}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Power Chess}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@chessmint.ru}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-ChessMint}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
       FRONTEND_RESET_PASSWORD_PATH: ${FRONTEND_RESET_PASSWORD_PATH:-/reset-password}
@@ -334,8 +334,8 @@ services:
   minio:
     image: minio/minio
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-powerchess}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-powerchess-secret}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-chessmint}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-chessmint-secret}
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"

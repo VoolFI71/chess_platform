@@ -76,25 +76,39 @@ h3 { font-size: clamp(1.5rem, 3vw, 2rem); }
 h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 
 /* ===== UTILITIES ===== */
+/* Утилита для скрытия элементов (используется для условного отображения) */
 .hidden {
-    display: none !important;
+    display: none;
 }
 
+/* ===== CONTAINER ===== */
+/* Базовый контейнер для центрирования контента на всех страницах */
+/* max-width: 1440px - стандартная ширина для больших экранов */
+/* padding адаптируется для мобильных и десктопных устройств */
 .container {
     max-width: 1440px;
     margin: 0 auto;
     padding: 0 1.5rem;
 }
 
+/* Увеличенные отступы для планшетов и десктопов */
 @media (min-width: 768px) {
     .container { padding: 0 3rem; }
 }
 
 /* ===== LARGE MONITORS ADAPTATION ===== */
+/* Large screens (1600px+) */
+@media (min-width: 1600px) {
+    .container {
+        max-width: 1650px;
+        padding: 0 3.5rem;
+    }
+}
+
 /* Full HD (1920px) */
 @media (min-width: 1920px) {
     .container {
-        max-width: 1600px;
+        max-width: 1750px;
         padding: 0 4rem;
     }
     
@@ -111,7 +125,7 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 /* 2K/QHD (2560px) */
 @media (min-width: 2560px) {
     .container {
-        max-width: 1800px;
+        max-width: 2000px;
         padding: 0 5rem;
     }
     
@@ -128,7 +142,7 @@ h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
 /* 4K/UHD (3840px) */
 @media (min-width: 3840px) {
     .container {
-        max-width: 2000px;
+        max-width: 2200px;
         padding: 0 6rem;
     }
     
@@ -152,14 +166,14 @@ nav[aria-label="Breadcrumb"] ol {
 }
 
 nav[aria-label="Breadcrumb"] a:hover {
-    color: var(--primary) !important;
+    color: var(--primary);
     text-decoration: underline;
 }
 
 nav[aria-label="Breadcrumb"] a:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 0.25rem;  /* 4px -> 0.25rem */
 }
 
 @media (max-width: 768px) {
@@ -175,6 +189,10 @@ nav[aria-label="Breadcrumb"] a:focus-visible {
 /* .gradient-text стили вынесены в header.css для единообразия логотипа */
 
 /* ===== BUTTONS ===== */
+/* Базовый класс для всех кнопок на сайте */
+/* Использует flexbox для центрирования иконок и текста */
+/* transition с cubic-bezier для плавных анимаций */
+/* overflow: hidden необходим для эффекта ::before (блеск при наведении) */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -191,7 +209,8 @@ nav[aria-label="Breadcrumb"] a:focus-visible {
     overflow: hidden;
 }
 
-/* Large monitors - увеличенные кнопки */
+/* Адаптация кнопок для больших мониторов */
+/* Увеличение размера для лучшей читаемости и удобства использования */
 @media (min-width: 1920px) {
     .btn {
         padding: 1.125rem 2.25rem;
@@ -213,17 +232,22 @@ nav[aria-label="Breadcrumb"] a:focus-visible {
     }
 }
 
+/* Основная кнопка (primary) */
+/* Градиентный фон и тень для визуальной глубины */
 .btn-primary {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: white;
     box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
 }
 
+/* Эффект поднятия при наведении */
 .btn-primary:hover {
     transform: translateY(-3px);
     box-shadow: 0 15px 40px rgba(59, 130, 246, 0.4);
 }
 
+/* Псевдоэлемент для эффекта блеска при наведении */
+/* Анимируется слева направо при hover */
 .btn-primary::before {
     content: '';
     position: absolute;
@@ -262,6 +286,10 @@ nav[aria-label="Breadcrumb"] a:focus-visible {
 }
 
 /* ===== CARDS ===== */
+/* Базовый класс для карточек на всех страницах */
+/* Использует CSS-переменные для поддержки темной темы */
+/* cubic-bezier для плавной анимации при hover */
+/* overflow: hidden для корректного отображения границ при border-radius */
 .card {
     background: var(--card);
     border-radius: 1.5rem;
@@ -342,6 +370,7 @@ html.dark .card:hover {
     user-select: none;
     pointer-events: none;
     z-index: 1;
+    will-change: transform;
 }
 
 .floating-chess:nth-child(1) { animation-delay: 0s; top: 10%; left: 5%; }
@@ -374,10 +403,19 @@ html.dark .card:hover {
     background: #ffd700;
     border-radius: 50%;
     animation: sparkle 2s ease-in-out infinite;
+    will-change: transform, opacity;
 }
 
 .logo-sparkle:nth-child(1) { top: 0.5rem; left: 0.5rem; animation-delay: 0s; }
 .logo-sparkle:nth-child(2) { top: 0.5rem; right: 0.5rem; animation-delay: 0.5s; }
 .logo-sparkle:nth-child(3) { bottom: 0.5rem; left: 0.5rem; animation-delay: 1s; }
 .logo-sparkle:nth-child(4) { bottom: 0.5rem; right: 0.5rem; animation-delay: 1.5s; }
+
+/* Отключение анимаций для пользователей с prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    .floating-chess,
+    .logo-sparkle {
+        animation: none;
+    }
+}
 

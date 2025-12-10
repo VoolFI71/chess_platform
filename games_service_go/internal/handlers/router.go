@@ -57,6 +57,7 @@ func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, cfg *conf
 	internal := router.Group("/internal")
 	{
 		internal.GET("/stats/:user_id", internalAuthMiddleware(cfg), getUserStats(gameService))
+		internal.GET("/stats/online", internalAuthMiddleware(cfg), getOnlineStats(wsManager))
 	}
 
 	// WebSocket endpoint

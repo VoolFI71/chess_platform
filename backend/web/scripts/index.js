@@ -43,20 +43,7 @@ async function authedFetch(path, options = {}) {
   }
 }
 
-// Mobile menu
-function toggleMobileMenu() {
-  const menu = document.getElementById('mobileMenu');
-  const icon = document.getElementById('menuIcon');
-  menu.classList.toggle('active');
-  if (icon) icon.className = menu.classList.contains('active') ? 'fas fa-times' : 'fas fa-bars';
-}
-
-function closeMobileMenu() {
-  const menu = document.getElementById('mobileMenu');
-  const icon = document.getElementById('menuIcon');
-  if (menu) menu.classList.remove('active');
-  if (icon) icon.className = 'fas fa-bars';
-}
+// Mobile menu functions теперь в mobile-menu.js
 
 // Header scroll
 function handleScroll() {
@@ -135,7 +122,7 @@ function closePurchaseModal() {
     if (modal) modal.classList.remove('active');
   }
 }
-function completePurchase() { alert('🎉 Покупка успешно завершена. Добро пожаловать в PowerChess!'); closePurchaseModal(); }
+function completePurchase() { alert('🎉 Покупка успешно завершена. Добро пожаловать в ChessMint!'); closePurchaseModal(); }
 
 // Smooth scroll and events
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -193,7 +180,7 @@ function formatNumber(num) {
 
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof loadTheme === 'function') loadTheme();
-  console.log('🏁 PowerChess Loaded Successfully!');
+  console.log('🏁 ChessMint Loaded Successfully!');
   
   // Load global statistics
   loadGlobalStats();
@@ -278,9 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
   })();
 });
 
-// Expose functions to global scope if needed by HTML attributes
-window.toggleMobileMenu = toggleMobileMenu;
-window.closeMobileMenu = closeMobileMenu;
+// Mobile menu functions теперь в mobile-menu.js
 window.toggleCollapsible = toggleCollapsible;
 window.filterReviews = filterReviews;
 window.showPurchaseModal = showPurchaseModal;

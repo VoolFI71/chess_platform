@@ -85,8 +85,8 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
-SMTP_FROM_EMAIL=noreply@power-chess.ru
-SMTP_FROM_NAME=Power Chess
+SMTP_FROM_EMAIL=noreply@chessmint.ru
+SMTP_FROM_NAME=ChessMint
 
 # Email Provider (smtp, sendgrid, ses)
 EMAIL_PROVIDER=smtp
@@ -186,12 +186,12 @@ Authorization: Bearer <internal-token>
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Добро пожаловать в Power Chess!</title>
+    <title>Добро пожаловать в ChessMint!</title>
 </head>
 <body>
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1>Добро пожаловать, {{.Username}}!</h1>
-        <p>Спасибо за регистрацию в Power Chess.</p>
+        <p>Спасибо за регистрацию в ChessMint.</p>
         <p>Ваш аккаунт успешно создан. Начните решать задачи, играть партии и улучшать свои навыки!</p>
         {{if .VerificationToken}}
         <p>
@@ -202,7 +202,7 @@ Authorization: Bearer <internal-token>
         {{end}}
         <hr>
         <p style="color: #666; font-size: 12px;">
-            Если вы не регистрировались на Power Chess, просто проигнорируйте это письмо.
+            Если вы не регистрировались на ChessMint, просто проигнорируйте это письмо.
         </p>
     </div>
 </body>
@@ -221,7 +221,7 @@ Authorization: Bearer <internal-token>
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1>Восстановление пароля</h1>
         <p>Здравствуйте, {{.Username}}!</p>
-        <p>Вы запросили восстановление пароля для вашего аккаунта Power Chess.</p>
+        <p>Вы запросили восстановление пароля для вашего аккаунта ChessMint.</p>
         <p>
             <a href="{{.FrontendURL}}{{.ResetPasswordPath}}?token={{.ResetToken}}">
                 Восстановить пароль
@@ -373,8 +373,8 @@ email:
     SMTP_PORT: ${SMTP_PORT}
     SMTP_USER: ${SMTP_USER}
     SMTP_PASSWORD: ${SMTP_PASSWORD}
-    SMTP_FROM_EMAIL: noreply@power-chess.ru
-    SMTP_FROM_NAME: Power Chess
+    SMTP_FROM_EMAIL: noreply@chessmint.ru
+    SMTP_FROM_NAME: ChessMint
     EMAIL_PROVIDER: smtp
     FRONTEND_URL: http://localhost:8080
     FRONTEND_RESET_PASSWORD_PATH: /reset-password

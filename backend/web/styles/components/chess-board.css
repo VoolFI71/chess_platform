@@ -8,9 +8,9 @@
 
 .board-shell {
     width: 100%;
-    padding: 32px;
+    padding: 2rem;  /* 32px -> 2rem */
     background: #ffffff;
-    border-radius: 16px;
+    border-radius: 1rem;  /* 16px -> 1rem */
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
 }
@@ -27,8 +27,8 @@ body.dark .board-shell {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     grid-auto-rows: 1fr;
-    border: 3px solid rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
+    border: 3px solid rgba(0, 0, 0, 0.2);  /* Граница остается в px */
+    border-radius: 0.75rem;  /* 12px -> 0.75rem */
     overflow: hidden;
     background: #b58863;
     box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
@@ -54,7 +54,7 @@ body.dark .chess-board {
 }
 
 .square-hoverable:hover {
-    background: rgba(59, 130, 246, 0.1) !important;
+    background: rgba(59, 130, 246, 0.1);
     cursor: pointer;
 }
 
@@ -144,8 +144,8 @@ body.dark .square.dark {
 .square .piece svg {
 	width: 86%;
 	height: 86%;
-	max-width: 96px;
-	max-height: 96px;
+	max-width: 6rem;  /* 96px -> 6rem */
+	max-height: 6rem;
 	pointer-events: none;
 	filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 	transition: filter 0.2s ease;
@@ -160,8 +160,8 @@ body.dark .square .piece svg {
 }
 
 .square.selected-user {
-	box-shadow: inset 0 0 0 3px rgba(34, 197, 94, 0.85), 0 0 12px rgba(34, 197, 94, 0.4) !important;
-	background: rgba(34, 197, 94, 0.15) !important;
+	box-shadow: inset 0 0 0 3px rgba(34, 197, 94, 0.85), 0 0 12px rgba(34, 197, 94, 0.4);
+	background: rgba(34, 197, 94, 0.15);
 	z-index: 10;
 }
 
@@ -180,11 +180,11 @@ body.dark .square .piece svg {
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
-	width: 20px;
-	height: 20px;
+	width: 1.25rem;  /* 20px -> 1.25rem */
+	height: 1.25rem;
 	border-radius: 50%;
-	background: rgba(34, 197, 94, 0.7) !important;
-	box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2), 0 2px 8px rgba(34, 197, 94, 0.3) !important;
+	background: rgba(34, 197, 94, 0.7);
+	box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2), 0 2px 8px rgba(34, 197, 94, 0.3);
 	z-index: 2;
 	pointer-events: none;
 }
@@ -194,8 +194,8 @@ body.dark .square .piece svg {
 	height: calc(100% - 10px);
 	border-radius: 50%;
 	border: 4px solid rgba(248, 113, 113, 0.95);
-	background: rgba(248, 113, 113, 0.25) !important;
-	box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2), inset 0 0 10px rgba(248, 113, 113, 0.3) !important;
+	background: rgba(248, 113, 113, 0.25);
+	box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2), inset 0 0 10px rgba(248, 113, 113, 0.3);
 }
 
 .highlight-overlay {
@@ -208,12 +208,13 @@ body.dark .square .piece svg {
 
 .square.selected {
     box-shadow: inset 0 0 0 3px rgba(34, 197, 94, 0.8), 0 0 10px rgba(34, 197, 94, 0.3);
-    background: rgba(34, 197, 94, 0.12) !important;
+    background: rgba(34, 197, 94, 0.12);
 }
 
 .square.selected .highlight-overlay {
     background: rgba(34, 197, 94, 0.25);
     animation: fadeIn 0.2s ease;
+    will-change: opacity;
 }
 
 .square.selected .piece,
@@ -230,10 +231,17 @@ body.dark .square .piece svg {
     }
 }
 
+/* Отключение анимаций для пользователей с prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    .square.selected .highlight-overlay {
+        animation: none;
+    }
+}
+
 @media (max-width: 768px) {
     .board-shell {
-        padding: 24px;
-        border-radius: 14px;
+        padding: 1.5rem;  /* 24px -> 1.5rem */
+        border-radius: 0.875rem;  /* 14px -> 0.875rem */
     }
 
     .coordinate {
@@ -243,8 +251,8 @@ body.dark .square .piece svg {
 
 @media (max-width: 480px) {
     .board-shell {
-        padding: 18px;
-        border-radius: 12px;
+        padding: 1.125rem;  /* 18px -> 1.125rem */
+        border-radius: 0.75rem;  /* 12px -> 0.75rem */
     }
 
     .coordinate {
@@ -262,8 +270,8 @@ body.dark .square .piece svg {
     }
 
     .square .legal-move-indicator {
-        width: 16px;
-        height: 16px;
+        width: 1rem;  /* 16px -> 1rem */
+        height: 1rem;
     }
 
     .square.legal-target-capture .legal-move-indicator {
@@ -287,7 +295,7 @@ body.dark .square .piece svg {
 /* Улучшенная поддержка темной темы */
 body.dark .square.selected-user {
     box-shadow: inset 0 0 0 3px rgba(74, 222, 128, 0.9), 0 0 12px rgba(74, 222, 128, 0.5);
-    background: rgba(34, 197, 94, 0.2) !important;
+    background: rgba(34, 197, 94, 0.2);
 }
 
 body.dark .square.selected {

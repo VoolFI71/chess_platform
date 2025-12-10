@@ -59,7 +59,7 @@ export SMTP_PORT=465                   # или 587 для STARTTLS
 export SMTP_USER=your-email@mail.ru
 export SMTP_PASSWORD=your-app-password # Пароль приложения из настроек Mail.ru
 export SMTP_FROM_EMAIL=your-email@mail.ru
-export SMTP_FROM_NAME="Power Chess"
+export SMTP_FROM_NAME="ChessMint"
 export FRONTEND_URL=http://localhost:8080
 export PORT=8000
 
@@ -184,8 +184,8 @@ async def register(user_in: UserCreate) -> UserOut:
 ### Опциональные
 - `PORT` - порт сервера (по умолчанию: `8000`)
 - `SMTP_PORT` - порт SMTP (по умолчанию: `587`)
-- `SMTP_FROM_EMAIL` - email отправителя (по умолчанию: `noreply@power-chess.ru`)
-- `SMTP_FROM_NAME` - имя отправителя (по умолчанию: `Power Chess`)
+- `SMTP_FROM_EMAIL` - email отправителя (по умолчанию: `noreply@chessmint.ru`)
+- `SMTP_FROM_NAME` - имя отправителя (по умолчанию: `ChessMint`)
 - `EMAIL_PROVIDER` - провайдер email (по умолчанию: `smtp`)
 - `FRONTEND_URL` - URL фронтенда для ссылок в письмах (по умолчанию: `http://localhost:8080`)
 - `FRONTEND_RESET_PASSWORD_PATH` - путь к странице восстановления пароля (по умолчанию: `/reset-password`)

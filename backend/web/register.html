@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Регистрация - PowerChess | Создайте аккаунт</title>
+    <title>Регистрация - ChessMint | Создайте аккаунт</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Создайте аккаунт PowerChess, чтобы проходить курсы, тренироваться с тренерами и играть матчи с аналитикой.">
+    <meta name="description" content="Создайте аккаунт ChessMint, чтобы проходить курсы, тренироваться с тренерами и играть матчи с аналитикой.">
     <meta name="robots" content="noindex, nofollow">
-    <link rel="canonical" href="https://power-chess.ru/register">
+    <link rel="canonical" href="https://chessmint.ru/register">
     
     <!-- Загрузка темы до отрисовки страницы, чтобы избежать мерцания -->
     <script>
@@ -29,16 +29,29 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <link rel="stylesheet" href="/styles/variables.css">
-    <link rel="stylesheet" href="/styles/common.css">
-    <link rel="stylesheet" href="styles/header.css">
-    <link rel="stylesheet" href="/styles/auth.css">
+    <link rel="stylesheet" href="/styles/base/variables.css">
+    <link rel="stylesheet" href="/styles/base/common.css">
+    <link rel="stylesheet" href="/styles/components/header.css">
+    <link rel="stylesheet" href="/styles/pages/auth.css">
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="120x120" href="/favicon.png">
     <link rel="apple-touch-icon" sizes="120x120" href="/favicon.png">
+    
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105743222', 'ym');
+        ym(105743222, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/105743222" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
 </head>
 <body class="auth-page register-page">
     <!-- HEADER -->
@@ -46,18 +59,14 @@
         <div class="container">
             <div class="header-content">
                 <a href="/" class="logo">
-                    <div class="logo-icon">
-                        <img src="/favicon.svg" alt="PowerChess" width="32" height="32" style="display: block;">
-                    </div>
                     <div>
-                        <div class="gradient-text">PowerChess</div>
-                        <div>♔ Шахматная академия</div>
+                        <div class="gradient-text">ChessMint</div>
                     </div>
                 </a>
                 <nav class="nav">
-                    <a href="/games" class="nav-link">Играть</a>
-                    <a href="/tasks" class="nav-link">Задачи</a>
-                    <a href="/leaderboard" class="nav-link">Рейтинг</a>
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
                 </nav>
                 <div class="header-actions">
                     <div id="userActions">
@@ -82,25 +91,40 @@
                 </div>
             </div>
             <!-- Mobile Menu -->
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
             <div class="mobile-menu" id="mobileMenu">
+                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                    <i class="fas fa-times"></i>
+                </button>
                 <div>
-                    <a href="/games" class="nav-link" onclick="closeMobileMenu()">Играть</a>
-                    <a href="/tasks" class="nav-link" onclick="closeMobileMenu()">Задачи</a>
-                    <a href="/leaderboard" class="nav-link" onclick="closeMobileMenu()">Рейтинг</a>
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">Играть</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">Задачи</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">Рейтинг</button>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtnMobile" title="Войти / Регистрация" onclick="closeMobileMenu();">
-                        <i class="fas fa-sign-in-alt"></i>
+                        <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Войти / Регистрация</span>
                         </a>
                     </div>
-                    <div id="mobileUserActions">
+                    <div id="mobileUserActions" style="display: none;">
                         <div id="gamesUserInfoMobile">
                             <span></span>
                         </div>
+                        <a href="/profile" class="mobile-cabinet-link" onclick="closeMobileMenu();">
+                            <i class="fas fa-user"></i>
+                            <span>Личный кабинет</span>
+                        </a>
                         <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile" title="Выйти">
                             <i class="fas fa-sign-out-alt"></i>
+                            <span>Выйти</span>
                         </button>
                     </div>
+                    <hr>
+                    <button type="button" class="theme-toggle" onclick="toggleTheme(); closeMobileMenu();" title="Переключить тему">
+                        <i class="fas fa-sun" id="mobileThemeIcon"></i>
+                        <span>Переключить тему</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -111,7 +135,7 @@
             <section class="auth-card">
                 <span class="auth-accent">
                     <i class="fas fa-chess-queen"></i>
-                    Новый аккаунт PowerChess
+                    Новый аккаунт ChessMint
                 </span>
                 <h1>Создать аккаунт</h1>
                 <p class="lead">Откройте доступ к закрытым курсам, живым турнирам и аналитике ходов с помощью искусственного интеллекта.</p>
@@ -149,7 +173,7 @@
                                 <input type="checkbox" style="width: 1rem; height: 1rem;" required>
                                 Принимаю условия использования
                             </label>
-                            <a href="mailto:support@power-chess.ru?subject=PowerChess%20Terms">Вопросы?</a>
+                            <a href="mailto:support@chessmint.ru?subject=ChessMint%20Terms">Вопросы?</a>
                         </div>
 
                         <button type="submit" class="btn btn-success form-submit">
@@ -215,10 +239,13 @@
     </main>
 
     <footer class="auth-footer">
-        © <span data-current-year>2024</span> PowerChess. Вместе повышаем шахматный рейтинг.
+        © <span data-current-year>2024</span> ChessMint. Вместе повышаем шахматный рейтинг.
     </footer>
 
     <script src="/scripts/auth-pages.js" defer></script>
+    <script src="/scripts/mobile-menu.js"></script>
+    <!-- Header Mobile Control - должен загружаться ПОСЛЕ всех скриптов, которые управляют хедером -->
+    <script src="/scripts/header-mobile-control.js"></script>
     <script>
         // Состояние регистрации
         let registerData = null;

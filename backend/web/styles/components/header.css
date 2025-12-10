@@ -8,7 +8,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     transition: background 0.3s ease, box-shadow 0.3s ease;
     /* Prevent layout shift during initialization */
-    min-height: 72px;
+    min-height: 4.5rem;  /* 72px -> 4.5rem */
     box-sizing: border-box;
 }
 
@@ -16,10 +16,10 @@ body.dark .header,
 body.dark .spaced-header,
 html.dark .header,
 html.dark .spaced-header {
-    background: #2d2d2d !important;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
+    background: #2d2d2d;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
     border-bottom: 1px solid #404040;
-    color: #f8fafc !important;
+    color: #f8fafc;
 }
 
 /* Убеждаемся, что все текстовые элементы в хедере используют правильные цвета */
@@ -32,20 +32,23 @@ body.dark .header,
 body.dark .spaced-header,
 html.dark .header,
 html.dark .spaced-header {
-    color: var(--foreground) !important;
+    color: var(--foreground);
 }
 
 /* Упрощение: используем только body.dark для консистентности */
 @media (prefers-color-scheme: dark) {
     body.dark .header,
     body.dark .spaced-header {
-        background: #2d2d2d !important;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
+        background: #2d2d2d;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
         border-bottom: 1px solid #404040;
-        color: #f8fafc !important;
+        color: #f8fafc;
     }
 }
 
+/* ===== HEADER CONTAINER ===== */
+/* Специфичный контейнер для header, наследует базовые стили из common.css */
+/* position: relative необходим для позиционирования дочерних элементов */
 .header .container,
 .spaced-header .container {
     position: relative;
@@ -54,6 +57,7 @@ html.dark .spaced-header {
     padding: 0 1.5rem;
 }
 
+/* Увеличенные отступы для планшетов и десктопов */
 @media (min-width: 768px) {
     .header .container,
     .spaced-header .container {
@@ -62,11 +66,20 @@ html.dark .spaced-header {
 }
 
 /* ===== LARGE MONITORS ADAPTATION ===== */
+/* Large screens (1600px+) */
+@media (min-width: 1600px) {
+    .header .container,
+    .spaced-header .container {
+        max-width: 1650px;
+        padding: 0 3.5rem;
+    }
+}
+
 /* Full HD (1920px) */
 @media (min-width: 1920px) {
     .header .container,
     .spaced-header .container {
-        max-width: 1600px;
+        max-width: 1750px;
         padding: 0 4rem;
     }
     
@@ -94,15 +107,15 @@ html.dark .spaced-header {
     }
     
     .logo-icon {
-        width: 52px;
-        height: 52px;
+        width: 3.25rem;  /* 52px -> 3.25rem */
+        height: 3.25rem;
     }
     
     .theme-toggle,
     .mobile-menu-btn,
     .auth-icon-btn {
-        width: 44px;
-        height: 44px;
+        width: 2.75rem;  /* 44px -> 2.75rem */
+        height: 2.75rem;
     }
 }
 
@@ -110,7 +123,7 @@ html.dark .spaced-header {
 @media (min-width: 2560px) {
     .header .container,
     .spaced-header .container {
-        max-width: 1800px;
+        max-width: 2000px;
         padding: 0 5rem;
     }
     
@@ -138,15 +151,15 @@ html.dark .spaced-header {
     }
     
     .logo-icon {
-        width: 56px;
-        height: 56px;
+        width: 3.5rem;  /* 56px -> 3.5rem */
+        height: 3.5rem;
     }
     
     .theme-toggle,
     .mobile-menu-btn,
     .auth-icon-btn {
-        width: 48px;
-        height: 48px;
+        width: 3rem;  /* 48px -> 3rem */
+        height: 3rem;
     }
 }
 
@@ -154,7 +167,7 @@ html.dark .spaced-header {
 @media (min-width: 3840px) {
     .header .container,
     .spaced-header .container {
-        max-width: 2000px;
+        max-width: 2200px;
         padding: 0 6rem;
     }
     
@@ -182,15 +195,15 @@ html.dark .spaced-header {
     }
     
     .logo-icon {
-        width: 60px;
-        height: 60px;
+        width: 3.75rem;  /* 60px -> 3.75rem */
+        height: 3.75rem;
     }
     
     .theme-toggle,
     .mobile-menu-btn,
     .auth-icon-btn {
-        width: 52px;
-        height: 52px;
+        width: 3.25rem;  /* 52px -> 3.25rem */
+        height: 3.25rem;
     }
 }
 
@@ -272,20 +285,20 @@ html.dark .spaced-header {
     font-weight: 800;
     letter-spacing: -0.5px;
     margin: 0;
-    color: #000000 !important;
-    background: none !important;
-    -webkit-background-clip: unset !important;
-    background-clip: unset !important;
-    -webkit-text-fill-color: #000000 !important;
+    color: #000000;
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+    -webkit-text-fill-color: #000000;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
-    animation: none !important;
+    animation: none;
 }
 
 /* Светлый цвет в темной теме */
 body.dark .logo .gradient-text,
 html.dark .logo .gradient-text {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
     filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.1));
 }
 
@@ -297,14 +310,14 @@ html.dark .logo .gradient-text {
 
 .logo-icon {
     position: relative;
-    width: 48px;
-    height: 48px;
+    width: 3rem;  /* 48px -> 3rem */
+    height: 3rem;  /* 48px -> 3rem */
     background: #3b82f6;
-    border-radius: 12px;
+    border-radius: 0.75rem;  /* 12px -> 0.75rem */
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);  /* Тени остаются в px */
 }
 
 .chess-pattern {
@@ -349,6 +362,38 @@ html.dark .gradient-text {
     border-radius: 8px;
     transition: all 0.2s;
     font-family: inherit;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Стили для кнопок навигации */
+button.nav-link {
+    padding: 0.6rem 1.2rem;
+    border: 2px solid transparent;
+    background: transparent;
+    color: #000000;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+button.nav-link:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+}
+
+button.nav-link.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
 }
 
 .nav-link:hover {
@@ -366,7 +411,7 @@ html.dark .gradient-text {
     align-items: center;
     gap: 0.75rem;
     flex-shrink: 0;
-    min-height: 48px;
+    min-height: 3rem;  /* 48px -> 3rem */
     position: relative;
 }
 
@@ -417,8 +462,8 @@ html.dark .gradient-text {
 .header-actions .logout-btn,
 .header-actions .btn.btn-outline.logout-btn {
     padding: 0.6rem;
-    border: 2px solid #ef4444 !important;
-    border-radius: 8px;
+    border: 2px solid #ef4444;  /* Граница остается в px */
+    border-radius: 0.5rem;  /* 8px -> 0.5rem */
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
@@ -427,12 +472,12 @@ html.dark .gradient-text {
     align-items: center;
     justify-content: center;
     font-family: inherit;
-    background: transparent !important;
-    color: #ef4444 !important;
+    background: transparent;
+    color: #ef4444;
     /* Icon-only button - square shape */
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
+    width: 2.5rem;  /* 40px -> 2.5rem */
+    height: 2.5rem;
+    min-width: 2.5rem;
     /* Override common.css btn styles */
     gap: 0;
     padding: 0.6rem;
@@ -448,9 +493,9 @@ html.dark .gradient-text {
 }
 
 .theme-toggle {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
+    width: 2.5rem;  /* 40px -> 2.5rem */
+    height: 2.5rem;
+    border-radius: 0.5rem;  /* 8px -> 0.5rem */
     border: none;
     background: transparent;
     color: var(--primary);
@@ -479,10 +524,10 @@ html.dark .theme-toggle #themeIcon.fa-moon {
 
 .mobile-menu-btn {
     display: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    border: 2px solid var(--border);
+    width: 2.5rem;  /* 40px -> 2.5rem */
+    height: 2.5rem;
+    border-radius: 0.5rem;  /* 8px -> 0.5rem */
+    border: 2px solid var(--border);  /* Граница остается в px */
     background: transparent;
     color: var(--muted);
     cursor: pointer;
@@ -496,24 +541,25 @@ html.dark .theme-toggle #themeIcon.fa-moon {
 
 .mobile-menu {
     display: none;
-    position: absolute;
-    top: 100%;
+    position: fixed;
+    top: 0;
     left: 0;
     right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
     background: var(--card);
-    border-top: 2px solid var(--border);
-    padding: 1.5rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    z-index: 999;
-    transform: translateY(-100%);
+    z-index: 9999;
+    transform: translateX(-100%);
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
-    max-height: calc(100vh - 80px);
     overflow-y: auto;
-    margin-top: 1rem;
-    width: 100%;
     box-sizing: border-box;
+    padding: 2rem 1.5rem;
+    margin: 0;
 }
 
 /* Убеждаемся, что контейнер header имеет position: relative для правильного позиционирования mobile-menu */
@@ -524,20 +570,69 @@ html.dark .theme-toggle #themeIcon.fa-moon {
 
 .mobile-menu.active {
     display: block;
-    transform: translateY(0);
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+}
+
+/* Overlay для затемнения фона при открытом меню */
+.mobile-menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    margin: 0;
+}
+
+.mobile-menu-overlay.active {
+    display: block;
     opacity: 1;
     visibility: visible;
 }
 
 body.dark .mobile-menu,
 html.dark .mobile-menu {
-    background: var(--card) !important;
-    border-top-color: var(--border) !important;
+    background: var(--card);
+    border-top-color: var(--border);
 }
 
 body.dark .nav-link,
 html.dark .nav-link {
     color: #ffffff;
+}
+
+body.dark button.nav-link {
+    color: #ffffff;
+    border-color: transparent;
+}
+
+body.dark button.nav-link:hover,
+html.dark button.nav-link:hover {
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.1);
+    border-color: rgba(96, 165, 250, 0.3);
+}
+
+body.dark button.nav-link.active,
+html.dark button.nav-link.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
 }
 
 body.dark .nav-link:hover,
@@ -552,11 +647,26 @@ html.dark .nav-link.active {
     background: transparent;
 }
 
-.mobile-menu .nav-link {
-    display: block;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.5rem;
-    border-radius: 8px;
+/* Стили для .mobile-menu .nav-link определены ниже в строке 1111, удаляем дубликат */
+
+/* Стили для кнопок в мобильном меню */
+.mobile-menu button.nav-link {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+}
+
+.mobile-menu button.nav-link:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+body.dark .mobile-menu button.nav-link:hover,
+html.dark .mobile-menu button.nav-link:hover {
+    background: rgba(96, 165, 250, 0.1);
 }
 
 .mobile-menu .btn-login,
@@ -587,9 +697,24 @@ html.dark .nav-link.active {
         justify-content: center;
     }
 
-    .header-actions .btn-login,
-    .header-actions .btn-register {
+    /* Скрываем все кнопки и контейнеры внутри header-actions на мобильных */
+    /* Используем простые селекторы вместо сложных :not() для лучшей поддерживаемости */
+    .header-actions .logout-btn,
+    .header-actions .btn-cabinet,
+    .header-actions .auth-icon-btn,
+    .header-actions #userActions,
+    .header-actions #authButtons,
+    .header-actions #gamesLogoutBtn,
+    .header-actions #gamesUserInfo {
         display: none;
+        visibility: hidden;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        pointer-events: none;
     }
 
     .header-content {
@@ -603,6 +728,20 @@ html.dark .nav-link.active {
         margin-left: auto;
         gap: 0.5rem;
         flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    /* Оставляем кнопку меню и кнопку переключения темы видимыми */
+    .header-actions .mobile-menu-btn,
+    .header-actions .theme-toggle {
+        display: flex;
+        visibility: visible;
+        opacity: 1;
+        width: 2.5rem;  /* 40px -> 2.5rem */
+        height: 2.5rem;
+        pointer-events: auto;
     }
 
     .logo {
@@ -649,15 +788,36 @@ html.dark .nav-link.active {
     }
 
     .logo-icon {
-        width: 40px;
-        height: 40px;
+        width: 2.5rem;  /* 40px -> 2.5rem */
+        height: 2.5rem;
     }
 
-    .theme-toggle,
-    .mobile-menu-btn {
-        width: 36px;
-        height: 36px;
+    /* Убеждаемся, что все скрыто кроме кнопки меню и переключения темы */
+    .header-actions .auth-icon-btn,
+    .header-actions .logout-btn,
+    .header-actions .btn-cabinet,
+    .header-actions #userActions,
+    .header-actions #authButtons,
+    .header-actions #gamesLogoutBtn,
+    .header-actions #gamesUserInfo,
+    .header-actions .btn.btn-outline.logout-btn {
+        display: none;
+        visibility: hidden;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        pointer-events: none;
+    }
+
+    .mobile-menu-btn,
+    .header-actions .theme-toggle {
+        width: 2.25rem;  /* 36px -> 2.25rem */
+        height: 2.25rem;
         font-size: 0.9rem;
+        display: flex;
     }
 }
 
@@ -667,16 +827,37 @@ html.dark .nav-link.active {
         font-size: 0.85rem;
     }
 
-    .header-actions .logout-btn {
-        padding: 0.5rem;
-        font-size: 0.85rem;
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
+    /* Убеждаемся, что все скрыто кроме кнопки меню и переключения темы */
+    .header-actions .logout-btn,
+    .header-actions .auth-icon-btn,
+    .header-actions .btn-cabinet,
+    .header-actions #userActions,
+    .header-actions #authButtons,
+    .header-actions #gamesLogoutBtn,
+    .header-actions #gamesUserInfo,
+    .header-actions .btn.btn-outline.logout-btn {
+        display: none;
+        visibility: hidden;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        pointer-events: none;
     }
 
     .header-actions {
         gap: 0.5rem;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .header-actions .mobile-menu-btn,
+    .header-actions .theme-toggle {
+        display: flex;
+        width: 2.25rem;  /* 36px -> 2.25rem */
+        height: 2.25rem;
     }
 
     .logo {
@@ -725,13 +906,17 @@ html.dark .nav-link.active {
 
     .theme-toggle,
     .mobile-menu-btn {
-        width: 32px;
-        height: 32px;
+        width: 2rem;  /* 32px -> 2rem */
+        height: 2rem;
         font-size: 0.85rem;
     }
 
     .mobile-menu {
         padding: 1rem;
+        width: 100vw;
+        height: 100vh;
+        max-width: 100vw;
+        max-height: 100vh;
     }
 
     .mobile-menu .nav-link {
@@ -749,7 +934,7 @@ html.dark .nav-link.active {
         padding: 0.65rem;
         font-size: 0.9rem;
         width: auto;
-        min-width: 40px;
+        min-width: 2.5rem;  /* 40px -> 2.5rem */
     }
 }
 
@@ -808,13 +993,17 @@ html.dark .nav-link.active {
 
     .theme-toggle,
     .mobile-menu-btn {
-        width: 30px;
-        height: 30px;
+        width: 1.875rem;  /* 30px -> 1.875rem */
+        height: 1.875rem;
         font-size: 0.8rem;
     }
 
     .mobile-menu {
         padding: 0.85rem;
+        width: 100vw;
+        height: 100vh;
+        max-width: 100vw;
+        max-height: 100vh;
     }
 
     .mobile-menu .nav-link {
@@ -863,8 +1052,8 @@ html.dark .nav-link.active {
     }
 
     .logo-icon {
-        width: 28px;
-        height: 28px;
+        width: 1.75rem;  /* 28px -> 1.75rem */
+        height: 1.75rem;
     }
 
     .logo-icon svg[width="32"] {
@@ -879,13 +1068,17 @@ html.dark .nav-link.active {
 
     .theme-toggle,
     .mobile-menu-btn {
-        width: 28px;
-        height: 28px;
+        width: 1.75rem;  /* 28px -> 1.75rem */
+        height: 1.75rem;
         font-size: 0.75rem;
     }
 
     .mobile-menu {
         padding: 0.75rem;
+        width: 100vw;
+        height: 100vh;
+        max-width: 100vw;
+        max-height: 100vh;
     }
 }
 
@@ -915,6 +1108,43 @@ html.dark .nav-link.active {
     display: none;
 }
 
+/* Скрываем кнопки выхода и профиля на мобильных устройствах */
+@media (max-width: 1024px) {
+    /* Кнопка выхода */
+    #gamesLogoutBtn,
+    .header-actions #gamesLogoutBtn,
+    .header-actions .logout-btn,
+    .header-actions button.logout-btn,
+    .header-actions .btn.btn-outline.logout-btn,
+    
+    /* Кнопка профиля */
+    .header-actions .btn-cabinet,
+    .header-actions a.btn-cabinet,
+    
+    /* Контейнеры */
+    #userActions,
+    .header-actions #userActions,
+    #authButtons,
+    .header-actions #authButtons,
+    .header-actions .auth-icon-btn,
+    
+    /* Информация о пользователе */
+    #gamesUserInfo,
+    .header-actions #gamesUserInfo {
+        display: none;
+        visibility: hidden;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        pointer-events: none;
+        position: absolute;
+        left: -9999px;
+    }
+}
+
 #gamesLogoutBtn i,
 #gamesLogoutBtnMobile i,
 .logout-btn i {
@@ -926,7 +1156,7 @@ html.dark .nav-link.active {
 #mobileUserActions .logout-btn {
     width: 100%;
     /* Keep text in mobile menu for better UX */
-    justify-content: center;
+    justify-content: flex-start;
     margin-top: 0.5rem;
 }
 
@@ -944,15 +1174,159 @@ html.dark .nav-link.active {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    height: 100%;
 }
 
 .mobile-menu .nav-link {
     display: block;
+    padding: 1rem 1.25rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-radius: 12px;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+.mobile-menu .nav-link:hover {
+    background: rgba(59, 130, 246, 0.15);
 }
 
 .mobile-menu hr {
     border: 1px solid var(--border);
     margin: 1rem 0;
+}
+
+/* Кнопка переключения темы в мобильном меню */
+.mobile-menu .theme-toggle {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    font-size: 1.125rem;
+    border: 2px solid var(--border);
+    background: transparent;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--foreground);
+}
+
+.mobile-menu .theme-toggle:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--primary);
+}
+
+.mobile-menu .theme-toggle i {
+    margin-right: 0;
+}
+
+/* Ссылка на кабинет в мобильном меню */
+.mobile-menu .btn-cabinet,
+.mobile-menu .mobile-cabinet-link {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--foreground);
+    background: transparent;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+}
+
+.mobile-menu .btn-cabinet:hover,
+.mobile-menu .mobile-cabinet-link:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.mobile-menu .btn-cabinet i,
+.mobile-menu .mobile-cabinet-link i {
+    margin-right: 0.75rem;
+}
+
+/* Ссылка на вход в мобильном меню */
+.mobile-menu .mobile-login-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-radius: 12px;
+    text-decoration: none;
+    color: white;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border: none;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.mobile-menu .mobile-login-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.mobile-menu .mobile-login-link i {
+    margin-right: 0.75rem;
+}
+
+/* Кнопка выхода в мобильном меню */
+.mobile-menu .logout-btn {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 1rem 1.25rem;
+    font-size: 1.125rem;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.mobile-menu .logout-btn span {
+    display: inline-block;
+}
+
+/* Информация о пользователе в мобильном меню */
+.mobile-menu #gamesUserInfoMobile,
+.mobile-menu #mobileUserInfo {
+    padding: 1rem 1.25rem;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+}
+
+/* Закрывающая кнопка меню */
+.mobile-menu-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 10000;
+}
+
+.mobile-menu-close:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(59, 130, 246, 0.1);
 }
 
 #mobileAuthButtons {
@@ -991,14 +1365,14 @@ html.dark .nav-link.active {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 2.5rem;  /* 40px -> 2.5rem */
+    height: 2.5rem;
+    border-radius: 0.625rem;  /* 10px -> 0.625rem */
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: white;
     text-decoration: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);  /* Тени остаются в px */
     border: none;
     cursor: pointer;
 }
@@ -1028,8 +1402,8 @@ body.dark .auth-icon-btn:hover {
 
 @media (max-width: 768px) {
     .auth-icon-btn {
-        width: 36px;
-        height: 36px;
+        width: 2.25rem;  /* 36px -> 2.25rem */
+        height: 2.25rem;
     }
     
     .auth-icon-btn i {

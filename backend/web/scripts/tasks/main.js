@@ -169,19 +169,17 @@
       }
     },
 
+    // Mobile menu functions теперь в mobile-menu.js
     toggleMobileMenu() {
-      const menu = document.getElementById('mobileMenu');
-      const icon = document.getElementById('menuIcon');
-      if (!menu) return;
-      const active = menu.classList.toggle('active');
-      if (icon) icon.className = active ? 'fas fa-times' : 'fas fa-bars';
+      if (window.toggleMobileMenu && typeof window.toggleMobileMenu === 'function') {
+        window.toggleMobileMenu();
+      }
     },
 
     closeMobileMenu() {
-      const menu = document.getElementById('mobileMenu');
-      const icon = document.getElementById('menuIcon');
-      if (menu) menu.classList.remove('active');
-      if (icon) icon.className = 'fas fa-bars';
+      if (window.closeMobileMenu && typeof window.closeMobileMenu === 'function') {
+        window.closeMobileMenu();
+      }
     },
   };
 

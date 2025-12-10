@@ -1,8 +1,17 @@
+import os
+import time
+from typing import Optional
+
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
+
+# Кэш для статистики онлайн (обновляется каждые 30 секунд)
+_online_stats_cache: Optional[dict] = None
+_online_stats_cache_time: float = 0
+CACHE_TTL_SECONDS = 30
 
 
 class GlobalStatsResponse(BaseModel):
@@ -66,5 +75,60 @@ async def get_global_stats() -> GlobalStatsResponse:
         total_games_played=games_stats.get("total_games", 0),
         total_users=users_stats.get("total_users", 0),
         total_puzzles=puzzles_stats.get("total_puzzles", 0),
+    )
+
+
+class OnlineStatsResponse(BaseModel):
+    online_players: int
+    active_games: int
+
+
+async def _get_online_stats() -> dict:
+    """Получить статистику онлайн из games_service"""
+    # Получаем внутренний токен для вызова games_service
+    # games_service использует GAMES_INTERNAL_TOKEN или INTERNAL_TOKEN
+    internal_token = os.getenv("GAMES_INTERNAL_TOKEN") or os.getenv("INTERNAL_TOKEN")
+    if not internal_token:
+        # Если токен не настроен, возвращаем дефолтные значения
+        return {"online_players": 0, "active_games": 0}
+    
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                "http://games:8000/internal/stats/online",
+                headers={"X-Internal-Token": internal_token},
+            )
+            if response.status_code == 200:
+                return response.json()
+            return {"online_players": 0, "active_games": 0}
+    except Exception:
+        return {"online_players": 0, "active_games": 0}
+
+
+@router.get("/online", response_model=OnlineStatsResponse)
+async def get_online_stats() -> OnlineStatsResponse:
+    """
+    Получить статистику онлайн:
+    - Количество игроков онлайн (уникальных пользователей с активными WebSocket соединениями)
+    - Количество активных игр
+    """
+    global _online_stats_cache, _online_stats_cache_time
+    
+    # Проверяем кэш
+    current_time = time.time()
+    if (
+        _online_stats_cache is not None
+        and current_time - _online_stats_cache_time < CACHE_TTL_SECONDS
+    ):
+        return OnlineStatsResponse(**_online_stats_cache)
+    
+    # Обновляем кэш
+    stats = await _get_online_stats()
+    _online_stats_cache = stats
+    _online_stats_cache_time = current_time
+    
+    return OnlineStatsResponse(
+        online_players=stats.get("online_players", 0),
+        active_games=stats.get("active_games", 0),
     )
 

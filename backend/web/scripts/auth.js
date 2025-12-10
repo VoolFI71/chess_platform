@@ -340,7 +340,9 @@
         } else {
           cabinetBtn.href = '/profile';
         }
-        cabinetBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
+        // На мобильных устройствах кнопка профиля не должна отображаться в хедере
+        const isDesktop = window.innerWidth >= DESKTOP_BREAKPOINT;
+        cabinetBtn.style.display = (isLoggedIn && isDesktop) ? 'inline-flex' : 'none';
         if (mobileMenuBtn && cabinetBtn.parentNode === container && cabinetBtn !== mobileMenuBtn.previousSibling) {
           container.insertBefore(cabinetBtn, mobileMenuBtn);
         }
@@ -350,11 +352,14 @@
 
   // Update logout buttons in header-actions
   function updateHeaderLogoutButtons(isLoggedIn, existingGamesLogoutBtn, existingGamesLogoutBtnMobile) {
+    const isDesktop = window.innerWidth >= DESKTOP_BREAKPOINT;
+    
     document.querySelectorAll(SELECTORS.HEADER_ACTIONS).forEach((container) => {
       if (!container) return;
       
       if (existingGamesLogoutBtn) {
-        existingGamesLogoutBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
+        // На мобильных устройствах кнопка выхода не должна отображаться в хедере
+        existingGamesLogoutBtn.style.display = (isLoggedIn && isDesktop) ? 'inline-flex' : 'none';
         positionLogoutAfterMobileMenu(existingGamesLogoutBtn, container);
       } else {
         // Удаляем все кнопки выхода из header-actions, которые не находятся в userActions или mobileUserActions
@@ -673,6 +678,31 @@
 
   window.addEventListener('resize', () => {
     updateAuthUI(cachedUser);
+    // Также обновляем видимость элементов при изменении размера окна
+    if (cachedUser) {
+      const isLoggedIn = !!cachedUser;
+      const isDesktop = window.innerWidth >= DESKTOP_BREAKPOINT;
+      
+      // Обновляем кнопки выхода
+      document.querySelectorAll(SELECTORS.HEADER_ACTIONS + ' ' + SELECTORS.LOGOUT_BTN).forEach((btn) => {
+        if (btn && !btn.closest(SELECTORS.MOBILE_MENU) && !btn.closest(SELECTORS.MOBILE_USER_ACTIONS)) {
+          btn.style.display = (isLoggedIn && isDesktop) ? 'inline-flex' : 'none';
+        }
+      });
+      
+      // Обновляем кнопки профиля
+      document.querySelectorAll(SELECTORS.HEADER_ACTIONS + ' ' + SELECTORS.CABINET_BTN).forEach((btn) => {
+        if (btn && !btn.closest(SELECTORS.MOBILE_MENU)) {
+          btn.style.display = (isLoggedIn && isDesktop) ? 'inline-flex' : 'none';
+        }
+      });
+      
+      // Обновляем userActions
+      const userActions = document.querySelector(SELECTORS.USER_ACTIONS);
+      if (userActions && !userActions.closest(SELECTORS.MOBILE_MENU)) {
+        userActions.style.display = (isLoggedIn && isDesktop) ? 'flex' : 'none';
+      }
+    }
   });
 })();
 

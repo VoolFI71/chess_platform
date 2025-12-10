@@ -1,0 +1,59 @@
+/* ===== ЕДИНИЦЫ ИЗМЕРЕНИЯ - ПРАВИЛА СТАНДАРТИЗАЦИИ ===== */
+
+/*
+ПРАВИЛА ИСПОЛЬЗОВАНИЯ ЕДИНИЦ:
+
+REM (используется для размеров, которые должны масштабироваться):
+- font-size (кроме базового html { font-size: 16px; })
+- padding, margin
+- width, height (для элементов интерфейса)
+- line-height, letter-spacing
+- gap, row-gap, column-gap
+- top, right, bottom, left (для позиционирования элементов)
+
+PX (используется для фиксированных значений):
+- border, border-width, border-radius
+- outline, outline-width
+- box-shadow (все значения)
+- max-width, min-width контейнеров (1440px, 1650px, etc.)
+- font-size базовый (html { font-size: 16px; })
+- z-index
+- Мелкие декоративные элементы (1px, 2px, 3px)
+
+ПРИМЕРЫ:
+
+✅ ПРАВИЛЬНО:
+.container {
+    max-width: 1440px;  /* Фиксированный контейнер */
+    padding: 1.5rem 3rem;  /* Масштабируемые отступы */
+    font-size: 1rem;  /* Масштабируемый размер шрифта */
+    border: 2px solid var(--border);  /* Фиксированная граница */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);  /* Фиксированные тени */
+}
+
+.icon {
+    width: 3rem;  /* Масштабируемый размер */
+    height: 3rem;
+    border-radius: 0.75rem;  /* Масштабируемый радиус */
+}
+
+❌ НЕПРАВИЛЬНО:
+.icon {
+    width: 48px;  /* Должно быть 3rem */
+    height: 48px;  /* Должно быть 3rem */
+    padding: 12px;  /* Должно быть 0.75rem */
+}
+
+КОНВЕРСИЯ (при базовом font-size: 16px):
+- 8px = 0.5rem
+- 12px = 0.75rem
+- 16px = 1rem
+- 24px = 1.5rem
+- 32px = 2rem
+- 40px = 2.5rem
+- 48px = 3rem
+- 56px = 3.5rem
+- 64px = 4rem
+- 72px = 4.5rem
+*/
+

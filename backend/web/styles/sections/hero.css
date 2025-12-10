@@ -25,6 +25,7 @@
     border-radius: 50%;
     filter: blur(80px);
     animation: float 20s ease-in-out infinite;
+    will-change: transform;
 }
 
 .hero-bg-gradient:nth-child(2) {
@@ -34,6 +35,7 @@
     right: 10%;
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.15));
     animation: float 25s ease-in-out infinite reverse;
+    will-change: transform;
 }
 
 @keyframes float {
@@ -45,6 +47,17 @@
     }
     66% {
         transform: translate(-20px, 20px) scale(0.9);
+    }
+}
+
+/* Отключение анимаций для пользователей с prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    .hero-bg-gradient {
+        animation: none;
+    }
+    
+    .hero-square.highlighted {
+        animation: none;
     }
 }
 
@@ -87,6 +100,8 @@
     overflow: hidden;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
     background: #f0d9b5;
+    /* Предотвращаем изменение размеров через JavaScript */
+    box-sizing: border-box;
 }
 
 @media (min-width: 1024px) {
@@ -117,6 +132,7 @@
 .hero-square.highlighted {
     background: rgba(255, 215, 0, 0.6) !important;
     animation: pulse 1s ease-in-out infinite;
+    will-change: transform, box-shadow;
 }
 
 @keyframes pulse {
@@ -387,7 +403,7 @@ body.dark .hero-chessboard {
 /* Large screens (1600px+) */
 @media (min-width: 1600px) {
     .hero .container {
-        max-width: 1500px;
+        max-width: 1650px;
         padding: 0 3.5rem;
     }
     
@@ -396,8 +412,19 @@ body.dark .hero-chessboard {
     }
     
     .hero-chessboard {
-        max-width: 550px;
-        max-height: 550px;
+        max-width: 620px;
+        max-height: 620px;
+        width: 620px;
+        height: 620px;
+    }
+    
+    .hero-piece {
+        font-size: 3rem;
+    }
+    
+    .hero-piece svg {
+        max-width: 3rem;
+        max-height: 3rem;
     }
 }
 
@@ -409,7 +436,7 @@ body.dark .hero-chessboard {
     }
     
     .hero .container {
-        max-width: 1600px;
+        max-width: 1750px;
         padding: 0 4rem;
     }
     
@@ -429,8 +456,10 @@ body.dark .hero-chessboard {
     }
     
     .hero-chessboard {
-        max-width: 600px;
-        max-height: 600px;
+        max-width: 680px;
+        max-height: 680px;
+        width: 680px;
+        height: 680px;
     }
     
     .hero-piece {
@@ -469,7 +498,7 @@ body.dark .hero-chessboard {
     }
     
     .hero .container {
-        max-width: 1800px;
+        max-width: 2000px;
         padding: 0 5rem;
     }
     
@@ -489,17 +518,19 @@ body.dark .hero-chessboard {
     }
     
     .hero-chessboard {
-        max-width: 700px;
-        max-height: 700px;
+        max-width: 800px;
+        max-height: 800px;
+        width: 800px;
+        height: 800px;
     }
     
     .hero-piece {
-        font-size: 4rem;
+        font-size: 4.2rem;
     }
     
     .hero-piece svg {
-        max-width: 4rem;
-        max-height: 4rem;
+        max-width: 4.2rem;
+        max-height: 4.2rem;
     }
     
     .stat-card {
@@ -529,7 +560,7 @@ body.dark .hero-chessboard {
     }
     
     .hero .container {
-        max-width: 2000px;
+        max-width: 2200px;
         padding: 0 6rem;
     }
     
@@ -549,17 +580,19 @@ body.dark .hero-chessboard {
     }
     
     .hero-chessboard {
-        max-width: 800px;
-        max-height: 800px;
+        max-width: 900px;
+        max-height: 900px;
+        width: 900px;
+        height: 900px;
     }
     
     .hero-piece {
-        font-size: 4.5rem;
+        font-size: 4.8rem;
     }
     
     .hero-piece svg {
-        max-width: 4.5rem;
-        max-height: 4.5rem;
+        max-width: 4.8rem;
+        max-height: 4.8rem;
     }
     
     .stat-card {

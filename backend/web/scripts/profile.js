@@ -517,17 +517,48 @@ function renderMatchHistory() {
     let iconStyle = 'warning';
     let ratingChange = '';
     
+    // Получаем изменение рейтинга из metadata игры
+    let ratingChangeValue = null;
+    
+    if (color && game.metadata) {
+      try {
+        // metadata может быть объектом или строкой JSON
+        const metadata = typeof game.metadata === 'string' 
+          ? JSON.parse(game.metadata) 
+          : game.metadata;
+        
+        // Проверяем, является ли игра рейтинговой
+        const isRated = metadata?.rated === true;
+        
+        if (isRated) {
+          // Получаем изменение рейтинга в зависимости от цвета игрока
+          if (color === 'white' && metadata.white_rating_change !== undefined) {
+            ratingChangeValue = metadata.white_rating_change;
+          } else if (color === 'black' && metadata.black_rating_change !== undefined) {
+            ratingChangeValue = metadata.black_rating_change;
+          }
+        }
+      } catch (e) {
+        console.debug('Failed to parse game metadata for rating change:', e);
+      }
+    }
+    
+    // Форматируем изменение рейтинга для отображения
+    if (ratingChangeValue !== null) {
+      ratingChange = ratingChangeValue > 0 
+        ? `+${ratingChangeValue}` 
+        : ratingChangeValue.toString();
+    } else {
+      // Если изменение рейтинга не найдено или игра не рейтинговая, показываем пусто
+      ratingChange = '';
+    }
+    
     if (result.className === 'win') {
       iconClass = 'fas fa-check';
       iconStyle = 'success';
-      // TODO: Получить изменение рейтинга из API
-      ratingChange = '+15';
     } else if (result.className === 'loss') {
       iconClass = 'fas fa-times';
       iconStyle = 'danger';
-      ratingChange = '-12';
-    } else {
-      ratingChange = '0';
     }
     
     // Создаем иконку
@@ -566,7 +597,12 @@ function renderMatchHistory() {
     // Время активности
     const timeDiv = document.createElement('div');
     timeDiv.className = 'activity-time';
-    timeDiv.innerHTML = `${timeControl} | Рейтинг: <span style="color: var(--${iconStyle === 'success' ? 'success' : iconStyle === 'danger' ? 'danger' : 'warning'}); font-weight: 600;">${ratingChange}</span> | ${matchDate}`;
+    let ratingText = '';
+    if (ratingChange && ratingChangeValue !== null) {
+      const ratingColor = ratingChangeValue > 0 ? 'success' : ratingChangeValue < 0 ? 'danger' : 'warning';
+      ratingText = ` | Рейтинг: <span style="color: var(--${ratingColor}); font-weight: 600;">${ratingChange}</span>`;
+    }
+    timeDiv.innerHTML = `${timeControl}${ratingText} | ${matchDate}`;
     
     contentDiv.appendChild(textDiv);
     contentDiv.appendChild(timeDiv);
@@ -1709,11 +1745,32 @@ async function inviteFriendToGame(friendId, friendUsername) {
     
     const game = await res.json();
     
+    // Отправляем уведомление другу
+    try {
+      const creatorUsername = currentUser?.username || currentUser?.display_name || 'Игрок';
+      await window.apiFetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: friendId,
+          type: 'game_invite',
+          title: 'Приглашение в игру',
+          message: `${creatorUsername} приглашает вас сыграть партию в шахматы`,
+          data: {
+            game_id: game.id,
+            inviter_id: currentUser?.id,
+            inviter_username: creatorUsername,
+            game_url: `/match/${game.id}`,
+          },
+        }),
+      });
+    } catch (notifError) {
+      // Логируем ошибку, но не прерываем выполнение - игра уже создана
+      console.warn('Failed to send notification to friend:', notifError);
+    }
+    
     // Переходим на страницу игры
     window.location.href = `/match/${game.id}`;
-    
-    // Отправляем уведомление другу (если есть API для этого)
-    // TODO: Реализовать отправку уведомления через notifications service
     
   } catch (e) {
     console.error('Error inviting friend to game:', e);
@@ -2739,7 +2796,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       
       // Обновляем заголовок страницы
-      document.title = `${profileUser.username} — PowerChess`;
+      document.title = `${profileUser.username} — ChessMint`;
       
       return;
     }

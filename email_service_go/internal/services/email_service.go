@@ -79,13 +79,13 @@ func (es *EmailService) SendWelcomeEmail(ctx context.Context, email, username, v
 
 	// Генерируем простой текстовый вариант
 	text := fmt.Sprintf(
-		"Добро пожаловать, %s!\n\nСпасибо за регистрацию в Power Chess.\n\n"+
+		"Добро пожаловать, %s!\n\nСпасибо за регистрацию в ChessMint.\n\n"+
 			"Ваш аккаунт успешно создан. Начните решать задачи, играть партии и улучшать свои навыки!",
 		username,
 	)
 
 	// Отправка email
-	subject := "Добро пожаловать в Power Chess!"
+	subject := "Добро пожаловать в ChessMint!"
 	if err := es.provider.SendEmail(ctx, email, subject, html, text); err != nil {
 		log.Printf("Failed to send welcome email to %s: %v", email, err)
 		return fmt.Errorf("failed to send welcome email: %w", err)
@@ -113,7 +113,7 @@ func (es *EmailService) SendPasswordResetEmail(ctx context.Context, email, usern
 	text := fmt.Sprintf(
 		"Восстановление пароля\n\n"+
 			"Здравствуйте, %s!\n\n"+
-			"Вы запросили восстановление пароля для вашего аккаунта Power Chess.\n\n"+
+			"Вы запросили восстановление пароля для вашего аккаунта ChessMint.\n\n"+
 			"Ссылка для восстановления: %s%s?token=%s\n\n"+
 			"Ссылка действительна до %s.\n\n"+
 			"Если вы не запрашивали восстановление пароля, проигнорируйте это письмо.",
@@ -125,7 +125,7 @@ func (es *EmailService) SendPasswordResetEmail(ctx context.Context, email, usern
 	)
 
 	// Отправка email
-	subject := "Восстановление пароля Power Chess"
+	subject := "Восстановление пароля ChessMint"
 	if err := es.provider.SendEmail(ctx, email, subject, html, text); err != nil {
 		log.Printf("Failed to send password reset email to %s: %v", email, err)
 		return fmt.Errorf("failed to send password reset email: %w", err)
@@ -163,7 +163,7 @@ func (es *EmailService) SendVerificationCodeEmail(ctx context.Context, email, us
 	)
 
 	// Отправка email
-	subject := "Код подтверждения Power Chess"
+	subject := "Код подтверждения ChessMint"
 	if err := es.provider.SendEmail(ctx, email, subject, html, text); err != nil {
 		log.Printf("Failed to send verification code email to %s: %v", email, err)
 		return fmt.Errorf("failed to send verification code email: %w", err)

@@ -63,8 +63,8 @@ func Load() (*Config, error) {
 
 	smtpUser := os.Getenv("SMTP_USER")
 	smtpPassword := os.Getenv("SMTP_PASSWORD")
-	smtpFromEmail := getEnvOrDefault("SMTP_FROM_EMAIL", "noreply@power-chess.ru")
-	smtpFromName := getEnvOrDefault("SMTP_FROM_NAME", "Power Chess")
+	smtpFromEmail := getEnvOrDefault("SMTP_FROM_EMAIL", "noreply@chessmint.ru")
+	smtpFromName := getEnvOrDefault("SMTP_FROM_NAME", "ChessMint")
 
 	// Email Provider
 	emailProvider := getEnvOrDefault("EMAIL_PROVIDER", "smtp")

@@ -17,6 +17,7 @@
     wsRetryCount: 0,
     wsReconnectTimerId: null,
     analysisCursor: null,
+    gamePollingInterval: null,
   });
 
   const state = createInitialState();

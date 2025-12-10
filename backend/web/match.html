@@ -3,12 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Матч — PowerChess</title>
+  <title>Матч — ChessMint</title>
   
   <!-- SEO Meta Tags -->
-  <meta name="description" content="Живая шахматная партия на PowerChess. Играйте онлайн, анализируйте ходы в реальном времени, следите за таймером и улучшайте свои навыки игры.">
+  <meta name="description" content="Живая шахматная партия на ChessMint. Играйте онлайн, анализируйте ходы в реальном времени, следите за таймером и улучшайте свои навыки игры.">
   <meta name="robots" content="noindex, nofollow">
-  <link rel="canonical" href="https://power-chess.ru/match">
+  <link rel="canonical" href="https://chessmint.ru/match">
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://chessmint.ru/match">
+  <meta property="og:title" content="Матч — ChessMint">
+  <meta property="og:description" content="Живая шахматная партия на ChessMint. Играйте онлайн, анализируйте ходы в реальном времени, следите за таймером и улучшайте свои навыки игры.">
+  <meta property="og:image" content="https://chessmint.ru/favicon.svg">
+  <meta property="og:image:width" content="120">
+  <meta property="og:image:height" content="120">
+  <meta property="og:image:alt" content="ChessMint - Живая шахматная партия">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="ChessMint">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:url" content="https://chessmint.ru/match">
+  <meta name="twitter:title" content="Матч — ChessMint">
+  <meta name="twitter:description" content="Живая шахматная партия на ChessMint. Играйте онлайн, анализируйте ходы в реальном времени, следите за таймером и улучшайте свои навыки игры.">
+  <meta name="twitter:image" content="https://chessmint.ru/favicon.svg">
+  <meta name="twitter:image:alt" content="ChessMint - Живая шахматная партия">
+  <meta name="twitter:site" content="@chessmint">
   
   <script>
     try {
@@ -27,12 +48,25 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="120x120" href="/favicon.png">
   <link rel="apple-touch-icon" sizes="120x120" href="/favicon.png">
-  <link rel="stylesheet" href="/styles/variables.css">
-  <link rel="stylesheet" href="/styles/common.css">
-  <link rel="stylesheet" href="/styles/header.css">
-  <link rel="stylesheet" href="/styles/notifications.css">
-  <link rel="stylesheet" href="/styles/chess-board.css">
-  <link rel="stylesheet" href="/styles/match.css">
+  <link rel="stylesheet" href="/styles/base/variables.css">
+  <link rel="stylesheet" href="/styles/base/common.css">
+  <link rel="stylesheet" href="/styles/components/header.css">
+  <link rel="stylesheet" href="/styles/components/notifications.css">
+  <link rel="stylesheet" href="/styles/components/chess-board.css">
+  <link rel="stylesheet" href="/styles/pages/match.css">
+  
+  <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+      (function(m,e,t,r,i,k,a){
+          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+      })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105743222', 'ym');
+      ym(105743222, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
+  </script>
+  <noscript><div><img src="https://mc.yandex.ru/watch/105743222" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+  <!-- /Yandex.Metrika counter -->
 </head>
 <body>
   <!-- HEADER -->
@@ -40,18 +74,14 @@
     <div class="container">
       <div class="header-content">
         <a href="/" class="logo">
-          <div class="logo-icon">
-            <img src="/favicon.svg" alt="PowerChess" width="32" height="32" style="display: block;">
-          </div>
           <div>
-            <div class="gradient-text">PowerChess</div>
-            <div>♔ Шахматная академия</div>
+            <div class="gradient-text">ChessMint</div>
           </div>
         </a>
         <nav class="nav">
-          <a href="/games" class="nav-link active">Играть</a>
-          <a href="/tasks" class="nav-link">Задачи</a>
-          <a href="/leaderboard" class="nav-link">Рейтинг</a>
+          <button type="button" class="nav-link active" onclick="window.location.href='/games'">Играть</button>
+          <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
+          <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
         </nav>
         <div class="header-actions">
           <div id="userActions">
@@ -67,7 +97,7 @@
               <i class="fas fa-sign-in-alt"></i>
             </a>
           </div>
-          <button class="mobile-menu-btn" id="mobileMenuBtn">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu();">
             <i class="fas fa-bars" id="menuIcon"></i>
           </button>
           <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
@@ -76,25 +106,40 @@
         </div>
       </div>
       <!-- Mobile Menu -->
+      <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
       <div class="mobile-menu" id="mobileMenu">
+        <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+          <i class="fas fa-times"></i>
+        </button>
         <div>
-          <a href="/games" class="nav-link mobile-nav-link">Играть</a>
-          <a href="/tasks" class="nav-link mobile-nav-link">Задачи</a>
-          <a href="/leaderboard" class="nav-link mobile-nav-link">Рейтинг</a>
+          <button type="button" class="nav-link mobile-nav-link" onclick="window.location.href='/games'; closeMobileMenu();">Играть</button>
+          <button type="button" class="nav-link mobile-nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">Задачи</button>
+          <button type="button" class="nav-link mobile-nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">Рейтинг</button>
           <hr>
           <div id="mobileAuthButtons">
-            <a href="/login" class="auth-icon-btn" id="gamesAuthBtnMobile" title="Войти / Регистрация">
+            <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
               <i class="fas fa-sign-in-alt"></i>
+              <span>Войти / Регистрация</span>
             </a>
           </div>
-          <div id="mobileUserActions">
+          <div id="mobileUserActions" style="display: none;">
             <div id="gamesUserInfoMobile">
               <span></span>
             </div>
+            <a href="/profile" class="mobile-cabinet-link" onclick="closeMobileMenu();">
+              <i class="fas fa-user"></i>
+              <span>Личный кабинет</span>
+            </a>
             <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile" title="Выйти">
               <i class="fas fa-sign-out-alt"></i>
+              <span>Выйти</span>
             </button>
           </div>
+          <hr>
+          <button type="button" class="theme-toggle" onclick="toggleTheme(); closeMobileMenu();" title="Переключить тему">
+            <i class="fas fa-sun" id="mobileThemeIcon"></i>
+            <span>Переключить тему</span>
+          </button>
         </div>
       </div>
     </div>
@@ -193,6 +238,7 @@
 
   <!-- Common Auth Script (must load first) -->
   <script src="/scripts/auth.js"></script>
+  <script src="/scripts/mobile-menu.js"></script>
   <script src="/scripts/notifications.js"></script>
   <!-- Match Page Scripts -->
   <script src="/scripts/chess-move-utils.js" defer></script>
@@ -208,6 +254,8 @@
   <script src="/scripts/match/timers.js" defer></script>
   <!-- Main Match Script -->
   <script src="/scripts/match/match.js" defer></script>
+  <!-- Header Mobile Control - должен загружаться ПОСЛЕ всех скриптов, которые управляют хедером -->
+  <script src="/scripts/header-mobile-control.js"></script>
   <script>
     // Theme toggle handler - использует глобальную функцию из auth.js
     document.addEventListener('DOMContentLoaded', function() {

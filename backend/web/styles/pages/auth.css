@@ -259,6 +259,7 @@ html.dark .form-input:focus {
     border: 2px solid transparent;
     border-top-color: currentColor;
     animation: spinner 0.6s linear infinite;
+    will-change: transform;
 }
 
 @keyframes spinner {
@@ -417,7 +418,8 @@ body.dark .auth-footer {
     }
 }
 
-@media (max-width: 560px) {
+/* Используем стандартный breakpoint 640px вместо 560px */
+@media (max-width: 640px) {
     .auth-main {
         padding: 2rem 0;
     }

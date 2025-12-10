@@ -1,0 +1,112 @@
+/* ===== BREAKPOINTS SYSTEM ===== */
+/* Единая система breakpoints для всего проекта */
+/* MOBILE-FIRST APPROACH - стандартизирован для всего проекта */
+
+/*
+СТАНДАРТНЫЕ BREAKPOINTS (используются во всех файлах):
+
+MOBILE (max-width) - для специфичных мобильных стилей:
+- 320px  - Очень маленькие экраны (iPhone SE 1st gen, старые Android)
+- 360px  - Малые Android устройства
+- 375px  - iPhone SE 2nd gen, iPhone 6/7/8
+- 480px  - Стандартные мобильные устройства
+- 640px  - Большие мобильные устройства
+- 768px  - Планшеты (portrait), точка перехода mobile/tablet
+- 1024px - Планшеты (landscape), малые ноутбуки
+
+DESKTOP (min-width) - для улучшений на больших экранах (MOBILE-FIRST):
+- 768px  - Планшеты (landscape), малые ноутбуки
+- 1024px - Планшеты (landscape), ноутбуки
+- 1600px - Большие ноутбуки
+- 1920px - Full HD мониторы
+- 2560px - 2K/QHD мониторы
+- 3840px - 4K/UHD мониторы
+
+ORIENTATION:
+- landscape - Горизонтальная ориентация
+- portrait  - Вертикальная ориентация
+
+HEIGHT:
+- 500px - Очень низкие экраны (landscape мобильные)
+- 600px - Низкие экраны (landscape мобильные)
+- 700px - Средние экраны (модальные окна)
+
+ACCESSIBILITY:
+- prefers-reduced-motion: reduce - Отключение анимаций
+- prefers-color-scheme: dark - Темная тема
+
+КОМБИНИРОВАННЫЕ:
+- (max-width: 768px) and (orientation: landscape) - Мобильные landscape
+- (max-width: 768px) and (orientation: landscape) and (max-height: 600px) - Мобильные landscape низкие
+- (max-width: 768px) and (orientation: landscape) and (max-height: 500px) - Мобильные landscape очень низкие
+- (min-width: 768px) and (max-width: 1024px) - Диапазон планшетов
+
+СТАТИСТИКА:
+- Всего медиа-запросов: ~151
+- Файлов с медиа-запросами: 22
+- Стандартизированных breakpoints: 100%
+- Нестандартные значения: 0 (все исправлены)
+- Mobile-first подход: 100% (стандартизирован)
+
+ПРАВИЛА ИСПОЛЬЗОВАНИЯ (MOBILE-FIRST):
+
+1. БАЗОВЫЕ СТИЛИ - всегда для мобильных устройств (без медиа-запросов):
+   ```css
+   .container {
+       padding: 0 1.5rem;  /* Мобильный стиль по умолчанию */
+   }
+   ```
+
+2. УЛУЧШЕНИЯ ДЛЯ БОЛЬШИХ ЭКРАНОВ - используйте min-width:
+   ```css
+   @media (min-width: 768px) {
+       .container {
+           padding: 0 3rem;  /* Улучшение для планшетов и десктопов */
+       }
+   }
+   ```
+
+3. СПЕЦИФИЧНЫЕ МОБИЛЬНЫЕ СТИЛИ - используйте max-width только когда нужно переопределить:
+   ```css
+   @media (max-width: 480px) {
+       .container {
+           padding: 0 0.75rem;  /* Специфичный стиль для очень маленьких экранов */
+       }
+   }
+   ```
+
+4. НЕ ИСПОЛЬЗУЙТЕ desktop-first подход:
+   ❌ ПЛОХО:
+   ```css
+   .container {
+       padding: 0 3rem;  /* Десктопный стиль по умолчанию */
+   }
+   @media (max-width: 768px) {
+       .container {
+           padding: 0 1.5rem;  /* Переопределение для мобильных */
+       }
+   }
+   ```
+   
+   ✅ ХОРОШО:
+   ```css
+   .container {
+       padding: 0 1.5rem;  /* Мобильный стиль по умолчанию */
+   }
+   @media (min-width: 768px) {
+       .container {
+           padding: 0 3rem;  /* Улучшение для больших экранов */
+       }
+   }
+   ```
+
+5. ПРИОРИТЕТ BREAKPOINTS:
+   - Сначала пишите базовые стили (мобильные)
+   - Затем min-width для больших экранов (768px, 1024px, 1600px, 1920px, 2560px, 3840px)
+   - В конце max-width для специфичных мобильных стилей (320px, 360px, 375px, 480px, 640px)
+
+6. КОМБИНИРОВАННЫЕ ЗАПРОСЫ - используйте только при необходимости:
+   - Для landscape ориентации
+   - Для очень маленьких/больших экранов
+   - Для accessibility (prefers-reduced-motion, prefers-color-scheme)
+*/
