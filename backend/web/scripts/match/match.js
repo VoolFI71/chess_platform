@@ -1115,6 +1115,26 @@
     if (gameIdField) {
       gameIdField.value = state.game?.id || '';
     }
+    
+    // Обновление количества зрителей (будет обновляться через WebSocket)
+    // Инициализируем скрытым, если функция еще не определена
+    if (typeof window.updateViewersCount === 'function') {
+      // Функция уже определена, ничего не делаем
+    } else {
+      // Определяем функцию для обновления количества зрителей
+      window.updateViewersCount = function(count) {
+        const viewersRow = document.getElementById('viewersRow');
+        const viewersCountEl = document.getElementById('viewersCount');
+        if (!viewersRow || !viewersCountEl) return;
+        
+        if (count > 0) {
+          viewersCountEl.textContent = count;
+          viewersRow.style.display = '';
+        } else {
+          viewersRow.style.display = 'none';
+        }
+      };
+    }
 
     if (!state.game) {
       setMessageVisible(true, 'Партия не найдена или недоступна. Проверьте ссылку или вернитесь к списку матчей.');
@@ -1314,6 +1334,12 @@
       setTimeout(() => {
         window.location.href = '/games';
       }, 1200);
+      return;
+    }
+    if (payload.type === 'viewers_count') {
+      if (typeof window.updateViewersCount === 'function') {
+        window.updateViewersCount(payload.viewers_count || 0);
+      }
       return;
     }
     if (payload.type === 'move_rejected' || payload.type === 'error') {

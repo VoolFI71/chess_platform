@@ -1,6 +1,4 @@
 import os
-import time
-from typing import Optional
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -8,12 +6,7 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
 
-# Кэш для статистики онлайн (обновляется каждые 30 секунд)
-_online_stats_cache: Optional[dict] = None
-_online_stats_cache_time: float = 0
-CACHE_TTL_SECONDS = 30
-
-
+# Кэш удален - теперь используется WebSocket для real-time обновлений
 class GlobalStatsResponse(BaseModel):
     total_puzzle_solutions: int
     total_games_played: int
@@ -108,25 +101,13 @@ async def _get_online_stats() -> dict:
 @router.get("/online", response_model=OnlineStatsResponse)
 async def get_online_stats() -> OnlineStatsResponse:
     """
-    Получить статистику онлайн:
+    Получить статистику онлайн (без кэширования):
     - Количество игроков онлайн (уникальных пользователей с активными WebSocket соединениями)
     - Количество активных игр
+    
+    Примечание: Для real-time обновлений рекомендуется использовать WebSocket endpoint /ws/stats
     """
-    global _online_stats_cache, _online_stats_cache_time
-    
-    # Проверяем кэш
-    current_time = time.time()
-    if (
-        _online_stats_cache is not None
-        and current_time - _online_stats_cache_time < CACHE_TTL_SECONDS
-    ):
-        return OnlineStatsResponse(**_online_stats_cache)
-    
-    # Обновляем кэш
     stats = await _get_online_stats()
-    _online_stats_cache = stats
-    _online_stats_cache_time = current_time
-    
     return OnlineStatsResponse(
         online_players=stats.get("online_players", 0),
         active_games=stats.get("active_games", 0),

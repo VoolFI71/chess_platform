@@ -4,8 +4,11 @@
     throw new Error('TasksConstants module is not loaded. Ensure tasks/constants.js is included first.');
   }
 
+  // Определяем режим по умолчанию: марафон (доступен всем)
+  const defaultMode = TasksConstants.MODES.find(m => m.id === 'marathon') || TasksConstants.MODES[0];
+  
   window.TasksState = {
-    selectedMode: TasksConstants.MODES[0],
+    selectedMode: defaultMode,
     currentUser: null,
     puzzleStats: null,
     currentPuzzle: null,
@@ -51,6 +54,9 @@
     
     // Кеширование позиций (Map с ограничением размера для предотвращения утечек памяти)
     positionCache: new Map(), // Кеш для позиций (ключ - строка "FEN|color", значение - Map с ходами)
+    
+    // Состояние для режима марафон
+    marathonRating: 1000, // Начальный рейтинг для режима марафон (хранится в sessionStorage)
   };
 })();
 

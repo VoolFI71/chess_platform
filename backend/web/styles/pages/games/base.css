@@ -43,6 +43,9 @@ html.dark::before {
   padding: 3rem 1.5rem 4rem;
   position: relative;
   z-index: 1;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* ===== GAMES-SPECIFIC CARD OVERRIDE ===== */

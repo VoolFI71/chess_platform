@@ -25,9 +25,11 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Fonts - асинхронная загрузка -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"></noscript>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css">
 
     <link rel="stylesheet" href="/styles/base/variables.css">
     <link rel="stylesheet" href="/styles/base/common.css">
@@ -97,9 +99,18 @@
                     <i class="fas fa-times"></i>
                 </button>
                 <div>
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">Играть</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">Задачи</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">Рейтинг</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+                        <i class="fas fa-chess"></i>
+                        <span>Играть</span>
+                    </button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+                        <i class="fas fa-puzzle-piece"></i>
+                        <span>Задачи</span>
+                    </button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+                        <i class="fas fa-trophy"></i>
+                        <span>Рейтинг</span>
+                    </button>
                     <hr>
                     <div id="mobileAuthButtons">
                         <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
@@ -120,11 +131,6 @@
                             <span>Выйти</span>
                         </button>
                     </div>
-                    <hr>
-                    <button type="button" class="theme-toggle" onclick="toggleTheme(); closeMobileMenu();" title="Переключить тему">
-                        <i class="fas fa-sun" id="mobileThemeIcon"></i>
-                        <span>Переключить тему</span>
-                    </button>
                 </div>
             </div>
         </div>

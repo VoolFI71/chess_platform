@@ -199,6 +199,16 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			return
 		}
 
+		// Отправляем начальное количество зрителей
+		viewersCount := wsManager.GetViewersCount(gameID)
+		viewersMsg := map[string]interface{}{
+			"type":          "viewers_count",
+			"viewers_count": viewersCount,
+		}
+		if err := wsManager.SendPersonal(ws, viewersMsg); err != nil {
+			log.Printf("[WS] Failed to send initial viewers count: %v", err)
+		}
+
 		// Кэш последних ходов для оптимизации
 		cachedMoves := make([]models.Move, len(gameDetail.Moves))
 		copy(cachedMoves, gameDetail.Moves)

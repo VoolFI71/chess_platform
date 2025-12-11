@@ -69,6 +69,14 @@
           text: `Рейтинг задач: ${rating}`,
         };
       }
+      if (mode.id === 'marathon') {
+        // Для режима марафон показываем текущий рейтинг марафона
+        const marathonRating = TasksState.marathonRating || 1000;
+        return {
+          icon: 'fa-star',
+          text: `Текущий рейтинг: ${marathonRating}`,
+        };
+      }
       return { icon: '', text: '' };
     },
 

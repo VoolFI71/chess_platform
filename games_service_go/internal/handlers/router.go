@@ -15,7 +15,7 @@ import (
 	"github.com/yourorg/games_service_go/internal/services"
 )
 
-func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, cfg *config.Config) *gin.Engine {
+func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, statsManager *realtime.StatsConnectionManager, cfg *config.Config) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -60,7 +60,7 @@ func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, cfg *conf
 		internal.GET("/stats/online", internalAuthMiddleware(cfg), getOnlineStats(wsManager))
 	}
 
-	// WebSocket endpoint
+	// WebSocket endpoints
 	// Получаем список разрешенных origins из переменной окружения
 	allowedOrigins := []string{}
 	if originsStr := os.Getenv("WS_ALLOWED_ORIGINS"); originsStr != "" {
@@ -71,6 +71,9 @@ func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, cfg *conf
 	}
 	wsUpgrader := createUpgrader(allowedOrigins)
 	router.GET("/ws/games/:game_id", handleWebSocketWithUpgrader(db, wsManager, cfg, wsUpgrader))
+
+	// WebSocket endpoint для статистики онлайн
+	router.GET("/ws/stats", handleStatsWebSocket(statsManager, wsManager, wsUpgrader))
 
 	return router
 }

@@ -29,6 +29,14 @@
         const spread = 150;
         params.set('rating_min', Math.max(400, roundedRating - spread));
         params.set('rating_max', Math.min(3500, roundedRating + spread));
+      } else if (TasksState.selectedMode.id === 'marathon') {
+        // Для режима марафон используем текущий рейтинг марафона
+        const marathonRating = TasksState.marathonRating || 1000;
+        // Округляем рейтинг до кратного 50
+        const roundedRating = Math.round(marathonRating / 50) * 50;
+        const spread = 150;
+        params.set('rating_min', Math.max(400, roundedRating - spread));
+        params.set('rating_max', Math.min(3500, roundedRating + spread));
       }
       
       // Если нужно исключить задачу, добавляем параметр (если API поддерживает)
@@ -44,8 +52,9 @@
         return;
       }
       
-      // Проверяем авторизацию перед загрузкой задачи
-      if (!TasksState.currentUser) {
+      // Проверяем авторизацию только для режимов, требующих авторизации
+      const selectedMode = TasksConstants.MODES.find(m => m.id === TasksState.selectedMode.id);
+      if (selectedMode && selectedMode.requiresAuth && !TasksState.currentUser) {
         window.location.href = '/login';
         return;
       }
@@ -164,7 +173,11 @@
         
         while (attempts < maxAttempts) {
           const url = window.TasksAPI.buildPuzzleRequestUrl(previousPuzzleId);
-          const res = await window.TasksAPI.authorizedFetch(url, {
+          // Для режима марафон используем обычный fetch (не требуется авторизация)
+          const fetchFn = TasksState.selectedMode.id === 'marathon' 
+            ? fetch 
+            : window.TasksAPI.authorizedFetch;
+          const res = await fetchFn(url, {
             headers: {
               'Cache-Control': 'no-cache',
               'Pragma': 'no-cache'
@@ -461,7 +474,9 @@
         }
         
         // Автоматически загружаем следующую задачу после успешного решения
-        if (success) {
+        // (только для режимов, требующих авторизации)
+        // Для режима марафон загрузка следующей задачи происходит в handlePuzzleSolved
+        if (success && TasksState.selectedMode.id !== 'marathon') {
           await new Promise(resolve => {
             window.TasksUtils.createTimer(resolve, 1500);
           });

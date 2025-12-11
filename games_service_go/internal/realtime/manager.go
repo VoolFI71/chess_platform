@@ -28,9 +28,28 @@ type ConnectionManager struct {
 	mu          sync.RWMutex
 }
 
+// statsBroadcaster - глобальная функция для отправки статистики
+// Это позволяет ConnectionManager уведомлять StatsConnectionManager об изменениях
+var statsBroadcaster func(onlinePlayers int, activeGames int) error
+
+// SetStatsBroadcaster устанавливает функцию для broadcast статистики
+func SetStatsBroadcaster(broadcaster func(onlinePlayers int, activeGames int) error) {
+	statsBroadcaster = broadcaster
+}
+
 func NewConnectionManager() *ConnectionManager {
 	return &ConnectionManager{
 		connections: make(map[uuid.UUID]map[*websocket.Conn]*ConnectionInfo),
+	}
+}
+
+// notifyStatsChange отправляет обновление статистики при изменении
+func (cm *ConnectionManager) notifyStatsChange() {
+	if statsBroadcaster != nil {
+		onlinePlayers, activeGames := cm.GetOnlineStats()
+		if err := statsBroadcaster(onlinePlayers, activeGames); err != nil {
+			log.Printf("[WS Stats] Failed to broadcast stats: %v", err)
+		}
 	}
 }
 
@@ -43,6 +62,12 @@ func (cm *ConnectionManager) Connect(gameID uuid.UUID, conn *ConnectionInfo) {
 	}
 	cm.connections[gameID][conn.Websocket] = conn
 	log.Printf("[WS] Client connected to game %s, role: %s", gameID, conn.Role)
+	// Уведомляем об изменении статистики после разблокировки
+	cm.mu.Unlock()
+	cm.notifyStatsChange()
+	// Отправляем обновление количества зрителей всем подключенным к игре
+	cm.BroadcastViewersCount(gameID)
+	cm.mu.Lock()
 }
 
 func (cm *ConnectionManager) Disconnect(ws *websocket.Conn) {
@@ -56,6 +81,12 @@ func (cm *ConnectionManager) Disconnect(ws *websocket.Conn) {
 			if len(conns) == 0 {
 				delete(cm.connections, gameID)
 			}
+			// Уведомляем об изменении статистики после разблокировки
+			cm.mu.Unlock()
+			cm.notifyStatsChange()
+			// Отправляем обновление количества зрителей всем подключенным к игре
+			cm.BroadcastViewersCount(gameID)
+			cm.mu.Lock()
 			break
 		}
 	}
@@ -128,4 +159,35 @@ func (cm *ConnectionManager) GetOnlineStats() (onlinePlayers int, activeGames in
 
 	onlinePlayers = len(uniqueUsers)
 	return onlinePlayers, activeGames
+}
+
+// GetViewersCount возвращает количество зрителей для конкретной игры
+func (cm *ConnectionManager) GetViewersCount(gameID uuid.UUID) int {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	conns := cm.connections[gameID]
+	if conns == nil {
+		return 0
+	}
+
+	viewersCount := 0
+	for _, conn := range conns {
+		if conn.Role == RoleViewer {
+			viewersCount++
+		}
+	}
+
+	return viewersCount
+}
+
+// BroadcastViewersCount отправляет обновление количества зрителей всем подключенным к игре
+// ВАЖНО: этот метод должен вызываться БЕЗ блокировки мьютекса, так как GetViewersCount и Broadcast уже работают с блокировками
+func (cm *ConnectionManager) BroadcastViewersCount(gameID uuid.UUID) error {
+	viewersCount := cm.GetViewersCount(gameID)
+	message := map[string]interface{}{
+		"type":          "viewers_count",
+		"viewers_count": viewersCount,
+	}
+	return cm.Broadcast(gameID, message)
 }

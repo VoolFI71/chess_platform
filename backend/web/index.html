@@ -156,12 +156,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Fonts - асинхронная загрузка для предотвращения блокировки рендеринга -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"></noscript>
     
-    <!-- Font Awesome - defer для не критичных иконок -->
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    <!-- Font Awesome - кастомный CSS только с нужными иконками -->
+    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css">
 
     <!-- Common Styles -->
     <link rel="stylesheet" href="/styles/base/variables.css">
@@ -208,8 +208,8 @@
     <!-- Skip to main content для accessibility -->
     <a href="#main-content" class="skip-to-content">Перейти к основному содержимому</a>
     <!-- Background Elements -->
-    <div style="position: fixed; inset: 0; z-index: 0;">
-        <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(124, 58, 237, 0.03), rgba(59, 130, 246, 0.03));"></div>
+    <div class="background-wrapper">
+        <div class="background-gradient"></div>
         <div class="floating-chess">♛</div>
         <div class="floating-chess">♜</div>
         <div class="floating-chess">♔</div>
@@ -260,9 +260,18 @@
                     <i class="fas fa-times"></i>
                 </button>
                 <div>
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">Играть</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">Задачи</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">Рейтинг</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+                        <i class="fas fa-chess"></i>
+                        <span>Играть</span>
+                    </button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+                        <i class="fas fa-puzzle-piece"></i>
+                        <span>Задачи</span>
+                    </button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+                        <i class="fas fa-trophy"></i>
+                        <span>Рейтинг</span>
+                    </button>
                     <hr>
                     <div id="mobileAuthButtons">
                         <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
@@ -283,18 +292,13 @@
                             <span>Выйти</span>
                         </button>
                     </div>
-                    <hr>
-                    <button type="button" class="theme-toggle" onclick="toggleTheme(); closeMobileMenu();" title="Переключить тему">
-                        <i class="fas fa-sun" id="mobileThemeIcon"></i>
-                        <span>Переключить тему</span>
-                    </button>
                 </div>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main id="main-content" style="position: relative; z-index: 10;">
+    <main id="main-content" class="main-content-wrapper">
         <!-- Hero Section -->
         <section class="hero" aria-labelledby="hero-heading">
             <div class="hero-bg">
@@ -306,36 +310,27 @@
                 <div class="hero-content">
                     <!-- Left Content -->
                     <div>
-                        <div class="badge badge-primary" style="margin-bottom: 2rem; animation: fadeInUp 0.6s ease-out;">
+                        <div class="badge badge-primary hero-badge">
                             <i class="fas fa-chess-knight" aria-hidden="true"></i> Шахматная платформа нового поколения
                         </div>
-                        <h1 id="hero-heading" style="margin-bottom: 1.5rem; font-family: 'Roboto', sans-serif; animation: fadeInUp 0.8s ease-out; font-size: 3.5rem; line-height: 1.1;">
-                            Прокачай свои <span class="gradient-text" style="font-family: 'Roboto', sans-serif;">шахматы</span> до нового уровня
+                        <h1 id="hero-heading" class="hero-title">
+                            Прокачай свои <span class="gradient-text">шахматы</span> до нового уровня
                         </h1>
-                        <p style="font-size: 1.25rem; color: var(--muted); max-width: 600px; margin-bottom: 2.5rem; animation: fadeInUp 1s ease-out;">
+                        <p class="hero-subtitle">
                             Решай тысячи задач, играй партии в реальном времени, учись у профессионалов. Всё в одном месте.
                         </p>
 
-                        <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; animation: fadeInUp 1.2s ease-out;">
-                            <a href="/tasks" class="btn btn-primary btn-lg" style="padding: 1.2rem 2.5rem; font-size: 1.125rem;" aria-label="Начать решать шахматные задачи бесплатно">
-                                <i class="fas fa-rocket" aria-hidden="true"></i> Начать бесплатно
+                        <div class="hero-actions">
+                            <a href="/tasks" class="btn btn-primary btn-lg hero-btn" aria-label="Начать решать шахматные задачи бесплатно">
+                                <i class="fas fa-rocket" aria-hidden="true"></i> Решать задачи
                             </a>
-                            <a href="/games" class="btn btn-secondary btn-lg" style="padding: 1.2rem 2.5rem; font-size: 1.125rem;" aria-label="Начать играть партию в шахматы">
-                                <i class="fas fa-chess" aria-hidden="true"></i> Играть партию
+                            <a href="/games" class="btn btn-secondary btn-lg hero-btn" aria-label="Начать играть партию в шахматы">
+                                <i class="fas fa-chess" aria-hidden="true"></i> Играть онлайн
                             </a>
                         </div>
 
-                        <div style="display: flex; gap: 2rem; margin-bottom: 3rem; flex-wrap: wrap; animation: fadeInUp 1.4s ease-out;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 0.95rem;">
-                                <i class="fas fa-check-circle" style="color: #10b981;"></i>
-                                <span>Без рекламы</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 0.95rem;">
-                                <i class="fas fa-check-circle" style="color: #10b981;"></i>
-                                <span>100,000+ задач</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 0.95rem;">
-                                <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                        <div class="hero-features">
+                            <div class="hero-feature-item">
                                 <span id="heroOnlineCount">Онлайн игроки</span>
                             </div>
                         </div>
@@ -343,28 +338,28 @@
                         <!-- Live Stats Mini -->
                         <div class="stats-grid">
                             <div class="stat-card">
-                                <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #3b82f6);">
+                                <div class="stat-icon stat-icon-purple">
                                     <i class="fas fa-users"></i>
                                 </div>
                                 <div class="stat-value" id="stat-users">0</div>
                                 <div class="stat-label">Активных пользователей</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                <div class="stat-icon stat-icon-green">
                                     <i class="fas fa-puzzle-piece"></i>
                                 </div>
                                 <div class="stat-value" id="stat-puzzles-solved">0</div>
                                 <div class="stat-label">Решений задач</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                <div class="stat-icon stat-icon-orange">
                                     <i class="fas fa-chess"></i>
                                 </div>
                                 <div class="stat-value" id="stat-games-played">0</div>
                                 <div class="stat-label">Сыгранных партий</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-icon" style="background: linear-gradient(135deg, #ec4899, #be185d);">
+                                <div class="stat-icon stat-icon-pink">
                                     <i class="fas fa-database"></i>
                                 </div>
                                 <div class="stat-value" id="stat-total-puzzles">0</div>
@@ -374,13 +369,13 @@
                     </div>
 
                     <!-- Right Content - Animated Chessboard -->
-                    <div style="animation: fadeInUp 1s ease-out;">
+                    <div class="hero-chessboard-wrapper">
                         <!-- Анимированная шахматная доска -->
                         <div id="heroChessboard" class="hero-chessboard" role="img" aria-label="Демонстрационная шахматная доска с анимированной позицией"></div>
-                        <div class="feature-item" style="display: none;">
-                            <div class="feature-icon"><i class="fas fa-bolt" style="color: #ec4899;"></i></div>
-                            <div style="font-weight: 600; font-size: 0.875rem;">Быстрое</div>
-                            <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Развитие</div>
+                        <div class="feature-item hidden">
+                            <div class="feature-icon"><i class="fas fa-bolt feature-icon-pink"></i></div>
+                            <div class="feature-text-bold">Быстрое</div>
+                            <div class="feature-text-small">Развитие</div>
                         </div>
                     </div>
                 </div>
@@ -405,7 +400,7 @@
                 <div class="features-grid">
                     <!-- Feature 1: Puzzles -->
                     <article class="feature-card">
-                        <div class="feature-icon-wrapper" style="color: #3b82f6;">
+                        <div class="feature-icon-wrapper feature-icon-blue">
                             <i class="fas fa-puzzle-piece"></i>
                         </div>
                         <h3 class="feature-title">Тактические задачи</h3>
@@ -425,7 +420,7 @@
 
                     <!-- Feature 2: Online Games -->
                     <article class="feature-card">
-                        <div class="feature-icon-wrapper" style="color: #10b981;">
+                        <div class="feature-icon-wrapper feature-icon-green">
                             <i class="fas fa-chess"></i>
                         </div>
                         <h3 class="feature-title">Онлайн партии</h3>
@@ -445,7 +440,7 @@
 
                     <!-- Feature 3: Courses -->
                     <article class="feature-card">
-                        <div class="feature-icon-wrapper" style="color: #f59e0b;">
+                        <div class="feature-icon-wrapper feature-icon-orange">
                             <i class="fas fa-graduation-cap"></i>
                         </div>
                         <h3 class="feature-title">Обучающие курсы</h3>
@@ -465,7 +460,7 @@
 
                     <!-- Feature 4: Analysis -->
                     <article class="feature-card">
-                        <div class="feature-icon-wrapper" style="color: #8b5cf6;">
+                        <div class="feature-icon-wrapper feature-icon-purple">
                             <i class="fas fa-brain"></i>
                         </div>
                         <h3 class="feature-title">Анализ партий</h3>
@@ -485,7 +480,7 @@
 
                     <!-- Feature 5: Tournaments -->
                     <article class="feature-card">
-                        <div class="feature-icon-wrapper" style="color: #ec4899;">
+                        <div class="feature-icon-wrapper feature-icon-pink">
                             <i class="fas fa-trophy"></i>
                         </div>
                         <h3 class="feature-title">Турниры</h3>
@@ -505,7 +500,7 @@
 
                     <!-- Feature 6: Community -->
                     <article class="feature-card">
-                        <div class="feature-icon-wrapper" style="color: #06b6d4;">
+                        <div class="feature-icon-wrapper feature-icon-cyan">
                             <i class="fas fa-users"></i>
                         </div>
                         <h3 class="feature-title">Сообщество</h3>
@@ -546,7 +541,7 @@
                     <article class="step-card">
                         <div class="step-number">1</div>
                         <div class="step-icon">
-                            <i class="fas fa-user-plus" style="color: #3b82f6;"></i>
+                            <i class="fas fa-user-plus step-icon-blue"></i>
                     </div>
                         <h3 class="step-title">Регистрация</h3>
                         <p class="step-description">
@@ -561,7 +556,7 @@
                     <article class="step-card">
                         <div class="step-number">2</div>
                         <div class="step-icon">
-                            <i class="fas fa-gamepad" style="color: #8b5cf6;"></i>
+                            <i class="fas fa-gamepad step-icon-purple"></i>
                         </div>
                         <h3 class="step-title">Выбери режим</h3>
                         <p class="step-description">
@@ -576,7 +571,7 @@
                     <article class="step-card">
                         <div class="step-number">3</div>
                         <div class="step-icon">
-                            <i class="fas fa-chart-line" style="color: #ec4899;"></i>
+                            <i class="fas fa-chart-line step-icon-pink"></i>
                         </div>
                         <h3 class="step-title">Развивайся</h3>
                         <p class="step-description">
@@ -589,8 +584,8 @@
                 </div>
 
                 <!-- CTA after steps -->
-                <div style="text-align: center; margin-top: 4rem;">
-                    <a href="/tasks" class="btn btn-primary btn-lg" style="padding: 1.2rem 2.5rem; font-size: 1.125rem;">
+                <div class="cta-container">
+                    <a href="/tasks" class="btn btn-primary btn-lg hero-btn">
                         <i class="fas fa-rocket"></i> Начать прямо сейчас
                     </a>
                 </div>
@@ -734,9 +729,9 @@
                 <div class="footer-grid">
                     <!-- Brand -->
                     <div class="footer-brand">
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                            <div class="logo-icon" style="width: 3.5rem; height: 3.5rem;">
-                                <img src="/favicon.svg" alt="ChessMint" width="56" height="56" style="display: block;">
+                        <div class="footer-brand-header">
+                            <div class="logo-icon footer-logo-icon">
+                                <img src="/favicon.svg" alt="ChessMint" width="56" height="56">
                             </div>
                         </div>
                         <h3>ChessMint</h3>
@@ -805,15 +800,15 @@
                     </div>
                     <div class="footer-badges">
                         <div class="footer-badge">
-                            <i class="fas fa-shield-alt" style="margin-right: 0.25rem;"></i>
+                            <i class="fas fa-shield-alt footer-icon-spacing"></i>
                             Безопасная оплата
                         </div>
                         <div class="footer-badge">
-                            <i class="fas fa-certificate" style="margin-right: 0.25rem;"></i>
+                            <i class="fas fa-certificate footer-icon-spacing"></i>
                             Сертифицированные курсы
                         </div>
                         <div class="footer-badge">
-                            <i class="fas fa-award" style="margin-right: 0.25rem;"></i>
+                            <i class="fas fa-award footer-icon-spacing"></i>
                             Эксперты с титулами
                         </div>
                     </div>
@@ -909,12 +904,12 @@
             <button class="modal-close" onclick="closePurchaseModal()" type="button" aria-label="Закрыть окно покупки">
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>
-            <h3 id="purchase-modal-title" style="font-size: 2rem; margin-bottom: 2rem;">Оформление покупки</h3>
+            <h3 id="purchase-modal-title" class="modal-title-large">Оформление покупки</h3>
             <div class="chess-board" id="chessBoard"></div>
-            <p style="color: var(--muted); margin-bottom: 2rem; font-size: 1.125rem;">
+            <p class="modal-description">
                 Ход белых... Обдумывание лучшего решения...
             </p>
-            <div style="display: flex; gap: 1rem; justify-content: center;">
+            <div class="modal-actions">
                 <button class="btn btn-primary" onclick="completePurchase()">
                     Завершить покупку
                 </button>

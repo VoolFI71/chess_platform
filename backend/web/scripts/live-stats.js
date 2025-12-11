@@ -1,25 +1,81 @@
 // Live statistics updates for hero section
 (() => {
-  async function updateOnlineCount() {
+  let statsWs = null;
+  let reconnectTimeout = null;
+  const RECONNECT_DELAY = 3000; // 3 секунды
+
+  function updateOnlineCount(count) {
+    const el = document.getElementById('heroOnlineCount');
+    if (el) {
+      el.innerHTML = `<span style="font-weight: 600; color: #10b981;">${count}</span> игроков онлайн`;
+    }
+  }
+
+  function connectStatsWebSocket() {
+    // Определяем WebSocket URL
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/stats`;
+
     try {
-      const res = await fetch('/api/stats/online');
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      const count = data.online_players || 0;
-      const el = document.getElementById('heroOnlineCount');
-      if (el) {
-        el.innerHTML = `<span style="font-weight: 600; color: #10b981;">${count}</span> игроков онлайн`;
-      }
+      statsWs = new WebSocket(wsUrl);
+
+      statsWs.onopen = () => {
+        console.log('[Stats WS] Connected');
+        // Сбрасываем таймер переподключения при успешном подключении
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout);
+          reconnectTimeout = null;
+        }
+      };
+
+      statsWs.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'online_stats') {
+            updateOnlineCount(data.online_players || 0);
+          }
+        } catch (err) {
+          console.error('[Stats WS] Failed to parse message:', err);
+        }
+      };
+
+      statsWs.onerror = (error) => {
+        console.error('[Stats WS] Error:', error);
+      };
+
+      statsWs.onclose = () => {
+        console.log('[Stats WS] Disconnected, reconnecting...');
+        statsWs = null;
+        // Переподключаемся через некоторое время
+        reconnectTimeout = setTimeout(connectStatsWebSocket, RECONNECT_DELAY);
+      };
     } catch (err) {
-      console.log('Failed to update online count:', err);
-      // При ошибке показываем заглушку
-      const el = document.getElementById('heroOnlineCount');
-      if (el) {
-        el.innerHTML = `<span style="font-weight: 600; color: #10b981;">—</span> игроков онлайн`;
+      console.error('[Stats WS] Failed to connect:', err);
+      // Fallback: используем polling при ошибке WebSocket
+      fallbackToPolling();
+    }
+  }
+
+  function fallbackToPolling() {
+    console.log('[Stats] Falling back to polling');
+    async function fetchOnlineCount() {
+      try {
+        const res = await fetch('/api/stats/online');
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        updateOnlineCount(data.online_players || 0);
+      } catch (err) {
+        console.error('Failed to update online count:', err);
+        const el = document.getElementById('heroOnlineCount');
+        if (el) {
+          el.innerHTML = `<span style="font-weight: 600; color: #10b981;">—</span> игроков онлайн`;
+        }
       }
     }
+    fetchOnlineCount();
+    setInterval(fetchOnlineCount, 30000);
   }
 
   function animateCounter(element, target, duration = 2000) {
@@ -40,11 +96,8 @@
   }
 
   function initLiveStats() {
-    // Обновляем количество онлайн игроков
-    updateOnlineCount();
-    
-    // Обновляем каждые 30 секунд
-    setInterval(updateOnlineCount, 30000);
+    // Подключаемся к WebSocket для real-time обновлений
+    connectStatsWebSocket();
 
     // Анимируем счетчики статистики при первой загрузке
     const statUsers = document.getElementById('stat-users');
@@ -77,8 +130,18 @@
   }
 
   window.LiveStats = {
-    update: updateOnlineCount,
+    update: (count) => updateOnlineCount(count),
     animateCounter,
+    disconnect: () => {
+      if (statsWs) {
+        statsWs.close();
+        statsWs = null;
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+      }
+    },
   };
 })();
 

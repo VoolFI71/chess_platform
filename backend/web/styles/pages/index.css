@@ -25,8 +25,24 @@
 /* ===== Mobile Adaptations ===== */
 /* Header styles moved to header.css */
 
+/* Обеспечиваем фиксированные размеры мобильного меню независимо от изменения html font-size */
 @media (max-width: 768px) {
     html { font-size: 15px; }
+    
+    /* Фиксируем размеры мобильного меню для консистентности с другими страницами */
+    .mobile-menu .nav-link,
+    .mobile-menu .mobile-login-link,
+    .mobile-menu .mobile-cabinet-link,
+    .mobile-menu .logout-btn {
+        font-size: 16px !important;
+        padding: 16px 20px !important;
+    }
+    
+    .mobile-menu .nav-link i,
+    .mobile-menu .mobile-login-link i,
+    .mobile-menu .mobile-cabinet-link i {
+        font-size: 18px !important;
+    }
 
     .hero {
         padding: 7rem 0 2.5rem;
@@ -120,12 +136,21 @@
     html { font-size: 14px; }
 
     /* Header styles moved to header.css */
-    .auth-buttons,
-    .user-actions {
-        display: none;
+    
+    /* Фиксируем размеры мобильного меню для консистентности с другими страницами */
+    .mobile-menu .nav-link,
+    .mobile-menu .mobile-login-link,
+    .mobile-menu .mobile-cabinet-link,
+    .mobile-menu .logout-btn {
+        font-size: 16px !important;
+        padding: 16px 20px !important;
     }
-
-    /* Header styles moved to header.css */
+    
+    .mobile-menu .nav-link i,
+    .mobile-menu .mobile-login-link i,
+    .mobile-menu .mobile-cabinet-link i {
+        font-size: 18px !important;
+    }
 
     .hero h1 {
         font-size: clamp(2rem, 8vw, 2.5rem);
@@ -164,6 +189,178 @@
     }
 }
 
-/* The remainder of styles from the original inline block are preserved below */
+/* ===== BACKGROUND ELEMENTS ===== */
+.background-wrapper {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+}
 
+.background-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.03), rgba(59, 130, 246, 0.03));
+}
+
+.main-content-wrapper {
+    position: relative;
+    z-index: 10;
+}
+
+/* ===== HERO SECTION ===== */
+.hero-badge {
+    margin-bottom: 2rem;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.hero-title {
+    margin-bottom: 1.5rem;
+    font-family: 'Roboto', sans-serif;
+    animation: fadeInUp 0.8s ease-out;
+    font-size: 3.5rem;
+    line-height: 1.1;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--muted);
+    max-width: 600px;
+    margin-bottom: 2.5rem;
+    animation: fadeInUp 1s ease-out;
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    animation: fadeInUp 1.2s ease-out;
+}
+
+.hero-btn {
+    padding: 1.2rem 2.5rem;
+    font-size: 1.125rem;
+}
+
+.hero-features {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+    animation: fadeInUp 1.4s ease-out;
+}
+
+.hero-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+
+/* ===== STAT ICONS ===== */
+.stat-icon-purple {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+}
+
+.stat-icon-green {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.stat-icon-orange {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.stat-icon-pink {
+    background: linear-gradient(135deg, #ec4899, #be185d);
+}
+
+/* ===== FEATURE ICONS ===== */
+.feature-icon-blue { color: #3b82f6; }
+.feature-icon-green { color: #10b981; }
+.feature-icon-orange { color: #f59e0b; }
+.feature-icon-purple { color: #8b5cf6; }
+.feature-icon-pink { color: #ec4899; }
+.feature-icon-cyan { color: #06b6d4; }
+
+/* ===== STEP ICONS ===== */
+.step-icon-blue { color: #3b82f6; }
+.step-icon-purple { color: #8b5cf6; }
+.step-icon-pink { color: #ec4899; }
+
+/* ===== HERO CHESSBOARD WRAPPER ===== */
+.hero-chessboard-wrapper {
+    animation: fadeInUp 1s ease-out;
+}
+
+.feature-text-bold {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.feature-text-small {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.25rem;
+}
+
+.hidden {
+    display: none;
+}
+
+/* ===== CTA CONTAINER ===== */
+.cta-container {
+    text-align: center;
+    margin-top: 4rem;
+}
+
+/* ===== FOOTER ===== */
+.footer-brand-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.footer-logo-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+}
+
+.footer-logo-icon img {
+    display: block;
+}
+
+.footer-icon-spacing {
+    margin-right: 0.25rem;
+}
+
+/* ===== MODAL ===== */
+.modal-title-large {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+}
+
+.modal-description {
+    color: var(--muted);
+    margin-bottom: 2rem;
+    font-size: 1.125rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 

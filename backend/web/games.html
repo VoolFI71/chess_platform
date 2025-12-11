@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="theme-color" content="#1e293b">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -141,7 +141,7 @@
     }
     </script>
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css">
     <!-- Common Styles -->
     <link rel="stylesheet" href="/styles/base/variables.css">
     <link rel="stylesheet" href="/styles/base/common.css">
@@ -213,9 +213,18 @@
                     <i class="fas fa-times"></i>
                 </button>
                 <div>
-                    <button type="button" class="nav-link mobile-nav-link" onclick="window.location.href='/games'; closeMobileMenu();">Играть</button>
-                    <button type="button" class="nav-link mobile-nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">Задачи</button>
-                    <button type="button" class="nav-link mobile-nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">Рейтинг</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+                        <i class="fas fa-chess"></i>
+                        <span>Играть</span>
+                    </button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+                        <i class="fas fa-puzzle-piece"></i>
+                        <span>Задачи</span>
+                    </button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+                        <i class="fas fa-trophy"></i>
+                        <span>Рейтинг</span>
+                    </button>
                     <hr>
                     <div id="mobileAuthButtons">
                         <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
@@ -236,11 +245,6 @@
                             <span>Выйти</span>
                         </button>
                     </div>
-                    <hr>
-                    <button type="button" class="theme-toggle" onclick="toggleTheme(); closeMobileMenu();" title="Переключить тему">
-                        <i class="fas fa-sun" id="mobileThemeIcon"></i>
-                        <span>Переключить тему</span>
-                    </button>
                 </div>
             </div>
         </div>
@@ -266,10 +270,6 @@
             
             <!-- CONTENT AREA -->
             <div class="games-content-area">
-                <div class="container games-header-container">
-                    <h1 class="games-main-title">Играть в шахматы онлайн бесплатно</h1>
-                    <p class="games-main-subtitle">Онлайн шахматы с друзьями и соперниками. Быстрые партии, блиц, рапид, классика. Реальный рейтинг ELO, анализ партий Stockfish.</p>
-                </div>
                 <div class="container">
             <!-- QUICK GAME TAB -->
             <section class="tab-content" id="quick-tab">

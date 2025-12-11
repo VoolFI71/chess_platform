@@ -28,15 +28,23 @@
       grid.innerHTML = '';
       
       TasksConstants.MODES.forEach((mode) => {
+        // Показываем все режимы для всех пользователей
+        // Режимы, требующие авторизации, будут визуально помечены
+        
         const meta = window.TasksUtils.getModeMeta(mode);
         const isActive = mode.id === TasksState.selectedMode.id;
+        const requiresAuth = mode.requiresAuth && !TasksState.currentUser;
         
         const card = document.createElement('div');
-        card.className = `mode-card ${isActive ? 'active' : ''}`;
+        card.className = `mode-card ${isActive ? 'active' : ''} ${requiresAuth ? 'requires-auth' : ''}`;
         card.dataset.mode = mode.id;
-        card.setAttribute('role', 'listitem');
+        card.setAttribute('role', 'button');
         card.setAttribute('tabindex', '0');
-        card.setAttribute('aria-label', `${mode.name}. ${mode.description}`);
+        let ariaLabel = `${mode.name}. ${mode.description}`;
+        if (requiresAuth) {
+          ariaLabel += ' (Требуется авторизация)';
+        }
+        card.setAttribute('aria-label', ariaLabel);
         card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         // Фон устанавливается через CSS, не через инлайн-стиль
         card.addEventListener('click', () => window.TasksMain.selectMode(mode.id));
@@ -70,6 +78,14 @@
         
         card.appendChild(header);
         card.appendChild(desc);
+        
+        // Добавляем индикатор, если режим требует авторизации и пользователь не авторизован
+        if (requiresAuth) {
+          const authIndicator = document.createElement('div');
+          authIndicator.className = 'mode-auth-indicator';
+          authIndicator.innerHTML = '<i class="fas fa-lock" aria-hidden="true"></i> <span>Требуется авторизация</span>';
+          card.appendChild(authIndicator);
+        }
         
         if (meta.text) {
           const metaDiv = document.createElement('div');
@@ -184,11 +200,16 @@
       const streakIndicator = document.getElementById('streakIndicator');
       const streakStat = document.getElementById('streakStat');
       
-      // Рейтинг показывается только в режиме рейтинга (не в выживании)
+      // Рейтинг показывается в режиме рейтинга и в гостевом режиме
       if (ratingStatItem) {
         if (TasksState.selectedMode.id === 'rated') {
           const rating = window.TasksUtils.getCurrentPuzzleRating();
           if (ratingValue) ratingValue.textContent = rating;
+          ratingStatItem.style.display = '';
+        } else if (TasksState.selectedMode.id === 'marathon') {
+          // Для режима марафон показываем текущий рейтинг марафона
+          const marathonRating = TasksState.marathonRating || 1000;
+          if (ratingValue) ratingValue.textContent = marathonRating;
           ratingStatItem.style.display = '';
         } else {
           ratingStatItem.style.display = 'none';

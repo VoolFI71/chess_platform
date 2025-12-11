@@ -8,55 +8,70 @@
 
   window.TasksMain = {
     async bootstrapTasksPage() {
-      // Проверяем авторизацию - если пользователь не авторизован, перенаправляем на страницу входа
+      // Пытаемся получить пользователя, но не перенаправляем, если не авторизован
       try {
         if (typeof window.authMe === 'function') {
           TasksState.currentUser = await window.authMe();
         } else {
           // Если функция authMe недоступна, проверяем токен напрямую
           const token = localStorage.getItem('access_token');
-          if (!token) {
-            window.location.href = '/login';
-            return;
-          }
-          // Пытаемся получить пользователя через API
-          const res = await fetch('/api/auth/me', {
-            headers: {
-              'Authorization': `Bearer ${token}`
+          if (token) {
+            // Пытаемся получить пользователя через API
+            const res = await fetch('/api/auth/me', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (res.ok) {
+              TasksState.currentUser = await res.json();
             }
-          });
-          if (!res.ok) {
-            window.location.href = '/login';
-            return;
           }
-          TasksState.currentUser = await res.json();
-        }
-        
-        // Если пользователь не авторизован, перенаправляем на страницу входа
-        if (!TasksState.currentUser) {
-          window.location.href = '/login';
-          return;
         }
       } catch (err) {
-        // Если произошла ошибка при проверке авторизации, перенаправляем на страницу входа
-        console.debug('Auth check failed', err);
-        window.location.href = '/login';
-        return;
+        // Тихо игнорируем ошибки авторизации - пользователь может быть неавторизован
+        console.debug('Auth check failed (user may be not authorized)', err);
+        TasksState.currentUser = null;
       }
       
-      // Загружаем статистику (только для авторизованных пользователей)
-      await window.TasksAPI.loadPuzzleStats();
+      // Загружаем статистику только для авторизованных пользователей
+      if (TasksState.currentUser) {
+        await window.TasksAPI.loadPuzzleStats();
+      }
+      
+      // Для всех пользователей инициализируем рейтинг марафона, если выбран режим марафон
+      if (TasksState.selectedMode.id === 'marathon') {
+        TasksState.marathonRating = 1000;
+        try {
+          sessionStorage.setItem('tasks_marathon_rating', '1000');
+        } catch (e) {
+          console.debug('Failed to save marathon rating to sessionStorage', e);
+        }
+      }
+      
+      // Рендерим режимы после проверки авторизации
+      window.TasksUI.renderModes();
     },
 
     async selectMode(id) {
-      // Проверяем авторизацию перед выбором режима
-      if (!TasksState.currentUser) {
+      const next = TasksConstants.MODES.find((m) => m.id === id);
+      if (!next) return;
+      
+      // Проверяем, требуется ли авторизация для выбранного режима
+      if (next.requiresAuth && !TasksState.currentUser) {
         window.location.href = '/login';
         return;
       }
       
-      const next = TasksConstants.MODES.find((m) => m.id === id);
-      if (!next) return;
+      // Для режима марафон всегда сбрасываем рейтинг на 1000 при выборе режима
+      // (независимо от того, авторизован пользователь или нет)
+      if (next.id === 'marathon') {
+        TasksState.marathonRating = 1000;
+        try {
+          sessionStorage.setItem('tasks_marathon_rating', '1000');
+        } catch (e) {
+          console.debug('Failed to save marathon rating to sessionStorage', e);
+        }
+      }
       TasksState.selectedMode = next;
       window.TasksUI.renderModes();
       
@@ -98,12 +113,31 @@
         if (TasksState.sessionStats.streak > TasksState.sessionStats.bestStreak) {
           TasksState.sessionStats.bestStreak = TasksState.sessionStats.streak;
         }
+      } else if (TasksState.selectedMode.id === 'marathon') {
+        // Для режима марафон увеличиваем рейтинг на 100 при правильном решении
+        TasksState.marathonRating = (TasksState.marathonRating || 1000) + 100;
+        try {
+          sessionStorage.setItem('tasks_marathon_rating', TasksState.marathonRating.toString());
+        } catch (e) {
+          console.debug('Failed to save marathon rating to sessionStorage', e);
+        }
       }
       window.TasksUI.updateStats();
       
       window.TasksHistory.showCorrectMovesInHistory();
       
-      window.TasksAPI.submitAttempt(true);
+      // Для режима марафон не отправляем попытки на сервер, сразу загружаем следующую задачу
+      if (TasksState.selectedMode.id === 'marathon') {
+        window.TasksUtils.createTimer(() => {
+          window.TasksUI.setPuzzleStatus('Загружаем следующую задачу...', false);
+          window.TasksAPI.loadPuzzleForCurrentMode();
+        }, 1500);
+      } else {
+        // Отправляем попытку только для авторизованных пользователей в других режимах
+        if (TasksState.currentUser) {
+          window.TasksAPI.submitAttempt(true);
+        }
+      }
     },
 
     handlePuzzleFailed(targetSquare) {
@@ -115,6 +149,14 @@
       TasksState.sessionStats.total++;
       if (TasksState.selectedMode.id === 'survival') {
         TasksState.sessionStats.streak = 0;
+      } else if (TasksState.selectedMode.id === 'marathon') {
+        // Для режима марафон уменьшаем рейтинг на 100 при неправильном решении
+        TasksState.marathonRating = Math.max(400, (TasksState.marathonRating || 1000) - 100);
+        try {
+          sessionStorage.setItem('tasks_marathon_rating', TasksState.marathonRating.toString());
+        } catch (e) {
+          console.debug('Failed to save marathon rating to sessionStorage', e);
+        }
       }
       window.TasksUI.updateStats();
       
@@ -170,22 +212,11 @@
     },
 
     // Mobile menu functions теперь в mobile-menu.js
-    toggleMobileMenu() {
-      if (window.toggleMobileMenu && typeof window.toggleMobileMenu === 'function') {
-        window.toggleMobileMenu();
-      }
-    },
-
-    closeMobileMenu() {
-      if (window.closeMobileMenu && typeof window.closeMobileMenu === 'function') {
-        window.closeMobileMenu();
-      }
-    },
+    // Не переопределяем window.toggleMobileMenu, используем функции напрямую из mobile-menu.js
   };
 
-  // Экспортируем функции для использования в HTML через onclick
-  window.toggleMobileMenu = () => window.TasksMain.toggleMobileMenu();
-  window.closeMobileMenu = () => window.TasksMain.closeMobileMenu();
+  // Не переопределяем глобальные функции toggleMobileMenu и closeMobileMenu
+  // Они уже определены в mobile-menu.js и должны использоваться напрямую
 
   // Инициализация при загрузке DOM
   document.addEventListener('DOMContentLoaded', () => {
