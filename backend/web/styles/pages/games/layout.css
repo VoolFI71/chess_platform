@@ -4,98 +4,137 @@
 /* ===== TABS (VERTICAL SIDEBAR) ===== */
 /* ===== GAMES PAGE LAYOUT ===== */
 .games-page-layout {
-    display: flex;
-    gap: 0;
-    min-height: calc(100vh - 80px);
     max-width: 100%;
     overflow-x: hidden;
 }
 
-
-/* ===== VERTICAL TABS SIDEBAR ===== */
+/* Скрываем старый sidebar с вкладками */
 .tabs-sidebar {
-    width: 200px;
-    flex-shrink: 0;
-    background: var(--card);
-    border-right: 1px solid var(--border);
-    padding: 1.5rem 0;
-    position: sticky;
-    top: 80px;
-    height: calc(100vh - 80px);
-    overflow-y: auto;
-    z-index: 10;
+    display: none;
 }
 
-body.dark .tabs-sidebar,
-html.dark .tabs-sidebar {
-    background: rgba(45, 45, 45, 0.95);
-    border-right-color: rgba(100, 100, 100, 0.3);
+/* ===== MAIN TITLE ===== */
+/* H1 скрыт визуально, но остается в HTML для SEO */
+.games-main-title.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
 }
 
-.tabs-sidebar .tabs-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    padding: 0 0.5rem;
+/* ===== TABS HEADER ===== */
+.games-tabs-header {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
 }
 
-.tabs-sidebar .tab {
-    padding: 0.875rem 1rem;
-    background: transparent;
-    border: none;
-    border-left: 3px solid transparent;
-    border-radius: 0.5rem;
+.column-title {
+    font-size: clamp(1.25rem, 2vw + 0.5rem, 1.5rem);
+    font-weight: 700;
     color: var(--foreground);
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.75rem;
-    position: relative;
-    width: 100%;
-}
-
-.tabs-sidebar .tab i {
-    font-size: 1.1rem;
-    width: 20px;
+    letter-spacing: -0.02em;
+    padding: 1rem 1.5rem;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    margin: 0;
     text-align: center;
 }
 
-.tabs-sidebar .tab:hover {
+.column-title:hover {
     color: var(--primary);
     background: rgba(59, 130, 246, 0.05);
 }
 
-.tabs-sidebar .tab.active {
+.column-title.active {
     color: var(--primary);
-    border-left-color: var(--primary);
+    border-bottom-color: var(--primary);
     background: rgba(59, 130, 246, 0.1);
-    font-weight: 600;
 }
 
-body.dark .tabs-sidebar .tab,
-html.dark .tabs-sidebar .tab {
+/* ===== CONTENT WRAPPER ===== */
+.games-content-wrapper {
+    width: 100%;
+    position: relative;
+    margin-top: 0;
+}
+
+.games-content-wrapper .tab-content {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+#quick-tab {
+    margin-top: 0;
+    padding-top: 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+#quick-tab .quick-game-wrapper {
+    margin-top: 0;
+    padding-top: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+#quick-tab .quick-game-center {
+    margin-top: 0;
+    padding-top: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.column-title i {
+    color: var(--primary);
+    font-size: clamp(1rem, 1.5vw + 0.25rem, 1.25rem);
+}
+
+body.dark .column-title,
+html.dark .column-title {
     color: rgba(255, 255, 255, 0.9);
 }
 
-body.dark .tabs-sidebar .tab:hover,
-html.dark .tabs-sidebar .tab:hover {
+body.dark .column-title:hover,
+html.dark .column-title:hover {
     background: rgba(59, 130, 246, 0.15);
 }
 
-body.dark .tabs-sidebar .tab.active,
-html.dark .tabs-sidebar .tab.active {
+body.dark .column-title.active,
+html.dark .column-title.active {
     background: rgba(59, 130, 246, 0.2);
-    border-left-color: var(--primary);
+    color: var(--primary);
 }
 
-/* ===== GAMES CONTENT AREA ===== */
-.games-content-area {
-    flex: 1;
-    min-width: 0;
+body.dark .games-tabs-header,
+html.dark .games-tabs-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* По умолчанию показываем только активную секцию */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
 }
 
 /* ===== HEADER CONTAINER ===== */
@@ -109,7 +148,7 @@ html.dark .tabs-sidebar .tab.active {
 }
 
 .main-content .container {
-    max-width: 1440px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 0 1.5rem;
     overflow-x: hidden;
@@ -161,6 +200,13 @@ html.dark .game-modes {
     gap: 1.25rem;
 }
 
+/* Строгая сетка 3x3 для выбора контроля времени - всегда 3 столбца и 3 строки */
+.modes-grid.modes-grid-3x3 {
+    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-rows: repeat(3, 1fr) !important;
+    grid-auto-flow: row !important;
+}
+
 .mode-card {
     background: var(--background);
     border: 2px solid var(--border);
@@ -192,7 +238,6 @@ html.dark .game-modes {
 
 .mode-card:hover {
     border-color: var(--primary);
-    transform: translateY(-6px);
     box-shadow: 0 12px 32px rgba(124, 58, 237, 0.15);
 }
 

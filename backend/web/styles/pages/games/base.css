@@ -175,14 +175,7 @@ html.dark::before {
   display: block;
 }
 
-.tab-content {
-  display: none;
-}
-
-.tab-content.active,
-#quick-tab:not(.hidden) {
-  display: block;
-}
+/* Видимость секций управляется через layout.css */
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }

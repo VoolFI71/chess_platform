@@ -6,10 +6,7 @@
 
   function getDisplayedClocks(applyRunning = true) {
     if (!state.game) return null;
-    let { white_clock_ms: white_past, black_clock_ms: black_past, status, next_turn, move_count, time_control, white_finish_ms, black_finish_ms } = state.game;
-    // Сохраняем исходные значения из БД для логирования (это past_time - прошедшее время)
-    const white_past_db = white_past;
-    const black_past_db = black_past;
+    let { white_clock_ms: white_past, black_clock_ms: black_past, status, next_turn, time_control, white_finish_ms, black_finish_ms } = state.game;
     
     // Получаем finish_time из time_control или из поля white_finish_ms/black_finish_ms
     let white_finish = white_finish_ms || 0;
@@ -32,19 +29,6 @@
     // Время тикает когда игра активна (оба игрока присоединились)
     const shouldTick = status === 'ACTIVE';
     if (!shouldTick) {
-      if (window.__DEBUG_CLOCKS__) {
-        console.log('[clock] getDisplayedClocks: NOT TICKING', {
-          status,
-          move_count,
-          shouldTick: false,
-          white_past_db: white_past_db,
-          black_past_db: black_past_db,
-          white_finish,
-          black_finish,
-          white_remaining: white,
-          black_remaining: black,
-        });
-      }
       return { white, black };
     }
 
@@ -59,29 +43,6 @@
       black = Math.max(0, black - elapsed);
     }
     
-    // Логируем каждое вычисление времени (только каждую секунду, чтобы не засорять консоль)
-    const shouldLog = !state._lastClockLogTime || (now - state._lastClockLogTime) >= 1000;
-    if (shouldLog) {
-      console.log('[CLOCK DEBUG] getDisplayedClocks: TICKING', {
-        source: 'CLOCK_TICK',
-        mode: applyRunning ? 'running' : 'static',
-        status,
-        move_count,
-        next_turn,
-        clockAnchorTime: anchor,
-        client_now_ms: now,
-        elapsed_ms: elapsed,
-        white_past_db: white_past_db,
-        black_past_db: black_past_db,
-        white_finish,
-        black_finish,
-        white_remaining_displayed: white,
-        black_remaining_displayed: black,
-        white_formatted: formatClock ? formatClock(white) : `${Math.floor(white / 60000)}:${String(Math.floor((white % 60000) / 1000)).padStart(2, '0')}`,
-        black_formatted: formatClock ? formatClock(black) : `${Math.floor(black / 60000)}:${String(Math.floor((black % 60000) / 1000)).padStart(2, '0')}`,
-      });
-      state._lastClockLogTime = now;
-    }
     return { white, black };
   }
 
@@ -99,16 +60,18 @@
     if (blackEl) blackEl.textContent = formatTime(clocks.black);
     const topClockEl = document.getElementById('topClock');
     const bottomClockEl = document.getElementById('bottomClock');
-    if (topClockEl || bottomClockEl) {
+    const topClockElMobile = document.getElementById('topClockMobile');
+    const bottomClockElMobile = document.getElementById('bottomClockMobile');
+    
+    if (topClockEl || bottomClockEl || topClockElMobile || bottomClockElMobile) {
       const { topRole, bottomRole } = getPanelRoles();
-      if (topClockEl) {
         const topValue = topRole === 'white' ? clocks.white : clocks.black;
-        topClockEl.textContent = formatTime(topValue);
-      }
-      if (bottomClockEl) {
         const bottomValue = bottomRole === 'white' ? clocks.white : clocks.black;
-        bottomClockEl.textContent = formatTime(bottomValue);
-      }
+      
+      if (topClockEl) topClockEl.textContent = formatTime(topValue);
+      if (bottomClockEl) bottomClockEl.textContent = formatTime(bottomValue);
+      if (topClockElMobile) topClockElMobile.textContent = formatTime(topValue);
+      if (bottomClockElMobile) bottomClockElMobile.textContent = formatTime(bottomValue);
     }
     if (maybeAutoDeclareTimeout) maybeAutoDeclareTimeout(clocks);
 
@@ -119,16 +82,15 @@
         if (!tick) return;
         if (whiteEl) whiteEl.textContent = formatTime(tick.white);
         if (blackEl) blackEl.textContent = formatTime(tick.black);
-        if (topClockEl || bottomClockEl) {
+        if (topClockEl || bottomClockEl || topClockElMobile || bottomClockElMobile) {
           const { topRole, bottomRole } = getPanelRoles();
-          if (topClockEl) {
             const topValue = topRole === 'white' ? tick.white : tick.black;
-            topClockEl.textContent = formatTime(topValue);
-          }
-          if (bottomClockEl) {
             const bottomValue = bottomRole === 'white' ? tick.white : tick.black;
-            bottomClockEl.textContent = formatTime(bottomValue);
-          }
+          
+          if (topClockEl) topClockEl.textContent = formatTime(topValue);
+          if (bottomClockEl) bottomClockEl.textContent = formatTime(bottomValue);
+          if (topClockElMobile) topClockElMobile.textContent = formatTime(topValue);
+          if (bottomClockElMobile) bottomClockElMobile.textContent = formatTime(bottomValue);
         }
         if (maybeAutoDeclareTimeout) maybeAutoDeclareTimeout(tick);
       }, 1000);

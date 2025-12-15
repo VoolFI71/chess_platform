@@ -9,6 +9,19 @@
 }
 
 /* ===== ACCESSIBILITY ===== */
+/* Screen reader only class - скрывает элемент визуально, но оставляет доступным для screen readers и SEO */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
 /* Skip to content link для screen readers и keyboard navigation */
 .skip-to-content {
     position: absolute;

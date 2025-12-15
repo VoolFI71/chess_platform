@@ -13,6 +13,7 @@
     const menu = document.getElementById('mobileMenu');
     const overlay = document.getElementById('mobileMenuOverlay');
     const icon = document.getElementById('menuIcon');
+    const menuBtn = document.getElementById('mobileMenuBtn') || document.querySelector('.mobile-menu-btn');
     
     if (!menu) return;
     
@@ -28,6 +29,12 @@
       document.body.style.overflow = 'hidden';
     }
     
+    // Обновляем aria-expanded для доступности
+    if (menuBtn) {
+      menuBtn.setAttribute('aria-expanded', menu.classList.contains('active') ? 'true' : 'false');
+      menuBtn.setAttribute('aria-label', menu.classList.contains('active') ? 'Закрыть меню' : 'Открыть меню');
+    }
+    
     if (icon) {
       icon.className = menu.classList.contains('active') ? 'fas fa-times' : 'fas fa-bars';
     }
@@ -40,11 +47,18 @@
     const menu = document.getElementById('mobileMenu');
     const overlay = document.getElementById('mobileMenuOverlay');
     const icon = document.getElementById('menuIcon');
+    const menuBtn = document.getElementById('mobileMenuBtn') || document.querySelector('.mobile-menu-btn');
     
     if (menu) menu.classList.remove('active');
     if (overlay) overlay.classList.remove('active');
     if (icon) icon.className = 'fas fa-bars';
     document.body.style.overflow = '';
+    
+    // Обновляем aria-expanded для доступности
+    if (menuBtn) {
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.setAttribute('aria-label', 'Открыть меню');
+    }
   }
 
   // Экспортируем функции в глобальную область видимости для использования в onclick и других скриптах

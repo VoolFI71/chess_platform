@@ -14,7 +14,7 @@ import (
 
 const (
 	watchdogIntervalSeconds     = 15
-	abandonedGameTimeoutMinutes = 10
+	abandonedGameTimeoutMinutes = 60
 	recentMovesLimit            = 120
 )
 
@@ -181,10 +181,29 @@ func (w *Watchdog) checkGameTimeout(ctx context.Context, game *models.Game) {
 func (w *Watchdog) cleanupAbandonedGames(ctx context.Context) {
 	cutoffTime := time.Now().UTC().Add(-abandonedGameTimeoutMinutes * time.Minute)
 
+	// Игра считается заброшенной, если:
+	// 1. Статус = CREATED
+	// 2. Создана более N минут назад (abandonedGameTimeoutMinutes)
+	// 3. Не заполнены оба игрока (проверяем и user_id и session_id в metadata)
+	//
+	// Игра считается заполненной, если:
+	// - (white_id IS NOT NULL OR metadata->>'white_session_id' IS NOT NULL) AND
+	// - (black_id IS NOT NULL OR metadata->>'black_session_id' IS NOT NULL)
+	//
+	// Значит, игра заброшена, если:
+	// - NOT (имеется white И имеется black)
+	// = (white_id IS NULL AND COALESCE(metadata->>'white_session_id', '') = '') OR
+	//   (black_id IS NULL AND COALESCE(metadata->>'black_session_id', '') = '')
+
+	whereClause := `status = ? AND created_at < ? AND (
+		(white_id IS NULL AND COALESCE(metadata->>'white_session_id', '') = '') OR
+		(black_id IS NULL AND COALESCE(metadata->>'black_session_id', '') = '')
+	)`
+
 	var abandonedGames []models.Game
 	if err := w.db.WithContext(ctx).
-		Where("status = ? AND move_count = ? AND (white_id IS NULL OR black_id IS NULL) AND created_at < ?",
-			models.GameStatusCreated, 0, cutoffTime).
+		Where(whereClause,
+			models.GameStatusCreated, cutoffTime).
 		Find(&abandonedGames).Error; err != nil {
 		log.Printf("[Watchdog] Failed to query abandoned games: %v", err)
 		return
@@ -196,8 +215,8 @@ func (w *Watchdog) cleanupAbandonedGames(ctx context.Context) {
 
 	// Удаляем заброшенные игры
 	result := w.db.WithContext(ctx).
-		Where("status = ? AND move_count = ? AND (white_id IS NULL OR black_id IS NULL) AND created_at < ?",
-			models.GameStatusCreated, 0, cutoffTime).
+		Where(whereClause,
+			models.GameStatusCreated, cutoffTime).
 		Delete(&models.Game{})
 
 	if result.Error != nil {

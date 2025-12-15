@@ -3,10 +3,11 @@
 .spaced-header {
     background: var(--card);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     padding: 16px 0; /* 1rem = 16px, фиксируем для консистентности на всех страницах */
     z-index: 1000;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    transition: background 0.3s ease, box-shadow 0.3s ease;
+    transition: background 0.3s ease, box-shadow 0.3s ease, border-bottom-color 0.3s ease;
     /* Prevent layout shift during initialization */
     min-height: 72px; /* Фиксируем в пикселях для консистентности на всех страницах */
     box-sizing: border-box;
@@ -669,15 +670,6 @@ html.dark .nav-link.active {
     color: inherit;
 }
 
-.mobile-menu button.nav-link:hover {
-    background: rgba(59, 130, 246, 0.1);
-}
-
-body.dark .mobile-menu button.nav-link:hover,
-html.dark .mobile-menu button.nav-link:hover {
-    background: rgba(96, 165, 250, 0.1);
-}
-
 .mobile-menu .btn-login,
 .mobile-menu .btn-register,
 .mobile-menu .btn-cabinet {
@@ -1251,15 +1243,8 @@ body.dark .mobile-menu-header {
     border-radius: 12px;
 }
 
-.mobile-menu .nav-link:hover::before,
 .mobile-menu .nav-link:active::before {
     opacity: 1;
-}
-
-.mobile-menu .nav-link:hover {
-    background: rgba(59, 130, 246, 0.08);
-    transform: translateX(4px);
-    color: var(--primary);
 }
 
 .mobile-menu .nav-link:active {
@@ -1275,9 +1260,6 @@ body.dark .mobile-menu-header {
     flex-shrink: 0;
 }
 
-.mobile-menu .nav-link:hover i {
-    color: var(--primary);
-}
 
 .mobile-menu .nav-link span {
     flex: 1;
@@ -1288,18 +1270,11 @@ body.dark .mobile-menu .nav-link {
     color: #f8fafc;
 }
 
-body.dark .mobile-menu .nav-link:hover {
-    background: rgba(96, 165, 250, 0.12);
-    color: #60a5fa;
-}
 
 body.dark .mobile-menu .nav-link i {
     color: rgba(255, 255, 255, 0.6);
 }
 
-body.dark .mobile-menu .nav-link:hover i {
-    color: #60a5fa;
-}
 
 .mobile-menu hr {
     border: none;
@@ -1344,15 +1319,6 @@ body.dark .mobile-menu hr {
     border-radius: 12px;
 }
 
-.mobile-menu .theme-toggle:hover::before {
-    opacity: 1;
-}
-
-.mobile-menu .theme-toggle:hover {
-    background: rgba(59, 130, 246, 0.1);
-    border-color: var(--primary);
-    transform: scale(1.05);
-}
 
 .mobile-menu .theme-toggle:active {
     transform: scale(0.95);
@@ -1365,9 +1331,6 @@ body.dark .mobile-menu hr {
     z-index: 1;
 }
 
-.mobile-menu .theme-toggle:hover i {
-    transform: rotate(20deg) scale(1.1);
-}
 
 .mobile-menu .theme-toggle span {
     display: none;
@@ -1378,10 +1341,6 @@ body.dark .mobile-menu .theme-toggle {
     color: #f8fafc;
 }
 
-body.dark .mobile-menu .theme-toggle:hover {
-    background: rgba(96, 165, 250, 0.15);
-    border-color: rgba(96, 165, 250, 0.5);
-}
 
 /* Ссылка на кабинет в мобильном меню */
 .mobile-menu .btn-cabinet,
@@ -1418,18 +1377,6 @@ body.dark .mobile-menu .theme-toggle:hover {
     border-radius: 12px;
 }
 
-.mobile-menu .btn-cabinet:hover::before,
-.mobile-menu .mobile-cabinet-link:hover::before {
-    opacity: 1;
-}
-
-.mobile-menu .btn-cabinet:hover,
-.mobile-menu .mobile-cabinet-link:hover {
-    background: rgba(59, 130, 246, 0.1);
-    border-color: rgba(59, 130, 246, 0.3);
-    transform: translateX(4px);
-    color: var(--primary);
-}
 
 .mobile-menu .btn-cabinet:active,
 .mobile-menu .mobile-cabinet-link:active {
@@ -1446,31 +1393,16 @@ body.dark .mobile-menu .theme-toggle:hover {
     transition: color 0.2s;
 }
 
-.mobile-menu .btn-cabinet:hover i,
-.mobile-menu .mobile-cabinet-link:hover i {
-    color: var(--primary);
-}
 
 body.dark .mobile-menu .btn-cabinet,
 body.dark .mobile-menu .mobile-cabinet-link {
     color: #f8fafc;
 }
 
-body.dark .mobile-menu .btn-cabinet:hover,
-body.dark .mobile-menu .mobile-cabinet-link:hover {
-    background: rgba(96, 165, 250, 0.12);
-    border-color: rgba(96, 165, 250, 0.4);
-    color: #60a5fa;
-}
 
 body.dark .mobile-menu .btn-cabinet i,
 body.dark .mobile-menu .mobile-cabinet-link i {
     color: rgba(255, 255, 255, 0.6);
-}
-
-body.dark .mobile-menu .btn-cabinet:hover i,
-body.dark .mobile-menu .mobile-cabinet-link:hover i {
-    color: #60a5fa;
 }
 
 /* Ссылка на вход в мобильном меню */
@@ -1507,16 +1439,6 @@ body.dark .mobile-menu .mobile-cabinet-link:hover i {
     transition: left 0.5s;
 }
 
-.mobile-menu .mobile-login-link:hover::before {
-    left: 100%;
-}
-
-.mobile-menu .mobile-login-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5),
-                0 4px 12px rgba(124, 58, 237, 0.4);
-    background: linear-gradient(135deg, #2563eb 0%, #6d28d9 100%);
-}
 
 .mobile-menu .mobile-login-link:active {
     transform: translateY(0);
@@ -1531,9 +1453,6 @@ body.dark .mobile-menu .mobile-cabinet-link:hover i {
     transition: transform 0.3s;
 }
 
-.mobile-menu .mobile-login-link:hover i {
-    transform: scale(1.1);
-}
 
 /* Кнопка выхода в мобильном меню */
 .mobile-menu .logout-btn {
@@ -1569,16 +1488,6 @@ body.dark .mobile-menu .mobile-cabinet-link:hover i {
     border-radius: 12px;
 }
 
-.mobile-menu .logout-btn:hover::before {
-    opacity: 1;
-}
-
-.mobile-menu .logout-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: #ef4444;
-    transform: translateX(4px);
-    color: #dc2626;
-}
 
 .mobile-menu .logout-btn:active {
     transform: translateX(2px);
@@ -1592,9 +1501,6 @@ body.dark .mobile-menu .mobile-cabinet-link:hover i {
     transition: transform 0.2s;
 }
 
-.mobile-menu .logout-btn:hover i {
-    transform: translateX(-2px);
-}
 
 .mobile-menu .logout-btn span {
     display: inline-block;
@@ -1605,11 +1511,6 @@ body.dark .mobile-menu .logout-btn {
     color: #f87171;
 }
 
-body.dark .mobile-menu .logout-btn:hover {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: #ef4444;
-    color: #ef4444;
-}
 
 /* Информация о пользователе в мобильном меню */
 .mobile-menu #gamesUserInfoMobile,
@@ -1648,13 +1549,6 @@ body.dark .mobile-menu #mobileUserInfo {
     font-size: 1.125rem;
 }
 
-.mobile-menu-close:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: rgba(59, 130, 246, 0.1);
-    transform: scale(1.05);
-}
-
 .mobile-menu-close:active {
     transform: scale(0.95);
 }
@@ -1664,11 +1558,6 @@ body.dark .mobile-menu-close {
     color: rgba(255, 255, 255, 0.6);
 }
 
-body.dark .mobile-menu-close:hover {
-    border-color: #60a5fa;
-    color: #60a5fa;
-    background: rgba(96, 165, 250, 0.15);
-}
 
 #mobileAuthButtons {
     display: flex;

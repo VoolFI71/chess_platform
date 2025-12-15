@@ -258,6 +258,24 @@
 
   function ensureCabinetButton(container) {
     if (!container) return null;
+    
+    // Check if it's mobile menu - use existing .mobile-cabinet-link if present
+    const isMobileMenu = container.classList.contains('mobile-menu') || container.closest('.mobile-menu');
+    if (isMobileMenu) {
+      // В мобильном меню используем существующий .mobile-cabinet-link из HTML
+      // Ищем глубоко, включая внутри #mobileUserActions (даже если display: none)
+      const existingMobileLink = container.querySelector('.mobile-cabinet-link') || 
+                                 document.querySelector('.mobile-menu .mobile-cabinet-link');
+      if (existingMobileLink) {
+        // Добавляем класс btn-cabinet для совместимости, но используем существующий элемент
+        if (!existingMobileLink.classList.contains('btn-cabinet')) {
+          existingMobileLink.classList.add('btn-cabinet');
+        }
+        return existingMobileLink;
+      }
+    }
+    
+    // Для header-actions или если .mobile-cabinet-link не найден, используем стандартную логику
     let btn = container.querySelector(SELECTORS.CABINET_BTN);
     if (!btn) {
       btn = document.createElement('a');
@@ -267,28 +285,12 @@
       btn.innerHTML = '<i class="fas fa-user-circle"></i> Мой профиль';
       btn.style.display = 'none';
       
-      // Check if it's mobile menu - use isMobileContext but also check for .mobile-menu specifically
-      const isMobileMenu = container.classList.contains('mobile-menu') || container.closest('.mobile-menu');
-      if (isMobileMenu) {
-        const innerDiv = container.querySelector('div') || container;
-        if (!innerDiv) return null;
-        
-        const hr = innerDiv.querySelector('hr');
-        if (hr && hr.nextSibling && hr.parentNode) {
-          innerDiv.insertBefore(btn, hr.nextSibling);
-        } else if (hr && hr.parentNode) {
-          hr.parentNode.insertBefore(btn, hr.nextSibling);
-        } else {
-          innerDiv.appendChild(btn);
-        }
+      // For header-actions, insert before mobile-menu-btn (but after theme-toggle)
+      const mobileMenuBtn = container.querySelector(SELECTORS.MOBILE_MENU_BTN);
+      if (mobileMenuBtn) {
+        container.insertBefore(btn, mobileMenuBtn);
       } else {
-        // For header-actions, insert before mobile-menu-btn (but after theme-toggle)
-        const mobileMenuBtn = container.querySelector(SELECTORS.MOBILE_MENU_BTN);
-        if (mobileMenuBtn) {
-          container.insertBefore(btn, mobileMenuBtn);
-        } else {
-          container.appendChild(btn);
-        }
+        container.appendChild(btn);
       }
     }
     return btn;
@@ -381,15 +383,45 @@
     document.querySelectorAll(SELECTORS.MOBILE_MENU).forEach((container) => {
       if (!container) return;
       
-      const cabinetBtn = ensureCabinetButton(container);
-      if (cabinetBtn) {
-        // Обновляем href с username если пользователь авторизован
+      // Сначала ищем существующий .mobile-cabinet-link из HTML
+      const existingMobileLink = container.querySelector('.mobile-cabinet-link') || 
+                                 document.querySelector('.mobile-menu .mobile-cabinet-link');
+      
+      if (existingMobileLink) {
+        // Используем существующий элемент из HTML
         if (isLoggedIn && user && user.username) {
-          cabinetBtn.href = `/profile/${encodeURIComponent(user.username)}`;
+          existingMobileLink.href = `/profile/${encodeURIComponent(user.username)}`;
         } else {
-          cabinetBtn.href = '/profile';
+          existingMobileLink.href = '/profile';
         }
-        cabinetBtn.style.display = isLoggedIn ? 'block' : 'none';
+        existingMobileLink.style.display = isLoggedIn ? 'flex' : 'none';
+        
+        // Добавляем класс btn-cabinet для совместимости стилей
+        if (!existingMobileLink.classList.contains('btn-cabinet')) {
+          existingMobileLink.classList.add('btn-cabinet');
+        }
+        
+        // Удаляем любые дубликаты .btn-cabinet, которые могли быть созданы ранее
+        const mobileMenuDiv = container.querySelector('div');
+        if (mobileMenuDiv) {
+          mobileMenuDiv.querySelectorAll('.btn-cabinet').forEach((btn) => {
+            // Удаляем только те, которые НЕ являются существующим .mobile-cabinet-link
+            if (btn !== existingMobileLink && !btn.classList.contains('mobile-cabinet-link')) {
+              btn.remove();
+            }
+          });
+        }
+      } else {
+        // Если .mobile-cabinet-link не найден, используем стандартную логику
+        const cabinetBtn = ensureCabinetButton(container);
+        if (cabinetBtn) {
+          if (isLoggedIn && user && user.username) {
+            cabinetBtn.href = `/profile/${encodeURIComponent(user.username)}`;
+          } else {
+            cabinetBtn.href = '/profile';
+          }
+          cabinetBtn.style.display = isLoggedIn ? 'block' : 'none';
+        }
       }
     });
   }

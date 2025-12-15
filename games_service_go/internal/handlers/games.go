@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -217,7 +218,38 @@ func getMoves(service *services.GameService) gin.HandlerFunc {
 
 func listGames(service *services.GameService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		games, err := service.ListGames(c.Request.Context(), 25, 0)
+		// Получаем параметры из query string
+		limitStr := c.DefaultQuery("limit", "25")
+		offsetStr := c.DefaultQuery("offset", "0")
+		statusStr := c.Query("status")
+
+		// Валидация и парсинг limit
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil || limit < 1 || limit > 100 {
+			limit = 25
+		}
+
+		// Валидация и парсинг offset
+		offset, err := strconv.Atoi(offsetStr)
+		if err != nil || offset < 0 {
+			offset = 0
+		}
+
+		// Валидация status (если указан)
+		var status *models.GameStatus
+		if statusStr != "" {
+			validStatus := models.GameStatus(statusStr)
+			// Проверяем, что статус валидный
+			switch validStatus {
+			case models.GameStatusCreated, models.GameStatusActive, models.GameStatusPaused, models.GameStatusFinished:
+				status = &validStatus
+			default:
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status. Valid values: CREATED, ACTIVE, PAUSED, FINISHED"})
+				return
+			}
+		}
+
+		games, err := service.ListGames(c.Request.Context(), limit, offset, status)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

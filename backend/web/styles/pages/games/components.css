@@ -1290,9 +1290,12 @@ html.dark .tv-time {
 
 /* ===== QUICK GAME WRAPPER ===== */
 .quick-game-wrapper {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem 0 2rem;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    margin-top: 0;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .quick-game-wrapper .section-title {
@@ -1310,6 +1313,8 @@ html.dark .tv-time {
     display: flex;
     gap: 2rem;
     align-items: flex-start;
+    margin-top: 0;
+    padding-top: 0;
 }
 
 .quick-game-center {
@@ -1317,14 +1322,21 @@ html.dark .tv-time {
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin-top: 0;
+    padding-top: 0;
 }
 
 .modes-grid-3x3 {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.25rem;
+    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-rows: repeat(3, 1fr) !important;
+    grid-auto-flow: row;
+    gap: 0.875rem;
     width: 100%;
-    max-width: 600px;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
 }
 
 .custom-game-container {
@@ -1341,88 +1353,6 @@ html.dark .tv-time {
     gap: 0.5rem;
 }
 
-/* ===== GAME TYPE SELECTOR ===== */
-.game-type-selector {
-    width: 320px;
-    flex-shrink: 0;
-}
-
-.game-type-selector .card {
-    position: sticky;
-    top: 2rem;
-}
-
-/* Убираем hover эффект для карточки в блоке "Тип игры" */
-/* Переопределяем базовый .card:hover из common.css */
-.game-type-selector .card:hover {
-    transform: none !important;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
-}
-
-body.dark .game-type-selector .card:hover,
-html.dark .game-type-selector .card:hover {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3) !important;
-}
-
-.game-type-options {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.game-type-option {
-    cursor: pointer;
-    position: relative;
-    flex: 1;
-}
-
-.game-type-option input[type="radio"] {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.game-type-card {
-    padding: 1.25rem;
-    border: 2px solid var(--games-card-border);
-    border-radius: 0.75rem;
-    background: var(--games-card-bg);
-    /* transition удален - убран hover эффект */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.75rem;
-}
-
-.game-type-card i {
-    font-size: 2rem;
-    color: var(--primary);
-    margin-bottom: 0.25rem;
-}
-
-.game-type-name {
-    font-weight: 600;
-    font-size: 1.1rem;
-    color: var(--foreground);
-}
-
-.game-type-description {
-    font-size: 0.85rem;
-    color: var(--games-muted-text);
-}
-
-.game-type-option input[type="radio"]:checked + .game-type-card {
-    border-color: var(--primary);
-    background: rgba(59, 130, 246, 0.1);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-}
-
-body.dark .game-type-option input[type="radio"]:checked + .game-type-card,
-html.dark .game-type-option input[type="radio"]:checked + .game-type-card {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(96, 165, 250, 0.8);
-}
 
 /* ===== MODE CARD IMPROVEMENTS ===== */
 .mode-card {
@@ -1431,7 +1361,6 @@ html.dark .game-type-option input[type="radio"]:checked + .game-type-card {
 }
 
 .mode-card:hover {
-    transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
 }
 

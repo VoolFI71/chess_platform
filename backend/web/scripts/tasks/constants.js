@@ -8,25 +8,25 @@
 
     MODES: [
       {
+        id: 'marathon',
+        name: 'Марафон',
+        description: 'Задачи начинаются с рейтинга ~1000 и быстро усложнояются по мере решения.',
+        icon: 'fa-running',
+        requiresAuth: false,
+      },
+      {
         id: 'survival',
         name: 'Выживание',
-        description: 'Случайные задачи без рейтинга. Идеально для длинных марафонов и свободной практики.',
+        description: 'Случайные шахматные задачи различной сложности. Идеально для свободной практики.',
         icon: 'fa-heartbeat',
         requiresAuth: true,
       },
       {
         id: 'rated',
         name: 'На рейтинг',
-        description: 'Подбор задач по вашему puzzle rating. Ошибки и успехи влияют на статистику и серии.',
+        description: 'Подбор шахматных задач по вашему уровню. Ошибки и успехи влияют на ваш рейтинг.',
         icon: 'fa-trophy',
         requiresAuth: true,
-      },
-      {
-        id: 'marathon',
-        name: 'Марафон',
-        description: 'Задачи начинаются с рейтинга ~1000 и повышаются по мере решения. Идеально для длительных тренировок.',
-        icon: 'fa-running',
-        requiresAuth: false,
       },
     ],
 

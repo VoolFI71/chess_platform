@@ -145,23 +145,6 @@ services:
       ENROLLMENTS_INTERNAL_TOKEN: enrollments-secret
     restart: unless-stopped
 
-  # games:  # Python микросервис (закомментирован)
-  #   build:
-  #     context: .
-  #     dockerfile: games_service/Dockerfile
-  #   depends_on:
-  #     db:
-  #       condition: service_started
-  #     migrations:
-  #       condition: service_completed_successfully
-  #     users:
-  #       condition: service_started
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     METRICS_ENABLED: "true"
-  #   restart: unless-stopped
-
   games:
     build:
       context: ./games_service_go
@@ -278,20 +261,28 @@ services:
       - prometheus
       - loki
     ports:
-      - "3000:3000"
+      - "3000:3000"  # Пробрасываем порт напрямую для локальной разработки
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
-      # Для локальной разработки используем прямой доступ без подпути
+      # Для локальной разработки используем прямой доступ через порт (без подпути)
       - GF_SERVER_ROOT_URL=http://localhost:3000/
-      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false  # НЕ нужен для прямого доступа
       - GF_SERVER_DOMAIN=localhost
       - GF_SERVER_ROUTER_LOGGING=false
       - GF_ANALYTICS_REPORTING_ENABLED=false
       - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_SERVER_ENABLE_GZIP=true
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      # Отключаем логирование в консоль
+      - GF_LOG_LEVEL=warn
+      - GF_LOG_FILTERS=tsdb.loki:error
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana-data:/var/lib/grafana
+    logging:
+      driver: "none"
+    restart: unless-stopped
 
   loki:
     image: grafana/loki:2.9.8

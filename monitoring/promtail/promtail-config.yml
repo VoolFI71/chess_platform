@@ -26,6 +26,14 @@ scrape_configs:
         regex: '/(.*)'
       - source_labels: ['__meta_docker_container_id']
         target_label: container_id
+      # Пробуем взять service из docker-compose label
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: service
+        regex: '(.+)'
+      # Fallback: если service пустой, извлекаем из имени контейнера (например, ch_games_1 -> games)
+      # Используем оба source_labels: если service из docker-compose пустой, используем имя контейнера
+      - source_labels: ['__meta_docker_container_name', '__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+        regex: '/ch_(.+)_\d+;'
+        replacement: '${1}'
 

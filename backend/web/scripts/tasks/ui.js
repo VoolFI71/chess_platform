@@ -79,13 +79,7 @@
         card.appendChild(header);
         card.appendChild(desc);
         
-        // Добавляем индикатор, если режим требует авторизации и пользователь не авторизован
-        if (requiresAuth) {
-          const authIndicator = document.createElement('div');
-          authIndicator.className = 'mode-auth-indicator';
-          authIndicator.innerHTML = '<i class="fas fa-lock" aria-hidden="true"></i> <span>Требуется авторизация</span>';
-          card.appendChild(authIndicator);
-        }
+        // Индикатор авторизации убран по запросу пользователя
         
         if (meta.text) {
           const metaDiv = document.createElement('div');

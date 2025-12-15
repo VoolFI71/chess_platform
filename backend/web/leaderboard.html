@@ -46,14 +46,14 @@
       } catch {}
     </script>
     
-    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css">
+    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
     <!-- Common Styles -->
-    <link rel="stylesheet" href="/styles/base/variables.css">
-    <link rel="stylesheet" href="/styles/base/common.css">
-    <link rel="stylesheet" href="/styles/components/header.css">
-    <link rel="stylesheet" href="/styles/components/notifications.css">
-    <link rel="stylesheet" href="/styles/pages/cabinet.css">
-    <link rel="stylesheet" href="/styles/pages/leaderboard.css">
+    <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
+    <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/notifications.css?v=2.0">
+    <link rel="stylesheet" href="/styles/pages/cabinet.css?v=2.0">
+    <link rel="stylesheet" href="/styles/pages/leaderboard.css?v=2.0">
     
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -304,27 +304,48 @@
                 
                 const formatStats = getFormatStats(userStats, state.currentFormat);
                 if (formatStats) {
-                    stats.innerHTML = `
-                        <div class="stat-item">
-                            <i class="fas fa-trophy"></i>
-                            <span>Побед: ${formatStats.wins || 0}</span>
-                        </div>
-                        <div class="stat-item">
-                            <i class="fas fa-chess"></i>
-                            <span>Партий: ${formatStats.games || 0}</span>
-                        </div>
-                        <div class="stat-item">
-                            <i class="fas fa-percentage"></i>
-                            <span>Побед: ${Math.round(formatStats.win_rate || 0)}%</span>
-                        </div>
-                    `;
+                    // Безопасное создание элементов через DOM API (защита от XSS)
+                    const statItem1 = document.createElement('div');
+                    statItem1.className = 'stat-item';
+                    const icon1 = document.createElement('i');
+                    icon1.className = 'fas fa-trophy';
+                    const span1 = document.createElement('span');
+                    span1.textContent = `Побед: ${formatStats.wins || 0}`;
+                    statItem1.appendChild(icon1);
+                    statItem1.appendChild(span1);
+                    
+                    const statItem2 = document.createElement('div');
+                    statItem2.className = 'stat-item';
+                    const icon2 = document.createElement('i');
+                    icon2.className = 'fas fa-chess';
+                    const span2 = document.createElement('span');
+                    span2.textContent = `Партий: ${formatStats.games || 0}`;
+                    statItem2.appendChild(icon2);
+                    statItem2.appendChild(span2);
+                    
+                    const statItem3 = document.createElement('div');
+                    statItem3.className = 'stat-item';
+                    const icon3 = document.createElement('i');
+                    icon3.className = 'fas fa-percentage';
+                    const span3 = document.createElement('span');
+                    span3.textContent = `Побед: ${Math.round(formatStats.win_rate || 0)}%`;
+                    statItem3.appendChild(icon3);
+                    statItem3.appendChild(span3);
+                    
+                    stats.appendChild(statItem1);
+                    stats.appendChild(statItem2);
+                    stats.appendChild(statItem3);
                 } else {
-                    stats.innerHTML = `
-                        <div class="stat-item">
-                            <i class="fas fa-star"></i>
-                            <span>Рейтинг: ${entry.rating}</span>
-                        </div>
-                    `;
+                    // Безопасное создание элементов через DOM API (защита от XSS)
+                    const statItem = document.createElement('div');
+                    statItem.className = 'stat-item';
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-star';
+                    const span = document.createElement('span');
+                    span.textContent = `Рейтинг: ${entry.rating}`;
+                    statItem.appendChild(icon);
+                    statItem.appendChild(span);
+                    stats.appendChild(statItem);
                 }
                 
                 card.appendChild(medal);
@@ -393,12 +414,16 @@
                 
                 const stats = document.createElement('div');
                 stats.className = 'card-stats';
-                stats.innerHTML = `
-                    <div class="stat-item">
-                        <i class="fas fa-star"></i>
-                        <span>Рейтинг: ${entry.rating}</span>
-                    </div>
-                `;
+                // Безопасное создание элементов через DOM API (защита от XSS)
+                const statItem = document.createElement('div');
+                statItem.className = 'stat-item';
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-star';
+                const span = document.createElement('span');
+                span.textContent = `Рейтинг: ${entry.rating}`;
+                statItem.appendChild(icon);
+                statItem.appendChild(span);
+                stats.appendChild(statItem);
                 
                 content.appendChild(header);
                 content.appendChild(stats);

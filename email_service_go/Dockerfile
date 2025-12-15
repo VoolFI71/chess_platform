@@ -3,14 +3,14 @@ FROM golang:1.21-alpine AS builder
 
 WORKDIR /app
 
-# Копируем go.mod и go.sum
-COPY go.mod go.sum ./
+# Копируем go.mod
+COPY go.mod ./
 
-# Загружаем зависимости
-RUN go mod download
-
-# Копируем исходники
+# Копируем исходники (нужно для go mod tidy)
 COPY . .
+
+# Обновляем go.sum и загружаем зависимости
+RUN go mod tidy && go mod download
 
 # Собираем бинарник
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/server ./cmd/server

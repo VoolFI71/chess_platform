@@ -8,16 +8,16 @@
 
 .board-shell {
     width: 100%;
-    padding: 2rem;  /* 32px -> 2rem */
-    background: #ffffff;
-    border-radius: 1rem;  /* 16px -> 1rem */
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
     transition: all 0.3s ease;
 }
 
 body.dark .board-shell {
-    background: rgba(30, 30, 30, 0.95);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    background: transparent;
+    box-shadow: none;
 }
 
 .chess-board {
@@ -240,8 +240,8 @@ body.dark .square .piece svg {
 
 @media (max-width: 768px) {
     .board-shell {
-        padding: 1.5rem;  /* 24px -> 1.5rem */
-        border-radius: 0.875rem;  /* 14px -> 0.875rem */
+        padding: 0;
+        border-radius: 0;
     }
 
     .coordinate {
@@ -251,8 +251,8 @@ body.dark .square .piece svg {
 
 @media (max-width: 480px) {
     .board-shell {
-        padding: 1.125rem;  /* 18px -> 1.125rem */
-        border-radius: 0.75rem;  /* 12px -> 0.75rem */
+        padding: 0;
+        border-radius: 0;
     }
 
     .coordinate {

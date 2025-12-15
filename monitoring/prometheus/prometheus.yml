@@ -1,10 +1,104 @@
 global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+  scrape_interval: 10s
+  evaluation_interval: 10s
 
 scrape_configs:
+  # API сервис (статический контент)
   - job_name: 'api'
     metrics_path: /metrics
     static_configs:
       - targets: ['api:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
+
+  # Auth сервис
+  - job_name: 'auth'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['auth:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
+
+  # Users сервис
+  - job_name: 'users'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['users:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
+
+  # Games сервис (Go)
+  - job_name: 'games'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['games:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
+
+  # Courses сервис
+  - job_name: 'courses'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['courses:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
+
+  # Lessons сервис
+  - job_name: 'lessons'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['lessons:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
+
+  # Payments сервис
+  - job_name: 'payments'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['payments:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
+
+  # Enrollments сервис
+  - job_name: 'enrollments'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['enrollments:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
+
+  # Email сервис (Go)
+  - job_name: 'email'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['email:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
+
+  # Notifications сервис
+  - job_name: 'notifications'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['notifications:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
+
+  # Puzzles сервис
+  - job_name: 'puzzles'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['puzzles:8000']
+    metric_relabel_configs:
+      - source_labels: [job]
+        target_label: app_name
 

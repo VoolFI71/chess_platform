@@ -47,7 +47,7 @@ body.dark {
 .tasks-container {
     position: relative;
     z-index: 1;
-    padding: 2.5rem 1rem 3rem;
+    padding: 2rem 0;
     min-height: calc(100vh - 80px);
     display: flex;
     align-items: flex-start;
@@ -56,8 +56,38 @@ body.dark {
 
 .tasks-content {
     width: 100%;
-    max-width: 1400px;
+    max-width: 1320px;
     margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* Увеличенные отступы для планшетов и десктопов */
+@media (min-width: 768px) {
+    .tasks-container {
+        padding: 2rem 48px;
+    }
+}
+
+/* Large screens (1600px+) */
+@media (min-width: 1600px) {
+    .tasks-content {
+        max-width: 1650px;
+    }
+    
+    .tasks-container {
+        padding: 2rem 3.5rem;
+    }
+}
+
+/* Full HD (1920px) */
+@media (min-width: 1920px) {
+    .tasks-content {
+        max-width: 1750px;
+    }
+    
+    .tasks-container {
+        padding: 2rem 4rem;
+    }
 }
 
 .tasks-header {
@@ -91,12 +121,25 @@ body.dark .tasks-subtitle {
     color: rgba(255, 255, 255, 0.8);
 }
 
+/* H1 скрыт визуально, но остается в HTML для SEO */
+.tasks-title.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
 .mode-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 2.5rem;
     margin-top: 3rem;
-    max-width: 900px;
+    max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
     align-items: start;
@@ -361,6 +404,11 @@ body.dark .mode-card.active .mode-icon {
 
 /* Иконка survival уже настроена выше для темной карточки */
 
+/* Иконка для режима Марафон */
+.mode-card[data-mode="marathon"]:not(.active) .mode-icon {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+}
+
 .mode-card[data-mode="rated"]:not(.active) .mode-icon {
     background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15));
 }
@@ -450,12 +498,32 @@ body.dark .mode-card.active .mode-meta {
 
 /* Hover эффекты удалены */
 
-.mode-card[data-mode="survival"] .mode-icon i.fa-heartbeat {
-    color: #000000;
+/* Индикатор "Требуется авторизация" - удален, элемент больше не используется */
+
+/* Иконка для режима Марафон */
+.mode-card[data-mode="marathon"] .mode-icon i.fa-running {
+    color: #667eea;
     transition: all 0.3s ease;
 }
 
-/* Hover эффекты удалены */
+.mode-card.active[data-mode="marathon"] .mode-icon i.fa-running {
+    color: #667eea;
+    filter: none;
+}
+
+body.dark .mode-card[data-mode="marathon"] .mode-icon i.fa-running {
+    color: #667eea;
+}
+
+body.dark .mode-card.active[data-mode="marathon"] .mode-icon i.fa-running {
+    color: #667eea;
+}
+
+/* Иконка для режима Выживание */
+.mode-card[data-mode="survival"] .mode-icon i.fa-heartbeat {
+    color: #ffffff;
+    transition: all 0.3s ease;
+}
 
 .mode-card.active[data-mode="survival"] .mode-icon i.fa-heartbeat {
     color: #ffffff;
@@ -463,15 +531,14 @@ body.dark .mode-card.active .mode-meta {
 }
 
 body.dark .mode-card[data-mode="survival"] .mode-icon i.fa-heartbeat {
-    color: #ffffff;
+    color: #000000;
 }
-
-/* Hover эффекты удалены */
 
 body.dark .mode-card.active[data-mode="survival"] .mode-icon i.fa-heartbeat {
     color: #000000;
 }
 
+/* Иконка для режима На рейтинг */
 .mode-card[data-mode="rated"] .mode-icon i.fa-trophy {
     color: #f59e0b;
     transition: all 0.3s ease;
@@ -487,20 +554,24 @@ body.dark .mode-card.active[data-mode="survival"] .mode-icon i.fa-heartbeat {
 
 @media (max-width: 768px) {
     .tasks-container {
-        padding: 1.5rem 0.75rem 2rem;
+        padding: 2rem 0;
         display: block;
+    }
+    
+    .tasks-content {
+        padding: 0 1rem;
     }
 
     /* Fluid typography уже применена через clamp(), убираем дублирование */
     
     .mode-grid {
-        grid-template-columns: 1fr;
-        gap: 2rem;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
         max-width: 100%;
     }
 
     .mode-card {
-        padding: 2rem;
+        padding: 1.5rem;
         min-height: 280px;
     }
 
@@ -568,8 +639,8 @@ body.dark .mode-card.active[data-mode="survival"] .mode-icon i.fa-heartbeat {
     }
     
     /* Адаптивный размер доски */
-    .puzzle-board-wrapper .board-container {
-        max-width: calc(100vw - 2rem);
+    .puzzle-main .board-shell {
+        max-width: 100%;
     }
     
     .skeleton-board-grid {
@@ -704,7 +775,7 @@ body.dark .mode-card[data-mode="rated"].active {
 
 .puzzle-layout {
     display: grid;
-    grid-template-columns: 280px 1fr 280px;
+    grid-template-columns: 280px 1fr 320px;
     gap: 2rem;
     align-items: start;
 }
@@ -712,6 +783,26 @@ body.dark .mode-card[data-mode="rated"].active {
 .puzzle-main {
     min-width: 0;
     align-self: start;
+    display: flex;
+    justify-content: center;
+}
+
+.puzzle-main .board-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.puzzle-main .board-wrapper {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.puzzle-main .board-shell {
+    width: 100%;
+    max-width: 600px;
+    aspect-ratio: 1;
 }
 
 .puzzle-card {
@@ -843,10 +934,7 @@ body.dark .puzzle-status.success {
     background: rgba(255, 255, 255, 0.1);
 }
 
-.puzzle-board-wrapper {
-    margin-top: 0;
-    position: relative;
-}
+/* .puzzle-board-wrapper удален - используется .puzzle-main .board-container */
 
 .board-controls {
     display: flex;
@@ -903,14 +991,7 @@ body.dark .board-size-control {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.puzzle-board-wrapper .board-container {
-    max-width: 100%;
-    width: 100%;
-    margin: 0 auto;
-    transition: transform 0.3s ease;
-    min-width: 0;
-    position: relative;
-}
+/* Стили для .puzzle-board-wrapper удалены - используется .puzzle-main .board-container */
 
 /* Скелетон доски */
 .board-skeleton {
@@ -1015,14 +1096,7 @@ body.dark .skeleton-line {
     }
 }
 
-.puzzle-board-wrapper .board-shell {
-    padding: 8px;
-}
-
-.puzzle-board-wrapper .chess-board {
-    min-width: 0;
-    width: 100%;
-}
+/* Стили для .puzzle-board-wrapper удалены */
 
 /* Левая панель с информацией о задаче */
 .puzzle-left-sidebar {
@@ -1350,19 +1424,12 @@ body.dark .nav-btn:hover {
 /* Используем стандартный breakpoint 1024px вместо 1400px */
 @media (max-width: 1024px) {
     .puzzle-layout {
-        grid-template-columns: 240px 1fr 240px;
-        gap: 1.5rem;
-    }
-
-    .puzzle-board-wrapper .chess-board {
-        min-width: 0;
-    }
-}
-
-@media (max-width: 1024px) {
-    .puzzle-layout {
         grid-template-columns: 1fr;
         gap: 1.75rem;
+    }
+
+    .puzzle-main .chess-board {
+        min-width: 0;
     }
 
     .puzzle-left-sidebar,
@@ -1445,51 +1512,202 @@ body.dark .nav-btn:hover {
     }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
     .tasks-container {
-        padding: 1.25rem 0.5rem 1.5rem;
+        padding: 2rem 0;
+    }
+    
+    .tasks-content {
+        padding: 0;
     }
     
     .tasks-header {
         margin-bottom: 2rem;
+        padding: 0 1rem;
+    }
+    
+    .mode-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 0 1rem;
+        margin-top: 2rem;
     }
     
     .mode-card {
         padding: 1.5rem;
-        min-height: 240px;
+        min-height: auto;
+        border-radius: 1.5rem;
+    }
+    
+    .mode-header {
+        gap: 1rem;
+        margin-bottom: 0.75rem;
     }
     
     .mode-icon {
-        width: 60px;
-        height: 60px;
-        font-size: 2rem;
+        width: 50px;
+        height: 50px;
+        font-size: 1.75rem;
+        flex-shrink: 0;
     }
     
-    .puzzle-board-wrapper .board-container {
-        max-width: calc(100vw - 1.5rem);
+    .mode-name {
+        font-size: 1.25rem;
+    }
+    
+    .mode-description {
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mode-meta {
+        font-size: 0.85rem;
+        padding-top: 0.75rem;
+        margin-top: 0.75rem;
+    }
+    
+    /* Доска на всю ширину экрана на мобильных (как на match странице) */
+    .puzzle-card {
+        border-radius: 0;
+        padding: 0;
+    }
+    
+    /* Добавляем padding для элементов карточки, кроме доски */
+    .puzzle-card > *:not(.puzzle-main) {
+        padding: 0 1rem;
+    }
+    
+    .puzzle-main {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .puzzle-main .board-container {
+        width: 100%;
+        padding: 0;
+        max-width: 100%;
+    }
+    
+    .puzzle-main .board-wrapper {
+        width: 100%;
+        padding: 0;
+        max-width: 100%;
+    }
+    
+    .puzzle-main .board-shell {
+        width: 100%;
+        max-width: 100%;
+        aspect-ratio: 1;
     }
     
     .skeleton-board-grid {
-        max-width: calc(100vw - 1.5rem);
+        max-width: 100%;
+        width: 100%;
     }
 }
 
 @media (max-width: 480px) {
     .tasks-container {
-        padding: 1rem 0.5rem 1.5rem;
+        padding: 1rem 0;
     }
     
+    .tasks-content {
+        padding: 0;
+    }
+
     .tasks-header {
         margin-bottom: 1.5rem;
+        padding: 0 0.5rem;
+    }
+    
+    .mode-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        padding: 0 0.5rem;
+        margin-top: 1.5rem;
+    }
+    
+    .mode-card {
+        padding: 1.25rem;
+        min-height: auto;
+        border-radius: 1.25rem;
+    }
+    
+    .mode-header {
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mode-icon {
+        width: 45px;
+        height: 45px;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    
+    .mode-name {
+        font-size: 1.1rem;
+    }
+    
+    .mode-description {
+        font-size: 0.85rem;
+        line-height: 1.4;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mode-meta {
+        font-size: 0.8rem;
+        padding-top: 0.5rem;
+        margin-top: 0.5rem;
     }
 
     .puzzle-card,
     .sidebar-card {
         padding: 0.85rem;
+        border-radius: 0;
+    }
+    
+    /* Доска на всю ширину экрана на мобильных (как на match странице) */
+    .puzzle-card {
+        padding: 0;
+    }
+    
+    /* Добавляем padding для элементов карточки, кроме доски */
+    .puzzle-card > *:not(.puzzle-main) {
+        padding: 0 0.5rem;
+    }
+    
+    .puzzle-main {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .puzzle-main .board-container {
+        width: 100%;
+        padding: 0;
+        max-width: 100%;
+    }
+    
+    .puzzle-main .board-wrapper {
+        width: 100%;
+        padding: 0;
+        max-width: 100%;
+    }
+    
+    .puzzle-main .board-shell {
+        width: 100%;
+        max-width: 100%;
+        aspect-ratio: 1;
     }
 
     .puzzle-title {
         font-size: clamp(1.1rem, 3vw, 1.25rem);
+        margin-top: 0.85rem;
     }
 
     .puzzle-meta-pill {
@@ -1501,12 +1719,9 @@ body.dark .nav-btn:hover {
         font-size: clamp(0.8rem, 2vw, 0.85rem);
     }
     
-    .puzzle-board-wrapper .board-container {
-        max-width: calc(100vw - 1rem);
-    }
-    
     .skeleton-board-grid {
-        max-width: calc(100vw - 1rem);
+        max-width: 100%;
+        width: 100%;
     }
     
     .puzzle-meta-line-compact {
@@ -1568,7 +1783,11 @@ body.dark .nav-btn:hover {
 
 @media (max-width: 360px) {
     .tasks-container {
-        padding: 0.75rem 0.375rem 1rem;
+        padding: 2rem 0;
+    }
+    
+    .tasks-content {
+        padding: 0;
     }
     
     .mode-card {
@@ -1587,8 +1806,8 @@ body.dark .nav-btn:hover {
         padding: 0.75rem;
     }
     
-    .puzzle-board-wrapper .board-container {
-        max-width: calc(100vw - 0.75rem);
+    .puzzle-main .board-shell {
+        max-width: 100%;
     }
     
     .skeleton-board-grid {
@@ -1626,8 +1845,8 @@ body.dark .nav-btn:hover {
         padding: 0.65rem;
     }
     
-    .puzzle-board-wrapper .board-container {
-        max-width: calc(100vw - 0.5rem);
+    .puzzle-main .board-shell {
+        max-width: 100%;
     }
     
     .skeleton-board-grid {
@@ -1638,7 +1857,11 @@ body.dark .nav-btn:hover {
 /* Landscape ориентация для мобильных */
 @media (max-width: 768px) and (orientation: landscape) and (max-height: 600px) {
     .tasks-container {
-        padding: 1rem 0.5rem;
+        padding: 2rem 0;
+    }
+    
+    .tasks-content {
+        padding: 0;
     }
     
     .tasks-header {
@@ -1663,8 +1886,8 @@ body.dark .nav-btn:hover {
         padding: 0.75rem;
     }
     
-    .puzzle-board-wrapper .board-container {
-        max-width: 50vh;
+    .puzzle-main .board-shell {
+        max-width: 100%;
     }
     
     .skeleton-board-grid {
@@ -1686,8 +1909,8 @@ body.dark .nav-btn:hover {
         min-height: 160px;
     }
     
-    .puzzle-board-wrapper .board-container {
-        max-width: 45vh;
+    .puzzle-main .board-shell {
+        max-width: 100%;
     }
     
     .skeleton-board-grid {
@@ -2031,7 +2254,8 @@ body.dark .streak-indicator.active {
 /* Full HD (1920px) */
 @media (min-width: 1920px) {
     .tasks-content {
-        max-width: 1600px;
+        max-width: 1750px;
+        padding: 0 1rem;
     }
     
     .tasks-container {

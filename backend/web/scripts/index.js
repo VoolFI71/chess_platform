@@ -140,50 +140,10 @@ window.addEventListener('scroll', handleScroll, { passive: true });
 window.addEventListener('resize', () => { if (window.innerWidth >= 1024) closeMobileMenu(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeMobileMenu(); } });
 
-// Load and display global statistics
-async function loadGlobalStats() {
-  try {
-    const res = await fetch('/api/stats/global');
-    if (!res.ok) {
-      console.warn('Failed to load global stats:', res.status);
-      return;
-    }
-    const stats = await res.json();
-    
-    // Update stat elements
-    const statUsers = document.getElementById('stat-users');
-    const statPuzzlesSolved = document.getElementById('stat-puzzles-solved');
-    const statGamesPlayed = document.getElementById('stat-games-played');
-    const statTotalPuzzles = document.getElementById('stat-total-puzzles');
-    
-    if (statUsers) {
-      statUsers.textContent = formatNumber(stats.total_users || 0);
-    }
-    if (statPuzzlesSolved) {
-      statPuzzlesSolved.textContent = formatNumber(stats.total_puzzle_solutions || 0);
-    }
-    if (statGamesPlayed) {
-      statGamesPlayed.textContent = formatNumber(stats.total_games_played || 0);
-    }
-    if (statTotalPuzzles) {
-      statTotalPuzzles.textContent = formatNumber(stats.total_puzzles || 0);
-    }
-  } catch (err) {
-    console.error('Error loading global stats:', err);
-  }
-}
-
-// Format numbers with thousand separators
-function formatNumber(num) {
-  return new Intl.NumberFormat('ru-RU').format(num);
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof loadTheme === 'function') loadTheme();
   console.log('🏁 ChessMint Loaded Successfully!');
-  
-  // Load global statistics
-  loadGlobalStats();
 
   // Wire hero CTA: Начать обучение
   const startCta = document.querySelector('a[href="#start"].btn.btn-primary');

@@ -1,0 +1,139 @@
+// Games Actions - Game actions (join, resign, timeout, etc.)
+(() => {
+  const state = window.getGamesState();
+
+  // Clock logic
+  function getDisplayedClocks(applyRunning = true) {
+    if (!state.selectedGame) return null;
+    let { white_clock_ms: white, black_clock_ms: black, status, next_turn } = state.selectedGame;
+    if (!applyRunning) return { white, black };
+    if (status === 'ACTIVE' && typeof state.lastStateTimestamp === 'number') {
+      const elapsed = Date.now() - state.lastStateTimestamp;
+      if (next_turn === 'w') white = Math.max(0, white - elapsed);
+      else if (next_turn === 'b') black = Math.max(0, black - elapsed);
+    }
+    return { white, black };
+  }
+
+  function updateClockDisplays(resetTimer = false) {
+    const clocks = getDisplayedClocks(true);
+    if (!clocks) return;
+    const whiteClock = document.getElementById('whiteClock');
+    const blackClock = document.getElementById('blackClock');
+    if (whiteClock) whiteClock.textContent = window.formatClock(clocks.white);
+    if (blackClock) blackClock.textContent = window.formatClock(clocks.black);
+
+    if (resetTimer) {
+      if (state.clockTimer) clearInterval(state.clockTimer);
+      state.clockTimer = setInterval(() => {
+        const tick = getDisplayedClocks(true);
+        if (!tick) return;
+        if (whiteClock) whiteClock.textContent = window.formatClock(tick.white);
+        if (blackClock) blackClock.textContent = window.formatClock(tick.black);
+        if (window.renderActions) window.renderActions();
+      }, 1000);
+    }
+  }
+
+  async function joinGame() {
+    if (!state.selectedGameId) return;
+    
+    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (window.getAccessToken && window.getAccessToken() !== null && window.getAccessToken() !== '');
+    
+    if (!isAuth && typeof window.getOrCreateSessionId !== 'function') {
+      if (window.showToast) window.showToast('Войдите в аккаунт, чтобы присоединиться', 'error');
+      return;
+    }
+    
+    try {
+      let res;
+      if (isAuth) {
+        res = await window.authedFetch(`/api/games/${state.selectedGameId}/join`, { method: 'POST' });
+      } else {
+        const headers = typeof window.getAnonymousHeaders === 'function' 
+          ? window.getAnonymousHeaders() 
+          : {};
+        
+        res = await fetch(`/api/games/${state.selectedGameId}/join`, {
+          method: 'POST',
+          headers,
+        });
+      }
+      if (!res.ok) throw new Error(await res.text());
+      const detail = await res.json();
+      state.selectedGame = detail;
+      state.moves = detail.moves || [];
+      state.lastStateTimestamp = Date.now();
+      if (window.ensureUsernamesForGames) await window.ensureUsernamesForGames([detail]);
+      if (window.renderGameDetail) window.renderGameDetail();
+      if (window.showToast) window.showToast('Вы присоединились к партии');
+    } catch (err) {
+      console.error(err);
+      if (window.showToast) window.showToast('Не удалось присоединиться: ' + (err.message || ''), 'error');
+    }
+  }
+
+  async function resignGame() {
+    if (!state.selectedGameId) return;
+    if (!state.currentUser) {
+      if (window.showToast) window.showToast('Сначала войдите в аккаунт', 'error');
+      return;
+    }
+    if (!confirm('Точно сдаться?')) return;
+    try {
+      const res = await window.authedFetch(`/api/games/${state.selectedGameId}/resign`, { method: 'POST' });
+      if (!res.ok) throw new Error(await res.text());
+      const detail = await res.json();
+      state.selectedGame = detail;
+      state.lastStateTimestamp = Date.now();
+      if (window.renderGameDetail) window.renderGameDetail();
+      if (window.showToast) window.showToast('Вы сдались.');
+    } catch (err) {
+      console.error(err);
+      if (window.showToast) window.showToast('Не удалось сдаться: ' + (err.message || ''), 'error');
+    }
+  }
+
+  async function declareTimeout() {
+    if (!state.selectedGameId) return;
+    const role = window.getCurrentUserRole ? window.getCurrentUserRole() : null;
+    if (!role) {
+      if (window.showToast) window.showToast('Только участники партии могут заявлять тайм-аут', 'error');
+      return;
+    }
+    const loser = role === 'white' ? 'black' : 'white';
+    try {
+      const res = await window.authedFetch(`/api/games/${state.selectedGameId}/timeout`, {
+        method: 'POST',
+        body: JSON.stringify({ loser_color: loser }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const detail = await res.json();
+      state.selectedGame = detail;
+      state.lastStateTimestamp = Date.now();
+      if (window.renderGameDetail) window.renderGameDetail();
+      if (window.showToast) window.showToast('Партия завершена по времени');
+    } catch (err) {
+      console.error(err);
+      if (window.showToast) window.showToast('Не удалось завершить по времени: ' + (err.message || ''), 'error');
+    }
+  }
+
+  function copyShareLink() {
+    if (!state.selectedGame) return;
+    const url = `${window.location.origin}/games?game=${state.selectedGame.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      if (window.showToast) window.showToast('Ссылка скопирована');
+    }).catch(() => {
+      if (window.showToast) window.showToast('Не удалось скопировать ссылку', 'error');
+    });
+  }
+
+  // Export functions
+  window.getDisplayedClocks = getDisplayedClocks;
+  window.updateClockDisplays = updateClockDisplays;
+  window.joinGame = joinGame;
+  window.resignGame = resignGame;
+  window.declareTimeout = declareTimeout;
+  window.copyShareLink = copyShareLink;
+})();

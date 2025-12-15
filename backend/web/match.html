@@ -44,18 +44,18 @@
   <!-- Fonts - асинхронная загрузка -->
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"></noscript>
-  <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css">
+  <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
   <!-- Favicon -->
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="120x120" href="/favicon.png">
   <link rel="apple-touch-icon" sizes="120x120" href="/favicon.png">
-  <link rel="stylesheet" href="/styles/base/variables.css">
-  <link rel="stylesheet" href="/styles/base/common.css">
-  <link rel="stylesheet" href="/styles/components/header.css">
-  <link rel="stylesheet" href="/styles/components/notifications.css">
-  <link rel="stylesheet" href="/styles/components/chess-board.css">
-  <link rel="stylesheet" href="/styles/pages/match.css">
+  <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
+  <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
+  <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
+  <link rel="stylesheet" href="/styles/components/notifications.css?v=2.0">
+  <link rel="stylesheet" href="/styles/components/chess-board.css?v=2.0">
+  <link rel="stylesheet" href="/styles/pages/match.css?v=2.0">
   
   <!-- Yandex.Metrika counter -->
   <script type="text/javascript">
@@ -152,94 +152,133 @@
   </header>
 
   <main class="match-main">
-    <div class="container match-grid">
-      <div class="match-left">
-        <div id="matchMessage" class="empty-state hidden">
-          Партия не найдена или недоступна.
-        </div>
+    <div class="container">
+      <div id="matchMessage" class="empty-state hidden">
+        Партия не найдена или недоступна.
+      </div>
 
-        <div class="board-card">
-          <div class="board-container">
-            <div class="board-wrapper">
-              <div class="board-shell">
-                <div class="chess-board" id="matchBoard"></div>
+      <div class="match-center-wrapper">
+        <!-- Левая боковая панель -->
+        <aside class="sidebar-left">
+          <section class="status-card">
+            <div class="status-header">
+              <h3 class="status-title">Информация о партии</h3>
+            </div>
+            <div class="status-content">
+              <div class="status-row">
+                <div class="status-label">
+                  <i class="fas fa-clock"></i>
+                  <span>Контроль</span>
+                </div>
+                <div class="status-value" id="gameTimeControl">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-label">
+                  <i class="fas fa-trophy"></i>
+                  <span>Результат</span>
+                </div>
+                <div class="status-value" id="gameResult">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-label">
+                  <i class="fas fa-crown"></i>
+                  <span>Победитель</span>
+                </div>
+                <div class="status-value" id="gameWinner">—</div>
+              </div>
+              <div class="status-row" id="viewersRow" style="display: none;">
+                <div class="status-label">
+                  <i class="fas fa-eye"></i>
+                  <span>Зрителей</span>
+                </div>
+                <div class="status-value" id="viewersCount">0</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="actions-card" id="gameActions">
+            <div class="actions-header">
+              <h3>
+                <i class="fas fa-cog"></i>
+                <span>Действия</span>
+              </h3>
+            </div>
+            <div class="actions-content" id="actionsContent"></div>
+          </section>
+        </aside>
+
+        <!-- Центральная колонка с доской -->
+        <div class="board-column">
+          <!-- Игрок 1 (сверху) - только для мобильных -->
+          <div class="player-section player-top mobile-only">
+            <div class="player-bar top" id="topPlayerBarMobile">
+              <div class="player-name" id="topPlayerLabelMobile">—</div>
+              <div class="player-clock" id="topClockMobile">05:00</div>
+            </div>
+          </div>
+
+          <!-- Доска -->
+          <div class="board-section">
+            <div class="board-card">
+              <div class="board-container">
+                <div class="board-wrapper">
+                  <div class="board-shell">
+                    <div class="chess-board" id="matchBoard"></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="board-controls">
-            <button class="control-btn" id="flipBoardBtn" title="Повернуть доску">
-              <i class="fas fa-sync-alt"></i>
-            </button>
-            <button class="control-btn" id="exportPgnBtn" title="Экспортировать PGN">
-              <i class="fas fa-download"></i> PGN
-            </button>
-            <div class="board-size-control">
-              <button class="size-btn" id="decreaseSize" title="Уменьшить">
-                <i class="fas fa-minus"></i>
-              </button>
-              <button class="size-btn" id="increaseSize" title="Увеличить">
-                <i class="fas fa-plus"></i>
-              </button>
+          <!-- Игрок 2 (снизу) - только для мобильных -->
+          <div class="player-section player-bottom mobile-only">
+            <div class="player-bar bottom" id="bottomPlayerBarMobile">
+              <div class="player-name" id="bottomPlayerLabelMobile">—</div>
+              <div class="player-clock" id="bottomClockMobile">05:00</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="match-right">
-        <section class="status-card">
-          <div class="status-row">
-            <div class="status-label">Контроль</div>
-            <div class="status-value" id="gameTimeControl">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-label">Результат</div>
-            <div class="status-value" id="gameResult">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-label">Победитель</div>
-            <div class="status-value" id="gameWinner">—</div>
-          </div>
-          <div class="status-row" id="viewersRow" style="display: none;">
-            <div class="status-label">Зрителей</div>
-            <div class="status-value" id="viewersCount">0</div>
-          </div>
-        </section>
-
-        <section class="player-stack">
-          <div class="player-bar top">
-            <div class="player-info">
-              <div class="player-label" id="topPlayerColor">—</div>
+        <!-- Правая боковая панель -->
+        <aside class="sidebar-right">
+          <!-- Игрок 1 (сверху) -->
+          <div class="player-section player-top">
+            <div class="player-bar top" id="topPlayerBar">
               <div class="player-name" id="topPlayerLabel">—</div>
+              <div class="player-clock" id="topClock">05:00</div>
             </div>
-            <div class="player-clock" id="topClock">05:00</div>
           </div>
-          <div class="player-bar bottom">
-            <div class="player-info">
-              <div class="player-label" id="bottomPlayerColor">—</div>
+
+          <section class="moves-card">
+            <div class="card-header">
+              <h3>
+                <i class="fas fa-list-ol"></i>
+                <span>Ходы</span>
+              </h3>
+            </div>
+            <div class="moves-navigation">
+              <button class="nav-arrow-btn" id="prevMoveBtn" title="Предыдущий ход (←)">
+                <i class="fas fa-chevron-left"></i>
+                <span class="nav-btn-label">Назад</span>
+              </button>
+              <button class="nav-arrow-btn" id="nextMoveBtn" title="Следующий ход (→)">
+                <i class="fas fa-chevron-right"></i>
+                <span class="nav-btn-label">Вперёд</span>
+              </button>
+            </div>
+            <div class="moves-list-container">
+              <ol class="moves-list" id="movesList"></ol>
+            </div>
+          </section>
+
+          <!-- Игрок 2 (снизу) -->
+          <div class="player-section player-bottom">
+            <div class="player-bar bottom" id="bottomPlayerBar">
               <div class="player-name" id="bottomPlayerLabel">—</div>
+              <div class="player-clock" id="bottomClock">05:00</div>
             </div>
-            <div class="player-clock" id="bottomClock">05:00</div>
           </div>
-        </section>
-
-        <section class="moves-card">
-          <div class="card-header">
-            <h3>Ходы</h3>
-            <small>Кликните, чтобы увидеть позицию</small>
-          </div>
-          <div class="moves-navigation">
-            <button class="nav-arrow-btn" id="prevMoveBtn" title="Предыдущий ход">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-            <button class="nav-arrow-btn" id="nextMoveBtn" title="Следующий ход">
-              <i class="fas fa-chevron-right"></i>
-            </button>
-          </div>
-          <ol class="moves-list" id="movesList"></ol>
-        </section>
-
-        <section class="actions-card" id="gameActions"></section>
+        </aside>
       </div>
     </div>
   </main>

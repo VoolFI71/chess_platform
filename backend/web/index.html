@@ -118,7 +118,7 @@
           "name": "Как работает рейтинговая система?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Мы используем систему Elo (как на Lichess и Chess.com). Ваш рейтинг изменяется после каждой партии или решенной задачи в зависимости от результата и рейтинга оппонента/задачи. Начальный рейтинг - 1500. Система автоматически подбирает соперников и задачи вашего уровня."
+            "text": "Мы используем систему Elo (как на Lichess и Chess.com). Ваш рейтинг изменяется после каждой партии или решенной задачи в зависимости от результата и рейтинга оппонента/задачи. Начальный рейтинг - 1200. Система автоматически подбирает соперников и задачи вашего уровня."
           }
         },
         {
@@ -161,22 +161,22 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"></noscript>
     
     <!-- Font Awesome - кастомный CSS только с нужными иконками -->
-    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css">
+    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
 
     <!-- Common Styles -->
-    <link rel="stylesheet" href="/styles/base/variables.css">
-    <link rel="stylesheet" href="/styles/base/common.css">
-    <link rel="stylesheet" href="/styles/components/notifications.css">
-    <link rel="stylesheet" href="/styles/pages/index.css">
-    <link rel="stylesheet" href="/styles/components/header.css">
-    <link rel="stylesheet" href="/styles/sections/hero.css">
-    <link rel="stylesheet" href="/styles/sections/features.css">
-    <link rel="stylesheet" href="/styles/sections/faq.css">
-    <link rel="stylesheet" href="/styles/sections/how-it-works.css">
-    <link rel="stylesheet" href="/styles/components/modals.css">
-    <link rel="stylesheet" href="/styles/sections/index-page.css">
-    <link rel="stylesheet" href="/styles/components/footer.css">
-    <link rel="stylesheet" href="/styles/utils/mobile.css">
+    <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
+    <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/notifications.css?v=2.0">
+    <link rel="stylesheet" href="/styles/pages/index.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
+    <link rel="stylesheet" href="/styles/sections/hero.css?v=2.0">
+    <link rel="stylesheet" href="/styles/sections/features.css?v=2.0">
+    <link rel="stylesheet" href="/styles/sections/faq.css?v=2.0">
+    <link rel="stylesheet" href="/styles/sections/how-it-works.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/modals.css?v=2.0">
+    <link rel="stylesheet" href="/styles/sections/index-page.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/footer.css?v=2.0">
+    <link rel="stylesheet" href="/styles/utils/mobile.css?v=2.0">
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -186,8 +186,8 @@
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     
     <!-- Performance: Preload critical resources -->
-    <link rel="preload" href="/styles/base/variables.css" as="style">
-    <link rel="preload" href="/styles/base/common.css" as="style">
+    <link rel="preload" href="/styles/base/variables.css?v=2.0" as="style">
+    <link rel="preload" href="/styles/base/common.css?v=2.0" as="style">
     
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
@@ -327,44 +327,6 @@
                             <a href="/games" class="btn btn-secondary btn-lg hero-btn" aria-label="Начать играть партию в шахматы">
                                 <i class="fas fa-chess" aria-hidden="true"></i> Играть онлайн
                             </a>
-                        </div>
-
-                        <div class="hero-features">
-                            <div class="hero-feature-item">
-                                <span id="heroOnlineCount">Онлайн игроки</span>
-                            </div>
-                        </div>
-
-                        <!-- Live Stats Mini -->
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-icon stat-icon-purple">
-                                    <i class="fas fa-users"></i>
-                                </div>
-                                <div class="stat-value" id="stat-users">0</div>
-                                <div class="stat-label">Активных пользователей</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-icon stat-icon-green">
-                                    <i class="fas fa-puzzle-piece"></i>
-                                </div>
-                                <div class="stat-value" id="stat-puzzles-solved">0</div>
-                                <div class="stat-label">Решений задач</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-icon stat-icon-orange">
-                                    <i class="fas fa-chess"></i>
-                                </div>
-                                <div class="stat-value" id="stat-games-played">0</div>
-                                <div class="stat-label">Сыгранных партий</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-icon stat-icon-pink">
-                                    <i class="fas fa-database"></i>
-                                </div>
-                                <div class="stat-value" id="stat-total-puzzles">0</div>
-                                <div class="stat-label">Задач в базе</div>
-                            </div>
                         </div>
                     </div>
 
@@ -656,7 +618,7 @@
                             <i class="fas fa-chevron-down" aria-hidden="true"></i>
                         </button>
                         <div class="faq-answer" id="faq-answer-4" role="region">
-                            <p>Мы используем систему Elo (как на Lichess и Chess.com). Ваш рейтинг изменяется после каждой партии или решенной задачи в зависимости от результата и рейтинга оппонента/задачи. Начальный рейтинг - 1500. Система автоматически подбирает соперников и задачи вашего уровня.</p>
+                            <p>Мы используем систему Elo (как на Lichess и Chess.com). Ваш рейтинг изменяется после каждой партии или решенной задачи в зависимости от результата и рейтинга оппонента/задачи. Начальный рейтинг - 1200. Система автоматически подбирает соперников и задачи вашего уровня.</p>
                         </div>
                     </div>
 
@@ -729,11 +691,6 @@
                 <div class="footer-grid">
                     <!-- Brand -->
                     <div class="footer-brand">
-                        <div class="footer-brand-header">
-                            <div class="logo-icon footer-logo-icon">
-                                <img src="/favicon.svg" alt="ChessMint" width="56" height="56">
-                            </div>
-                        </div>
                         <h3>ChessMint</h3>
                         <p>
                             Революционная платформа для изучения шахмат. Станьте мастером быстрее с ChessMint! 
@@ -1116,7 +1073,6 @@
     <!-- Page Script -->
     <script src="/scripts/index.js" defer></script>
     <script src="/scripts/hero-animation.js" defer></script>
-    <script src="/scripts/live-stats.js" defer></script>
     <!-- Header Mobile Control - должен загружаться ПОСЛЕ всех скриптов, которые управляют хедером -->
     <script src="/scripts/header-mobile-control.js"></script>
 </body>

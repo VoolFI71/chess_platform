@@ -603,9 +603,16 @@ func (s *GameService) Timeout(ctx context.Context, gameID uuid.UUID, playerID in
 	return s.GetGame(ctx, gameID)
 }
 
-func (s *GameService) ListGames(ctx context.Context, limit, offset int) ([]models.Game, error) {
+func (s *GameService) ListGames(ctx context.Context, limit, offset int, status *models.GameStatus) ([]models.Game, error) {
+	query := s.db.WithContext(ctx)
+
+	// Фильтрация по статусу, если указан
+	if status != nil {
+		query = query.Where("status = ?", *status)
+	}
+
 	var games []models.Game
-	if err := s.db.WithContext(ctx).
+	if err := query.
 		Order("created_at DESC").
 		Limit(limit).
 		Offset(offset).
@@ -683,10 +690,25 @@ func (s *GameService) updateRatings(ctx context.Context, tx *gorm.DB, game *mode
 
 	formatType := s.getGameFormat(tc)
 
-	// Получаем текущие рейтинги
+	// Whitelist для валидации formatType и получения имени колонки (защита от SQL injection)
+	ratingColumns := map[string]string{
+		"bullet":    "bullet_rating",
+		"blitz":     "blitz_rating",
+		"rapid":     "rapid_rating",
+		"classical": "classical_rating",
+	}
+
+	ratingColumn, ok := ratingColumns[formatType]
+	if !ok {
+		// Если formatType невалидный, используем rapid по умолчанию
+		log.Printf("Warning: invalid formatType '%s', using 'rapid' as default", formatType)
+		ratingColumn = "rapid_rating"
+	}
+
+	// Получаем текущие рейтинги (используем валидированное имя колонки)
 	var whiteRating, blackRating int
-	whiteQuery := fmt.Sprintf("SELECT %s_rating FROM users WHERE id = ?", formatType)
-	blackQuery := fmt.Sprintf("SELECT %s_rating FROM users WHERE id = ?", formatType)
+	whiteQuery := fmt.Sprintf("SELECT %s FROM users WHERE id = ?", ratingColumn)
+	blackQuery := fmt.Sprintf("SELECT %s FROM users WHERE id = ?", ratingColumn)
 
 	if err := tx.WithContext(ctx).Raw(whiteQuery, *game.WhiteID).Scan(&whiteRating).Error; err != nil {
 		return fmt.Errorf("failed to get white rating: %w", err)
@@ -730,8 +752,8 @@ func (s *GameService) updateRatings(ctx context.Context, tx *gorm.DB, game *mode
 	whiteRatingChange := whiteRatingAfter - whiteRating
 	blackRatingChange := blackRatingAfter - blackRating
 
-	// Обновляем рейтинги
-	ratingColumn := fmt.Sprintf("%s_rating", formatType)
+	// Обновляем рейтинги (используем уже валидированное имя колонки из whitelist)
+	// ratingColumn уже получен выше через whitelist map, поэтому безопасно использовать
 	if err := tx.WithContext(ctx).Exec(fmt.Sprintf("UPDATE users SET %s = ? WHERE id = ?", ratingColumn), whiteRatingAfter, *game.WhiteID).Error; err != nil {
 		return fmt.Errorf("failed to update white rating: %w", err)
 	}

@@ -185,6 +185,77 @@
     }
   }
 
+  function updateActivePlayerIndicator() {
+    if (!state.game || state.game.status !== 'ACTIVE') {
+      document.getElementById('topPlayerBar')?.classList.remove('active');
+      document.getElementById('bottomPlayerBar')?.classList.remove('active');
+      return;
+    }
+    
+    const { topRole, bottomRole } = getPanelRoles();
+    const expectedTurn = state.game.next_turn === 'w' ? 'white' : 'black';
+    
+    const topBar = document.getElementById('topPlayerBar');
+    const bottomBar = document.getElementById('bottomPlayerBar');
+    const topBarMobile = document.getElementById('topPlayerBarMobile');
+    const bottomBarMobile = document.getElementById('bottomPlayerBarMobile');
+    
+    const updateBar = (bar, role, expectedTurn) => {
+      if (bar) {
+        if (role === expectedTurn) {
+          bar.classList.add('active');
+        } else {
+          bar.classList.remove('active');
+        }
+      }
+    };
+    
+    updateBar(topBar, topRole, expectedTurn);
+    updateBar(bottomBar, bottomRole, expectedTurn);
+    updateBar(topBarMobile, topRole, expectedTurn);
+    updateBar(bottomBarMobile, bottomRole, expectedTurn);
+    
+    // Update clock progress bars
+    updateClockProgress();
+  }
+  
+  function updateClockProgress() {
+    if (!state.game || !state.game.time_control) return;
+    
+    const clocks = getDisplayedClocks(true);
+    if (!clocks) return;
+    
+    const { topRole, bottomRole } = getPanelRoles();
+    const whiteFinish = state.game.white_finish_ms || state.game.time_control.white_finish_ms || state.game.time_control.initial_ms || 0;
+    const blackFinish = state.game.black_finish_ms || state.game.time_control.black_finish_ms || state.game.time_control.initial_ms || 0;
+    
+    const topClock = document.getElementById('topClock');
+    const bottomClock = document.getElementById('bottomClock');
+    const topClockMobile = document.getElementById('topClockMobile');
+    const bottomClockMobile = document.getElementById('bottomClockMobile');
+    
+    const updateClockClasses = (clockEl, value, finish) => {
+      if (clockEl && finish > 0) {
+        clockEl.classList.remove('low-time', 'warning-time');
+        if (value < 10000) { // Less than 10 seconds
+          clockEl.classList.add('low-time');
+        } else if (value < 30000) { // Less than 30 seconds
+          clockEl.classList.add('warning-time');
+        }
+      }
+    };
+    
+    const topValue = topRole === 'white' ? clocks.white : clocks.black;
+    const bottomValue = bottomRole === 'white' ? clocks.white : clocks.black;
+    const topFinish = topRole === 'white' ? whiteFinish : blackFinish;
+    const bottomFinish = bottomRole === 'white' ? whiteFinish : blackFinish;
+    
+    updateClockClasses(topClock, topValue, topFinish);
+    updateClockClasses(bottomClock, bottomValue, bottomFinish);
+    updateClockClasses(topClockMobile, topValue, topFinish);
+    updateClockClasses(bottomClockMobile, bottomValue, bottomFinish);
+  }
+
   function updatePlayerLabelsAndTitle() {
     const matchTitle = document.getElementById('matchTitle');
     if (matchTitle) {
@@ -209,20 +280,27 @@
 
     const topLabel = document.getElementById('topPlayerLabel');
     const bottomLabel = document.getElementById('bottomPlayerLabel');
-    const topColor = document.getElementById('topPlayerColor');
-    const bottomColor = document.getElementById('bottomPlayerColor');
-    if (topLabel || bottomLabel || topColor || bottomColor) {
+    const topLabelMobile = document.getElementById('topPlayerLabelMobile');
+    const bottomLabelMobile = document.getElementById('bottomPlayerLabelMobile');
+    
+    const updateLabel = (label, role) => {
+      if (label) {
+        label.textContent = state.game ? getPlayerNameByRole(role) : '—';
+      }
+    };
+    
+    if (topLabel || bottomLabel || topLabelMobile || bottomLabelMobile) {
       if (!state.game) {
         if (topLabel) topLabel.textContent = '—';
         if (bottomLabel) bottomLabel.textContent = '—';
-        if (topColor) topColor.textContent = '—';
-        if (bottomColor) bottomColor.textContent = '—';
+        if (topLabelMobile) topLabelMobile.textContent = '—';
+        if (bottomLabelMobile) bottomLabelMobile.textContent = '—';
       } else {
         const { topRole, bottomRole } = getPanelRoles();
-        if (topLabel) topLabel.textContent = getPlayerNameByRole(topRole);
-        if (bottomLabel) bottomLabel.textContent = getPlayerNameByRole(bottomRole);
-        if (topColor) topColor.textContent = getRoleLabel(topRole);
-        if (bottomColor) bottomColor.textContent = getRoleLabel(bottomRole);
+        updateLabel(topLabel, topRole);
+        updateLabel(bottomLabel, bottomRole);
+        updateLabel(topLabelMobile, topRole);
+        updateLabel(bottomLabelMobile, bottomRole);
       }
     }
   }
@@ -548,6 +626,7 @@
     clocksUpdateClockDisplays(resetTimer, getPanelRoles, (clocks) => {
       maybeAutoDeclareTimeout(clocks);
       renderActions();
+      updateClockProgress();
     });
   }
 
@@ -593,16 +672,65 @@
     const list = document.getElementById('movesList');
     if (!list) return;
     if (!state.moves.length) {
-      list.innerHTML = '<li style="justify-content:center;color:rgba(148,163,184,.7);">Ходов пока нет</li>';
+      list.innerHTML = '<li style="justify-content:center;color:rgba(148,163,184,.7);padding:1rem;">Ходов пока нет</li>';
       return;
     }
     const activeIndex = getDisplayedMoveIndex();
     const preserveScroll = isAnalysisMode() ? list.scrollTop : null;
     const rows = [];
-    for (let i = 0; i < state.moves.length; i += 2) {
-      const moveNumber = Math.floor(i / 2) + 1;
-      const whiteMove = state.moves[i];
-      const blackMove = state.moves[i + 1];
+    
+    // Группируем ходы по парам (белый, черный) на основе move_index
+    // Нечетные move_index (1, 3, 5, ...) - белые ходы
+    // Четные move_index (2, 4, 6, ...) - черные ходы
+    const movesByIndex = new Map();
+    state.moves.forEach(move => {
+      if (move && move.move_index) {
+        movesByIndex.set(move.move_index, move);
+      }
+    });
+    
+    const maxMoveIndex = Math.max(...Array.from(movesByIndex.keys()));
+    
+    console.log('[MOVE DEBUG] renderMoves called', {
+      totalMoves: state.moves.length,
+      activeIndex,
+      maxMoveIndex,
+      moves: state.moves.map((m, idx) => ({
+        arrayIndex: idx,
+        move_index: m.move_index,
+        san: m.san,
+        uci: m.uci,
+        color: m.color,
+        player_id: m.player_id
+      }))
+    });
+    
+    // Проходим по парам ходов (1-2, 3-4, 5-6, ...)
+    for (let moveNumber = 1; moveNumber <= Math.ceil(maxMoveIndex / 2); moveNumber++) {
+      const whiteMoveIndex = moveNumber * 2 - 1; // 1, 3, 5, 7, ...
+      const blackMoveIndex = moveNumber * 2;     // 2, 4, 6, 8, ...
+      
+      const whiteMove = movesByIndex.get(whiteMoveIndex) || null;
+      const blackMove = movesByIndex.get(blackMoveIndex) || null;
+      
+      console.log('[MOVE DEBUG] Rendering move pair', {
+        moveNumber,
+        whiteMoveIndex,
+        blackMoveIndex,
+        whiteMove: whiteMove ? {
+          move_index: whiteMove.move_index,
+          san: whiteMove.san,
+          uci: whiteMove.uci,
+          color: whiteMove.color
+        } : null,
+        blackMove: blackMove ? {
+          move_index: blackMove.move_index,
+          san: blackMove.san,
+          uci: blackMove.uci,
+          color: blackMove.color
+        } : null
+      });
+      
       rows.push(`
         <li class="move-row">
           <span class="move-label">${moveNumber}.</span>
@@ -619,6 +747,15 @@
         focusOnMove(idx);
       });
     });
+    
+    // Update navigation buttons state
+    const prevBtn = document.getElementById('prevMoveBtn');
+    const nextBtn = document.getElementById('nextMoveBtn');
+    const total = getMoveCount();
+    
+    if (prevBtn) prevBtn.disabled = activeIndex <= 1;
+    if (nextBtn) nextBtn.disabled = activeIndex >= total || total === 0;
+    
     if (preserveScroll !== null) {
       list.scrollTop = preserveScroll;
     } else {
@@ -632,6 +769,17 @@
     }
     const label = move.san || move.uci || '…';
     const isActive = move.move_index === activeIndex;
+    
+    console.log('[MOVE DEBUG] renderMoveCell', {
+      move_index: move.move_index,
+      san: move.san,
+      uci: move.uci,
+      color: move.color,
+      label,
+      activeIndex,
+      isActive
+    });
+    
     return `<button type="button" class="move-cell${isActive ? ' active' : ''}" data-move-index="${move.move_index}">
       ${label}
     </button>`;
@@ -874,7 +1022,7 @@
   };
 
   function renderActions() {
-    const container = document.getElementById('gameActions');
+    const container = document.getElementById('actionsContent');
     if (!container) return;
     container.innerHTML = '';
     if (!state.game) return;
@@ -882,32 +1030,33 @@
     const seat = getAvailableSeat(state.game);
     const joinBtn = document.createElement('button');
     joinBtn.className = 'btn btn-primary';
-    joinBtn.textContent =
+    joinBtn.innerHTML = '<i class="fas fa-user-plus"></i> ' + (
       seat === 'white'
         ? 'Присоединиться белыми'
         : seat === 'black'
           ? 'Присоединиться чёрными'
-          : 'Присоединиться';
+          : 'Присоединиться'
+    );
     joinBtn.addEventListener('click', () => joinGame());
 
     const resignBtn = document.createElement('button');
     resignBtn.className = 'btn btn-danger';
-    resignBtn.textContent = 'Сдаться';
+    resignBtn.innerHTML = '<i class="fas fa-flag"></i> Сдаться';
     resignBtn.addEventListener('click', resignGame);
 
     const flagBtn = document.createElement('button');
     flagBtn.className = 'btn btn-outline';
-    flagBtn.textContent = 'Заявить флаг соперника';
+    flagBtn.innerHTML = '<i class="fas fa-clock"></i> Заявить флаг соперника';
     flagBtn.addEventListener('click', declareTimeout);
 
     const copyBtn = document.createElement('button');
     copyBtn.className = 'btn btn-outline';
-    copyBtn.textContent = 'Скопировать ссылку';
+    copyBtn.innerHTML = '<i class="fas fa-link"></i> Скопировать ссылку';
     copyBtn.addEventListener('click', copyShareLink);
 
     const refreshBtn = document.createElement('button');
     refreshBtn.className = 'btn btn-outline';
-    refreshBtn.textContent = 'Обновить';
+    refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Обновить';
     refreshBtn.addEventListener('click', loadMatch);
 
     if (canJoinGame()) container.appendChild(joinBtn);
@@ -991,24 +1140,105 @@
   }
 
   function updateWsIndicator(status) {
-    const indicator = document.getElementById('wsStatus');
-    if (!indicator) return;
-    indicator.textContent = `WS: ${status}`;
-    indicator.className = `ws-indicator ${status === 'online' ? 'ws-online' : 'ws-offline'}`;
+    // Connection status indicator removed
   }
 
   function applyGameDetail(detail, { isRealtimeMove = false, moveTimestamp = null } = {}) {
     const previousGame = state.game;
     const previousRole = getCurrentUserRole();
     
+    // Сортируем ходы по move_index, чтобы гарантировать правильный порядок
+    const incomingMoves = detail?.moves || [];
+    const previousMoves = state.moves || [];
+    const previousMovesCount = previousMoves.length;
+    
+    console.log('[MOVE DEBUG] applyGameDetail called', {
+      isRealtimeMove,
+      previousMovesCount,
+      incomingMovesCount: incomingMoves.length,
+      incomingMoves: incomingMoves.map(m => ({
+        move_index: m.move_index,
+        san: m.san,
+        uci: m.uci,
+        color: m.color,
+        player_id: m.player_id
+      })),
+      previousMoves: previousMoves.map(m => ({
+        move_index: m.move_index,
+        san: m.san,
+        uci: m.uci,
+        color: m.color
+      }))
+    });
+    
+    // Умное объединение ходов:
+    // - Если это реальный ход через WebSocket - всегда объединяем (сервер может отправлять неполный список)
+    // - Если это не реальный ход (загрузка страницы) - заменяем полностью
+    let finalMoves;
+    const shouldMerge = isRealtimeMove && previousMovesCount > 0;
+    console.log('[MOVE DEBUG] Merge decision', {
+      isRealtimeMove,
+      previousMovesCount,
+      shouldMerge
+    });
+    if (shouldMerge) {
+      // Объединяем: добавляем новые ходы к существующим
+      const movesMap = new Map();
+      
+      // Добавляем все существующие ходы
+      previousMoves.forEach(move => {
+        if (move && move.move_index) {
+          movesMap.set(move.move_index, move);
+        }
+      });
+      
+      // Обновляем/добавляем новые ходы
+      incomingMoves.forEach(move => {
+        if (move && move.move_index) {
+          movesMap.set(move.move_index, move);
+        }
+      });
+      
+      finalMoves = Array.from(movesMap.values()).sort((a, b) => {
+        const aIndex = a.move_index || 0;
+        const bIndex = b.move_index || 0;
+        return aIndex - bIndex;
+      });
+      
+      console.log('[MOVE DEBUG] Merged moves', {
+        previousCount: previousMovesCount,
+        incomingCount: incomingMoves.length,
+        finalCount: finalMoves.length,
+        finalMoves: finalMoves.map(m => ({
+          move_index: m.move_index,
+          san: m.san,
+          uci: m.uci
+        }))
+      });
+    } else {
+      // Полная замена (при загрузке страницы или полном обновлении)
+      finalMoves = incomingMoves.slice().sort((a, b) => {
+        const aIndex = a.move_index || 0;
+        const bIndex = b.move_index || 0;
+        return aIndex - bIndex;
+      });
+      
+      console.log('[MOVE DEBUG] Full replace', {
+        previousCount: previousMovesCount,
+        incomingCount: incomingMoves.length,
+        finalCount: finalMoves.length,
+        isRealtimeMove
+      });
+    }
+    
     setState(
       {
         game: detail,
-        moves: detail?.moves || [],
+        moves: finalMoves,
       },
       'applyGameDetail:updateGame'
     );
-    const moveCount = detail?.moves?.length || 0;
+    const moveCount = finalMoves.length;
     
     if (typeof state.analysisCursor === 'number' && state.analysisCursor > moveCount) {
       setState({ analysisCursor: null }, 'applyGameDetail:clampAnalysis');
@@ -1110,6 +1340,9 @@
     }
 
     updateWinnerDisplay();
+    
+    // Update active player indicator
+    updateActivePlayerIndicator();
 
     const gameIdField = document.getElementById('gameIdField');
     if (gameIdField) {
@@ -1175,8 +1408,12 @@
       applyGameDetail(detail);
       connectWebSocket(state.matchId);
       
-      // Запускаем polling, если игра в статусе CREATED и оба игрока еще не присоединились
-      if (detail.status === 'CREATED' && !haveBothPlayersJoined(detail)) {
+      // Останавливаем polling, если игра уже активна или завершена
+      if (detail.status === 'ACTIVE' || detail.status === 'FINISHED' || detail.status === 'CANCELLED' || detail.status === 'ABANDONED' || haveBothPlayersJoined(detail)) {
+        stopGamePolling();
+      }
+      // Запускаем polling, только если игра в статусе CREATED и оба игрока еще не присоединились
+      else if (detail.status === 'CREATED' && !haveBothPlayersJoined(detail)) {
         startGamePolling();
       }
     } catch (err) {
@@ -1213,6 +1450,18 @@
       const previousStatus = previousGame?.status;
       const currentBothJoined = haveBothPlayersJoined(detail);
       
+      console.log('[MOVE DEBUG] pollGameState update', {
+        movesCount: detail.moves?.length || 0,
+        moves: detail.moves?.map(m => ({
+          move_index: m.move_index,
+          san: m.san,
+          uci: m.uci,
+          color: m.color,
+          player_id: m.player_id
+        })) || [],
+        previousMovesCount: state.moves?.length || 0
+      });
+      
       // Применяем обновления
       applyGameDetail(detail);
       
@@ -1233,8 +1482,8 @@
         updateClockDisplays(true);
       }
       
-      // Останавливаем polling, если оба игрока присоединились или игра завершена/отменена
-      if (currentBothJoined || detail.status === 'FINISHED' || detail.status === 'CANCELLED' || detail.status === 'ABANDONED') {
+      // Останавливаем polling, если оба игрока присоединились, игра активна или завершена/отменена
+      if (currentBothJoined || detail.status === 'ACTIVE' || detail.status === 'FINISHED' || detail.status === 'CANCELLED' || detail.status === 'ABANDONED') {
         stopGamePolling();
       }
     } catch (err) {
@@ -1246,7 +1495,7 @@
     stopGamePolling();
     // Poll каждые 2 секунды, если игра еще в статусе CREATED и оба игрока не присоединились
     const interval = setInterval(() => {
-      if (!state.game || state.game.status !== 'CREATED' || haveBothPlayersJoined()) {
+      if (!state.game || state.game.status !== 'CREATED' || state.game.status === 'ACTIVE' || haveBothPlayersJoined()) {
         stopGamePolling();
         return;
       }
@@ -1277,7 +1526,7 @@
       state.ws.close();
       setState({ ws: null }, 'connectWebSocket:cleanup');
     }
-    updateWsIndicator('offline');
+    updateWsIndicator('connecting');
     const token = getAccessToken();
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     
@@ -1305,6 +1554,7 @@
         resetWsRetryState();
       };
       ws.onclose = (event) => {
+        updateWsIndicator('offline');
         handleWsClose(event);
       };
       ws.onerror = (error) => {
@@ -1359,6 +1609,34 @@
       const moveTimestamp = isRealtimeMove && payload.move?.created_at 
         ? new Date(payload.move.created_at).getTime() 
         : null;
+      
+      console.log('[MOVE DEBUG] WebSocket payload received', {
+        type: payload.type,
+        isRealtimeMove,
+        moveTimestamp,
+        payloadMove: payload.move ? {
+          move_index: payload.move.move_index,
+          san: payload.move.san,
+          uci: payload.move.uci,
+          color: payload.move.color,
+          player_id: payload.move.player_id,
+          created_at: payload.move.created_at,
+          hasSan: !!payload.move.san,
+          hasUci: !!payload.move.uci
+        } : null,
+        gameMovesCount: payload.game?.moves?.length || 0,
+        gameMoves: payload.game?.moves?.map(m => ({
+          move_index: m.move_index,
+          san: m.san,
+          uci: m.uci,
+          color: m.color,
+          player_id: m.player_id,
+          hasSan: !!m.san,
+          hasUci: !!m.uci
+        })) || [],
+        previousMovesCount: state.moves?.length || 0,
+        previousMovesWithSan: state.moves?.filter(m => m.san).length || 0
+      });
       
       applyGameDetail(payload.game, { isRealtimeMove, moveTimestamp });
       ensurePlayerUsernames(payload.game).then(() => {
@@ -1477,6 +1755,19 @@
       }
       
       const detail = await res.json();
+      
+      console.log('[MOVE DEBUG] Initial loadMatch', {
+        gameId: detail.id,
+        movesCount: detail.moves?.length || 0,
+        moves: detail.moves?.map(m => ({
+          move_index: m.move_index,
+          san: m.san,
+          uci: m.uci,
+          color: m.color,
+          player_id: m.player_id
+        })) || []
+      });
+      
       applyGameDetail(detail);
       connectWebSocket(state.matchId);
       showToast('Вы присоединились к партии', 'success');
@@ -1710,6 +2001,51 @@
       window.location.href = '/games';
     });
     document.getElementById('moveForm')?.addEventListener('submit', handleMoveSubmit);
+    
+    // Navigation buttons
+    document.getElementById('prevMoveBtn')?.addEventListener('click', () => {
+      const current = getDisplayedMoveIndex();
+      if (current > 1) {
+        focusOnMove(current - 1);
+      }
+    });
+    
+    document.getElementById('nextMoveBtn')?.addEventListener('click', () => {
+      const current = getDisplayedMoveIndex();
+      const total = getMoveCount();
+      if (current < total) {
+        focusOnMove(current + 1);
+      }
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const current = getDisplayedMoveIndex();
+        if (current > 1) {
+          focusOnMove(current - 1);
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const current = getDisplayedMoveIndex();
+        const total = getMoveCount();
+        if (current < total) {
+          focusOnMove(current + 1);
+        }
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        focusOnMove(1);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        const total = getMoveCount();
+        if (total > 0) {
+          focusOnMove(total);
+        }
+      }
+    });
 
     document.getElementById('gamesLoginBtn')?.addEventListener('click', handleLoginRedirect);
     document.getElementById('gamesRegisterBtn')?.addEventListener('click', handleRegisterRedirect);

@@ -1,7 +1,8 @@
+from hashlib import md5
 from mimetypes import guess_type
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -81,52 +82,77 @@ def _detect_media_type(path: Path) -> str | None:
     return media_type
 
 
-def _serve_file(path: Path):
+def _serve_file(path: Path, request: Request = None):
     media_type = _detect_media_type(path)
     response = FileResponse(str(path))
     if media_type:
         response.headers["Content-Type"] = media_type
+    
+    # Добавляем ETag для правильного кеширования статических файлов
+    # Браузер будет проверять изменения через If-None-Match
+    try:
+        stat = path.stat()
+        # Создаем ETag на основе пути и времени модификации
+        etag_data = f"{path.name}{stat.st_mtime}{stat.st_size}"
+        etag = md5(etag_data.encode()).hexdigest()
+        response.headers["ETag"] = f'"{etag}"'
+        
+        # Для CSS и JS файлов: длительное кеширование с проверкой через ETag
+        if path.suffix in {".css", ".js", ".woff", ".woff2", ".ttf", ".eot", ".svg", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp"}:
+            response.headers["Cache-Control"] = "public, max-age=31536000, must-revalidate"
+        else:
+            # Для HTML и других файлов: короткое кеширование
+            response.headers["Cache-Control"] = "public, max-age=3600, must-revalidate"
+        
+        # Проверяем If-None-Match для поддержки 304 Not Modified
+        if request and request.headers.get("if-none-match") == f'"{etag}"':
+            from fastapi import Response
+            return Response(status_code=304)
+    except (OSError, AttributeError):
+        # Если не удалось получить статистику файла, используем базовое кеширование
+        response.headers["Cache-Control"] = "public, max-age=3600"
+    
     return response
 
 
 @app.get("/course/{course_id}")
-def serve_course_by_id(course_id: int):
+def serve_course_by_id(course_id: int, request: Request):
     # Always serve course.html for pretty URL, frontend reads courseId from path
     course_file = WEB_DIR / "course.html"
     if not course_file.is_file():
         return JSONResponse({"detail": "Not Found"}, status_code=404)
     # Inject no special headers; course.js will parse window.location.pathname
-    return _serve_file(course_file)
+    return _serve_file(course_file, request)
 
 
 @app.get("/games")
 @app.get("/games/")
-def serve_games_page():
+def serve_games_page(request: Request):
     games_file = WEB_DIR / "games.html"
     if not games_file.is_file():
         return JSONResponse({"detail": "Not Found"}, status_code=404)
-    return _serve_file(games_file)
+    return _serve_file(games_file, request)
 
 
 @app.get("/match/{match_id}")
-def serve_match_page(match_id: str):
+def serve_match_page(match_id: str, request: Request):
     match_file = WEB_DIR / "match.html"
     if not match_file.is_file():
         return JSONResponse({"detail": "Not Found"}, status_code=404)
-    return _serve_file(match_file)
+    return _serve_file(match_file, request)
 
 
 @app.get("/profile")
-def serve_profile_page():
+def serve_profile_page(request: Request):
     # Always serve profile.html for pretty URL, frontend reads username from path
     profile_file = WEB_DIR / "profile.html"
     if not profile_file.is_file():
         return JSONResponse({"detail": "Not Found"}, status_code=404)
-    return _serve_file(profile_file)
+    return _serve_file(profile_file, request)
 
 
 @app.get("/profile/{username}")
-def serve_profile_page_with_username(username: str):
+def serve_profile_page_with_username(username: str, request: Request):
     # Block access to URLs with .html extension
     if username.endswith('.html'):
         return JSONResponse({"detail": "Not Found"}, status_code=404)
@@ -135,7 +161,7 @@ def serve_profile_page_with_username(username: str):
     profile_file = WEB_DIR / "profile.html"
     if not profile_file.is_file():
         return JSONResponse({"detail": "Not Found"}, status_code=404)
-    return _serve_file(profile_file)
+    return _serve_file(profile_file, request)
 
 
 @app.get("/favicon.ico")
@@ -166,7 +192,7 @@ def serve_favicon_ico():
 
 
 @app.get("/{full_path:path}")
-def serve_frontend(full_path: str):
+def serve_frontend(full_path: str, request: Request):
     # Don't serve API routes as static files
     if full_path.startswith("api/"):
         return JSONResponse({"detail": "Not Found"}, status_code=404)
@@ -178,4 +204,4 @@ def serve_frontend(full_path: str):
     resolved = _resolve_web_path(full_path)
     if resolved is None:
         return JSONResponse({"detail": "Not Found"}, status_code=404)
-    return _serve_file(resolved)
+    return _serve_file(resolved, request)

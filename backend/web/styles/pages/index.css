@@ -242,6 +242,19 @@
     font-size: 1.125rem;
 }
 
+.hero-actions .btn-secondary {
+    background: #000000;
+    color: #ffffff;
+    border: 2px solid #000000;
+}
+
+.hero-actions .btn-secondary:hover {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
 .hero-features {
     display: flex;
     gap: 2rem;

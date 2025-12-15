@@ -10,7 +10,7 @@
     
     <!-- SEO Meta Tags -->
     <meta name="description" content="Играйте в шахматы онлайн бесплатно на ChessMint. Создавайте партии с друзьями или играйте с соперниками. Блиц (1+0, 3+0, 3+2, 5+0, 5+3), рапид (10+0, 10+5, 15+10), классика (30+0). Реальный рейтинг ELO, анализ партий, мобильная версия. Шахматы для всех уровней.">
-    <meta name="keywords" content="играть в шахматы онлайн, онлайн шахматы, шахматы онлайн играть, играть в шахматы бесплатно, онлайн шахматы с друзьями, быстрые партии, блиц шахматы, рапид шахматы, классические шахматы онлайн, bullet шахматы, blitz шахматы, rapid шахматы, шахматы онлайн без регистрации, играть в шахматы с компьютером, онлайн шахматы рейтинг">
+    <meta name="keywords" content="играть в шахматы онлайн, онлайн шахматы, шахматы онлайн играть, играть в шахматы бесплатно, онлайн шахматы с друзьями, быстрые партии, блиц шахматы, рапид шахматы, классические шахматы онлайн, bullet шахматы, blitz шахматы, rapid шахматы, шахматы онлайн без регистрации, играть в шахматы с компьютером, онлайн шахматы рейтинг, шахматы онлайн играть бесплатно, играть в шахматы с друзьями, шахматы блиц онлайн, шахматы рапид онлайн, классические шахматы онлайн играть">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://chessmint.ru/games">
     
@@ -141,13 +141,76 @@
     }
     </script>
     
-    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css">
+    <!-- Structured Data - HowTo (Создание партии) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      "name": "Как создать партию в шахматы онлайн",
+      "description": "Пошаговая инструкция по созданию партии на ChessMint",
+      "step": [
+        {
+          "@type": "HowToStep",
+          "name": "Выберите режим игры",
+          "text": "Выберите один из режимов: Bullet (1+0), Blitz (3+0, 3+2, 5+0, 5+3), Rapid (10+0, 10+5, 15+10) или Classical (30+0)"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Создайте партию",
+          "text": "Нажмите на карточку режима или создайте партию с настройками через кнопку 'Игра с другом'"
+        },
+        {
+          "@type": "HowToStep",
+          "name": "Пригласите соперника",
+          "text": "Поделитесь ссылкой на партию или дождитесь соперника в зале ожидания. Система автоматически найдет вам соперника для быстрой игры"
+        }
+      ]
+    }
+    </script>
+    
+    <!-- Structured Data - ItemList (Режимы игры) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Режимы игры в шахматы онлайн",
+      "description": "Список доступных режимов игры на ChessMint",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Bullet 1+0",
+          "description": "Молниеносные партии, 1 минута на партию. Идеально для быстрых тренировок"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blitz 3+0, 3+2, 5+0, 5+3",
+          "description": "Быстрые партии блиц, от 3 до 5 минут. Классический формат онлайн шахмат"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Rapid 10+0, 10+5, 15+10",
+          "description": "Рапид партии, от 10 до 15 минут. Позволяют лучше обдумать стратегию"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "Classical 30+0",
+          "description": "Классические шахматы, 30 минут на партию. Подходит для серьезных тренировок"
+        }
+      ]
+    }
+    </script>
+    
+    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
     <!-- Common Styles -->
-    <link rel="stylesheet" href="/styles/base/variables.css">
-    <link rel="stylesheet" href="/styles/base/common.css">
-    <link rel="stylesheet" href="/styles/components/header.css">
-    <link rel="stylesheet" href="/styles/components/notifications.css">
-    <link rel="stylesheet" href="/styles/pages/games/games.css">
+    <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
+    <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/notifications.css?v=2.0">
+    <link rel="stylesheet" href="/styles/pages/games/games.css?v=2.0">
     
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -198,8 +261,8 @@
                             <i class="fas fa-sign-in-alt"></i>
                         </a>
                     </div>
-                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu();">
-                        <i class="fas fa-bars" id="menuIcon"></i>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu();" aria-label="Открыть меню" aria-expanded="false">
+                        <i class="fas fa-bars" id="menuIcon" aria-hidden="true"></i>
                     </button>
                     <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
                         <i class="fas fa-sign-out-alt"></i>
@@ -253,63 +316,83 @@
     <!-- MAIN CONTENT -->
     <main class="main-content">
         <div class="games-page-layout">
-            <!-- VERTICAL TABS -->
-            <aside class="tabs-sidebar" aria-label="Навигация по разделам">
-                <div class="tabs-container">
-                    <button class="tab active" data-tab="quick">
-                        <i class="fas fa-bolt"></i> Быстрая игра
-                    </button>
-                    <button class="tab" data-tab="lobby">
-                        <i class="fas fa-users"></i> Зал ожидания
-                    </button>
-                    <button class="tab" data-tab="tv">
-                        <i class="fas fa-tv"></i> TV
-                    </button>
+            <div class="container">
+                <h1 class="games-main-title sr-only">Играть в шахматы онлайн бесплатно - Блиц, Рапид, Классика</h1>
+                
+                <!-- SEO: Статические описания режимов игры для поисковых роботов -->
+                <div class="game-modes-seo-content sr-only" aria-hidden="true">
+                    <article>
+                        <h2>Bullet (1+0)</h2>
+                        <p>Молниеносные партии, где у каждого игрока всего 1 минута на всю партию. Идеально для быстрых тренировок и развития интуиции.</p>
+                    </article>
+                    <article>
+                        <h2>Blitz (3+0, 3+2, 5+0, 5+3)</h2>
+                        <p>Быстрые партии блиц. Классический формат онлайн шахмат. От 3 до 5 минут на партию с возможным добавлением времени после каждого хода.</p>
+                    </article>
+                    <article>
+                        <h2>Rapid (10+0, 10+5, 15+10)</h2>
+                        <p>Рапид партии для более вдумчивой игры. От 10 до 15 минут на партию. Позволяют лучше обдумать стратегию.</p>
+                    </article>
+                    <article>
+                        <h2>Classical (30+0)</h2>
+                        <p>Классические шахматы онлайн. 30 минут на партию для глубокого анализа позиций. Подходит для серьезных тренировок.</p>
+                    </article>
                 </div>
-            </aside>
-            
-            <!-- CONTENT AREA -->
-            <div class="games-content-area">
-                <div class="container">
-            <!-- QUICK GAME TAB -->
-            <section class="tab-content" id="quick-tab">
+                
+                <!-- TABS HEADER -->
+                <div class="games-tabs-header">
+                    <h2 class="column-title active" data-tab="quick">
+                        <i class="fas fa-bolt"></i> Быстрая игра
+                    </h2>
+                    <h2 class="column-title" data-tab="lobby">
+                        <i class="fas fa-door-open"></i> Зал ожидания
+                    </h2>
+                    <h2 class="column-title" data-tab="tv">
+                        <i class="fas fa-tv"></i> TV
+                    </h2>
+                </div>
+                
+                <!-- CONTENT AREA (single area that switches) -->
+                <div class="games-content-wrapper">
+                    <!-- QUICK GAME TAB -->
+                    <section class="tab-content active" id="quick-tab">
                 <div class="quick-game-wrapper">                    
                     <div class="quick-game-content">
                         <div class="quick-game-center">
-                            <div class="modes-grid modes-grid-3x3" role="list" aria-label="Режимы игры">
-                                <article class="mode-card" data-time="1+0" aria-label="Bullet 1+0 - Молниеносные партии">
+                            <div class="modes-grid modes-grid-3x3" aria-label="Режимы игры">
+                                <article class="mode-card" data-time="1+0" aria-label="Bullet 1+0 - Молниеносные партии" role="button" tabindex="0">
                                     <div class="mode-time">1+0</div>
                                     <div class="mode-label">Bullet</div>
                                 </article>
-                                <article class="mode-card" data-time="3+0" aria-label="Blitz 3+0 - Быстрый блиц">
+                                <article class="mode-card" data-time="3+0" aria-label="Blitz 3+0 - Быстрый блиц" role="button" tabindex="0">
                                     <div class="mode-time">3+0</div>
                                     <div class="mode-label">Blitz</div>
                                 </article>
-                                <article class="mode-card" data-time="3+2" aria-label="Blitz 3+2 - Классический блиц">
+                                <article class="mode-card" data-time="3+2" aria-label="Blitz 3+2 - Классический блиц" role="button" tabindex="0">
                                     <div class="mode-time">3+2</div>
                                     <div class="mode-label">Blitz</div>
                                 </article>
-                                <article class="mode-card" data-time="5+0" aria-label="Blitz 5+0 - Стандартный блиц">
+                                <article class="mode-card" data-time="5+0" aria-label="Blitz 5+0 - Стандартный блиц" role="button" tabindex="0">
                                     <div class="mode-time">5+0</div>
                                     <div class="mode-label">Blitz</div>
                                 </article>
-                                <article class="mode-card" data-time="5+3" aria-label="Blitz 5+3 - Блиц с добавлением">
+                                <article class="mode-card" data-time="5+3" aria-label="Blitz 5+3 - Блиц с добавлением" role="button" tabindex="0">
                                     <div class="mode-time">5+3</div>
                                     <div class="mode-label">Blitz</div>
                                 </article>
-                                <article class="mode-card" data-time="10+0" aria-label="Rapid 10+0 - Быстрый рапид">
+                                <article class="mode-card" data-time="10+0" aria-label="Rapid 10+0 - Быстрый рапид" role="button" tabindex="0">
                                     <div class="mode-time">10+0</div>
                                     <div class="mode-label">Rapid</div>
                                 </article>
-                                <article class="mode-card" data-time="10+5" aria-label="Rapid 10+5 - Классический рапид">
+                                <article class="mode-card" data-time="10+5" aria-label="Rapid 10+5 - Классический рапид" role="button" tabindex="0">
                                     <div class="mode-time">10+5</div>
                                     <div class="mode-label">Rapid</div>
                                 </article>
-                                <article class="mode-card" data-time="15+10" aria-label="Rapid 15+10 - Длинный рапид">
+                                <article class="mode-card" data-time="15+10" aria-label="Rapid 15+10 - Длинный рапид" role="button" tabindex="0">
                                     <div class="mode-time">15+10</div>
                                     <div class="mode-label">Rapid</div>
                                 </article>
-                                <article class="mode-card" data-time="30+0" aria-label="Classical 30+0 - Классические шахматы">
+                                <article class="mode-card" data-time="30+0" aria-label="Classical 30+0 - Классические шахматы" role="button" tabindex="0">
                                     <div class="mode-time">30+0</div>
                                     <div class="mode-label">Classical</div>
                                 </article>
@@ -317,126 +400,72 @@
                             <div class="custom-game-container">
                                 <button type="button" class="btn btn-outline" id="customGameBtn">
                                     <i class="fas fa-cog" aria-hidden="true"></i>
-                                    Своя игра
+                                    Игра с другом
                                 </button>
                             </div>
                         </div>
-                        
-                        <aside class="game-type-selector" aria-label="Тип игры">
-                            <div class="card">
-                                <h3 class="card-title">
-                                    <i class="fas fa-trophy" aria-hidden="true"></i>
-                                    Тип игры
-                                </h3>
-                                <div class="game-type-options">
-                                    <label class="game-type-option">
-                                        <input type="radio" name="gameType" value="rated" checked>
-                                        <span class="game-type-card">
-                                            <i class="fas fa-trophy" aria-hidden="true"></i>
-                                            <span class="game-type-name">Рейтинговая</span>
-                                            <span class="game-type-description">Влияет на ваш рейтинг</span>
-                                        </span>
-                                    </label>
-                                    <label class="game-type-option">
-                                        <input type="radio" name="gameType" value="casual">
-                                        <span class="game-type-card">
-                                            <i class="fas fa-handshake" aria-hidden="true"></i>
-                                            <span class="game-type-name">Товарищеская</span>
-                                            <span class="game-type-description">Без влияния на рейтинг</span>
-                                        </span>
-                                    </label>
-                                </div>
+                    </div>
+                </div>
+                    </section>
+
+                    <!-- LOBBY TAB -->
+                    <section class="tab-content" id="lobby-tab">
+                        <div class="game-modes">
+                            <!-- Filters -->
+                            <div class="lobby-filters" role="group" aria-label="Фильтры зала ожидания">
+                                <button type="button" class="filter-btn active" data-filter="all" aria-pressed="true">Все</button>
+                                <button type="button" class="filter-btn" data-filter="rated" aria-pressed="false">Рейтинговые</button>
+                                <button type="button" class="filter-btn" data-filter="casual" aria-pressed="false">Товарищеские</button>
+                                <button type="button" class="filter-btn" data-filter="refresh" aria-label="Обновить список" title="Обновить список">
+                                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                                </button>
                             </div>
-                        </aside>
-                    </div>
-                </div>
-            </section>
+                            
+                            <!-- Loading indicator -->
+                            <div class="loading-indicator" id="lobbyLoading" role="status" aria-live="polite" aria-label="Загрузка списка игр" style="display: none;">
+                                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                                <span>Загрузка партий...</span>
+                            </div>
+                            
+                            <!-- Empty state -->
+                            <div class="empty-state" id="lobbyEmpty" style="display: none;" role="status">
+                                <i class="fas fa-inbox" aria-hidden="true"></i>
+                                <h3>Нет доступных партий</h3>
+                                <p>Создайте свою игру, чтобы начать играть!</p>
+                                <button type="button" class="btn btn-primary" id="createGameFromEmpty">
+                                    Создать игру
+                                </button>
+                            </div>
+                            
+                            <div class="waiting-room" id="waitingRoom" role="list" aria-label="Список ожидающих игроков">
+                                <!-- Динамически загружаемые элементы -->
+                            </div>
+                        </div>
+                    </section>
 
-            <!-- LOBBY TAB -->
-            <section class="tab-content" id="lobby-tab" aria-labelledby="lobby-tab-title">
-                <div class="content-grid">
-                    <div class="game-modes">
-                        <h2 id="lobby-tab-title" class="section-title">
-                            <i class="fas fa-door-open" aria-hidden="true"></i>
-                            Зал ожидания
-                        </h2>
-                        <p class="section-description">Присоединяйтесь к партиям, которые уже созданы другими игроками, или создайте свою игру.</p>
-                        
-                        <!-- Filters -->
-                        <div class="lobby-filters" role="group" aria-label="Фильтры зала ожидания">
-                            <button type="button" class="filter-btn active" data-filter="all" aria-pressed="true">Все</button>
-                            <button type="button" class="filter-btn" data-filter="rated" aria-pressed="false">Рейтинговые</button>
-                            <button type="button" class="filter-btn" data-filter="casual" aria-pressed="false">Товарищеские</button>
-                            <button type="button" class="filter-btn" data-filter="refresh" aria-label="Обновить список" title="Обновить список">
-                                <i class="fas fa-sync-alt" aria-hidden="true"></i>
-                            </button>
+                    <!-- TV TAB -->
+                    <section class="tab-content" id="tv-tab">
+                        <div class="game-modes">
+                            <p class="section-description">Смотрите партии сильнейших игроков в режиме реального времени. Нажмите на любую партию, чтобы начать просмотр.</p>
+                            
+                            <!-- Loading indicator -->
+                            <div class="loading-indicator" id="tvLoading" role="status" aria-live="polite" aria-label="Загрузка живых партий" style="display: none;">
+                                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                                <span>Загрузка партий...</span>
+                            </div>
+                            
+                            <!-- Empty state -->
+                            <div class="empty-state" id="tvEmpty" style="display: none;" role="status">
+                                <i class="fas fa-tv" aria-hidden="true"></i>
+                                <h3>Нет активных партий</h3>
+                                <p>Сейчас нет партий для просмотра. Создайте свою игру или подождите немного.</p>
+                            </div>
+                            
+                            <div class="tv-games" id="tvGames" role="list" aria-label="Список живых партий">
+                                <!-- Динамически загружаемые элементы -->
+                            </div>
                         </div>
-                        
-                        <!-- Loading indicator -->
-                        <div class="loading-indicator" id="lobbyLoading" role="status" aria-live="polite" aria-label="Загрузка списка игр" style="display: none;">
-                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                            <span>Загрузка партий...</span>
-                        </div>
-                        
-                        <!-- Empty state -->
-                        <div class="empty-state" id="lobbyEmpty" style="display: none;" role="status">
-                            <i class="fas fa-inbox" aria-hidden="true"></i>
-                            <h3>Нет доступных партий</h3>
-                            <p>Создайте свою игру, чтобы начать играть!</p>
-                            <button type="button" class="btn btn-primary" id="createGameFromEmpty">
-                                Создать игру
-                            </button>
-                        </div>
-                        
-                        <div class="waiting-room" id="waitingRoom" role="list" aria-label="Список ожидающих игроков">
-                            <!-- Динамически загружаемые элементы -->
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TV TAB -->
-            <section class="tab-content" id="tv-tab" aria-labelledby="tv-tab-title">
-                <div class="content-grid">
-                    <div class="game-modes">
-                        <h2 id="tv-tab-title" class="section-title">
-                            <i class="fas fa-broadcast-tower" aria-hidden="true"></i>
-                            Живые партии
-                        </h2>
-                        <p class="section-description">Смотрите партии сильнейших игроков в режиме реального времени. Нажмите на любую партию, чтобы начать просмотр.</p>
-                        
-                        <!-- Loading indicator -->
-                        <div class="loading-indicator" id="tvLoading" role="status" aria-live="polite" aria-label="Загрузка живых партий" style="display: none;">
-                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                            <span>Загрузка партий...</span>
-                        </div>
-                        
-                        <!-- Empty state -->
-                        <div class="empty-state" id="tvEmpty" style="display: none;" role="status">
-                            <i class="fas fa-tv" aria-hidden="true"></i>
-                            <h3>Нет активных партий</h3>
-                            <p>Сейчас нет партий для просмотра. Создайте свою игру или подождите немного.</p>
-                        </div>
-                        
-                        <div class="tv-games" id="tvGames" role="list" aria-label="Список живых партий">
-                            <!-- Динамически загружаемые элементы -->
-                        </div>
-                    </div>
-
-                    <aside class="sidebar" role="complementary" aria-label="Дополнительная информация">
-                        <div class="card">
-                            <h3 class="card-title">
-                                <i class="fas fa-info-circle" aria-hidden="true"></i>
-                                О режиме TV
-                            </h3>
-                            <p class="sidebar-description">
-                                Смотрите партии сильнейших игроков в режиме реального времени. 
-                                Нажмите на любую партию, чтобы начать просмотр с возможностью анализировать ходы.
-                            </p>
-                        </div>
-                    </aside>
-                </div>
-            </section>
+                    </section>
                 </div>
             </div>
         </div>
@@ -495,9 +524,37 @@
 
                 <button type="submit" class="btn-create">
                     <i class="fas fa-search"></i>
-                    Создать запрос на игру
+                    Создать приглашение
                 </button>
             </form>
+
+            <!-- Share screen for custom game -->
+            <div id="customGameShareScreen" class="share-screen" style="display: none;">
+                <div class="share-instruction">
+                    Чтобы пригласить друга, отправьте ему эту ссылку
+                </div>
+                
+                <div class="link-container">
+                    <input type="text" id="customGameShareLink" class="link-input" readonly>
+                    <button type="button" id="copyCustomGameLinkBtn" class="btn-copy">
+                        <i class="fas fa-copy"></i> Копировать
+                    </button>
+                </div>
+                
+                <div class="qr-container">
+                    <div class="qr-title">Или позвольте отсканировать код противнику</div>
+                    <div class="qr-code">
+                        <img id="customGameQrImage" alt="QR-код приглашения" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22200%22%20height%3D%22200%22%3E%3Crect%20width%3D%22200%22%20height%3D%22200%22%20fill%3D%22%23f0f0f0%22%2F%3E%3C%2Fsvg%3E" loading="lazy">
+                    </div>
+                </div>
+
+                <div class="waiting-spinner" role="status" aria-live="polite" aria-label="Ожидаем второго игрока">
+                    <i class="fas fa-rotate-right"></i>
+                </div>
+                <div style="text-align: center; margin-top: 1rem; color: var(--muted-foreground);">
+                    Ожидаем присоединения второго игрока...
+                </div>
+            </div>
         </div>
     </div>
 
@@ -580,12 +637,22 @@
     </div>
 
     <!-- Common Auth Script (must load first) -->
-    <script src="/scripts/auth.js"></script>
-    <script src="/scripts/mobile-menu.js"></script>
-    <script src="/scripts/session.js"></script>
-    <script src="/scripts/notifications.js"></script>
-    <!-- Games Page Script -->
-    <script src="/scripts/games.js"></script>
+    <script src="/scripts/auth.js" defer></script>
+    <script src="/scripts/mobile-menu.js" defer></script>
+    <script src="/scripts/session.js" defer></script>
+    <script src="/scripts/notifications.js" defer></script>
+    <!-- Games Page Scripts - Modular -->
+    <script src="/scripts/games/games-core.js" defer></script>
+    <script src="/scripts/games/games-api.js" defer></script>
+    <script src="/scripts/games/games-utils.js" defer></script>
+    <script src="/scripts/games/games-ui.js" defer></script>
+    <script src="/scripts/games/games-actions.js" defer></script>
+    <script src="/scripts/games/games-websocket.js" defer></script>
+    <script src="/scripts/games/games-auth-ui.js" defer></script>
+    <script src="/scripts/games/games-tabs.js" defer></script>
+    <script src="/scripts/games/games-lobby.js" defer></script>
+    <script src="/scripts/games/games-init.js" defer></script>
+    <script src="/scripts/games-forms.js" defer></script>
     <!-- Header Mobile Control - должен загружаться ПОСЛЕ всех скриптов, которые управляют хедером -->
     <script src="/scripts/header-mobile-control.js"></script>
     <!-- Initialize event handlers -->
