@@ -2369,3 +2369,72 @@ body.dark .streak-indicator.active {
     }
 }
 
+/* ===== TASKS FAQ SECTION ===== */
+.tasks-faq-section {
+    padding: 4rem 0;
+    margin-top: 4rem;
+}
+
+.tasks-faq-section .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.tasks-faq-section .section-title {
+    font-size: clamp(1.75rem, 4vw + 0.5rem, 2.5rem);
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    margin-bottom: 2rem;
+    line-height: 1.2;
+}
+
+.tasks-faq-section .faq-container {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.tasks-faq-section .faq-item {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 1.25rem;
+    padding: 2rem;
+    border: 2px solid rgba(124, 58, 237, 0.1);
+}
+
+body.dark .tasks-faq-section .faq-item {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.tasks-faq-section .faq-item h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+.tasks-faq-section .faq-item p {
+    color: var(--muted);
+    line-height: 1.7;
+    font-size: 1rem;
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .tasks-faq-section {
+        padding: 3rem 0;
+        margin-top: 3rem;
+    }
+    
+    .tasks-faq-section .faq-item {
+        padding: 1.5rem;
+    }
+    
+    .tasks-faq-section .faq-item h3 {
+        font-size: 1.125rem;
+    }
+}
+

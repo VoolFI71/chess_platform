@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, Text, func
+from sqlalchemy import DateTime, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -9,6 +9,11 @@ from ..database import Base
 
 class Puzzle(Base):
 	__tablename__ = "puzzles"
+	__table_args__ = (
+		# Композитный индекс для оптимизации ORDER BY rating, puzzle_id
+		# Критичен для производительности GET /puzzles/
+		Index("ix_puzzles_rating_puzzle_id", "rating", "puzzle_id"),
+	)
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True)
 	puzzle_id: Mapped[str] = mapped_column(String(16), unique=True, nullable=False, index=True)

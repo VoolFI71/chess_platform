@@ -27,7 +27,7 @@ class PuzzleCache:
 
 	def __init__(self):
 		self.settings = get_settings()
-		self._cache_ttl = timedelta(minutes=30)  # TTL кеша 30 минут
+		self._cache_ttl = timedelta(hours=1)  # TTL кеша 1 час (увеличено для уменьшения частоты обновлений)
 
 	@classmethod
 	def _get_cache(cls, key: str) -> list[Puzzle] | None:
@@ -40,13 +40,15 @@ class PuzzleCache:
 
 	@classmethod
 	def _should_refresh(cls, key: str, ttl: timedelta) -> bool:
+		# ОПТИМИЗАЦИЯ: Убрали избыточную проверку cls._cache.get(key)
+		# Если key not in cls._cache, мы уже вернули True выше
 		if key not in cls._cache:
 			return True
 		timestamp = cls._cache_timestamps.get(key)
 		if not timestamp:
 			return True
 		age = datetime.now(timezone.utc) - timestamp
-		return age > ttl or not cls._cache.get(key)
+		return age > ttl
 
 	async def get_random_puzzle(
 		self,
@@ -73,15 +75,21 @@ class PuzzleCache:
 
 		# Читаем из кеша без блокировки (чтение из dict атомарно в CPython)
 		cached = self._get_cache(cache_key)
-		is_cache_empty = not cached or len(cached) == 0
-		should_refresh = self._should_refresh(cache_key, self._cache_ttl)
 		
-		# Если кеш есть и свежий - возвращаем задачу сразу
-		if cached and len(cached) > 0 and not should_refresh:
+		# ОПТИМИЗАЦИЯ: Проверяем should_refresh только если кеш есть
+		# Это уменьшает количество вызовов datetime.now() при пустом кеше
+		if cached and len(cached) > 0:
+			if not self._should_refresh(cache_key, self._cache_ttl):
+				# Кеш свежий - возвращаем задачу сразу (быстрый путь)
 			return random.choice(cached)
+			# Кеш устарел - обработаем ниже (stale-while-revalidate)
+			should_refresh = True
+		else:
+			# Кеш пуст
+			should_refresh = True
 
 		# Если кеш пуст - запускаем обновление и ждем его завершения
-		if is_cache_empty:
+		if not cached or len(cached) == 0:
 			# Используем блокировку, чтобы только один запрос запускал обновление
 			async with self._refresh_lock:
 				# Двойная проверка: возможно, кеш уже обновили пока ждали блокировку

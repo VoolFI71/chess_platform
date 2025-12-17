@@ -6,7 +6,6 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
 
-# Кэш удален - теперь используется WebSocket для real-time обновлений
 class GlobalStatsResponse(BaseModel):
     total_puzzle_solutions: int
     total_games_played: int
@@ -58,6 +57,8 @@ async def get_global_stats() -> GlobalStatsResponse:
     - Общее количество сыгранных партий
     - Общее количество пользователей
     - Общее количество задач
+    
+    Примечание: Эндпоинт доступен для локального использования, но не используется на фронтенде
     """
     puzzles_stats = await _get_puzzles_stats()
     games_stats = await _get_games_stats()

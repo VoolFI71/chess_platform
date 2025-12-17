@@ -398,3 +398,100 @@ body.dark .feature-card:hover {
     }
 }
 
+/* Why ChessMint Section Styles */
+.why-chessmint-section {
+    padding: 6rem 0;
+    position: relative;
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.03) 0%, transparent 100%);
+}
+
+.why-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+@media (min-width: 768px) {
+    .why-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .why-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.why-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    border: 2px solid rgba(124, 58, 237, 0.1);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+body.dark .why-card {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.why-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+    color: #3b82f6;
+    font-size: 2rem;
+}
+
+body.dark .why-icon {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+    color: #60a5fa;
+}
+
+.why-card h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+}
+
+.why-card p {
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+    .why-chessmint-section {
+        padding: 4rem 0;
+    }
+    
+    .why-grid {
+        gap: 1.5rem;
+    }
+    
+    .why-card {
+        padding: 1.5rem;
+    }
+    
+    .why-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+        font-size: 1.75rem;
+    }
+    
+    .why-card h3 {
+        font-size: 1.125rem;
+    }
+}
+

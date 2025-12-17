@@ -36,4 +36,8 @@ scrape_configs:
         target_label: service
         regex: '/ch_(.+)_\d+;'
         replacement: '${1}'
+      # Добавляем метку app_name из service для совместимости с Prometheus метриками
+      - source_labels: ['service']
+        target_label: app_name
+        regex: '(.+)'
 

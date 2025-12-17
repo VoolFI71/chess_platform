@@ -30,13 +30,6 @@ class PuzzleFilters(BaseModel):
 	opening_tags: Sequence[str] | None = None
 
 
-class PuzzleListResponse(BaseModel):
-	items: list[PuzzleResponse]
-	page: int
-	size: int
-	total: int
-
-
 class PuzzleCountResponse(BaseModel):
 	count: int
 

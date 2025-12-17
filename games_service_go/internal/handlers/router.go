@@ -19,6 +19,7 @@ func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, statsMana
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(MetricsMiddleware()) // Добавляем метрики для всех запросов
 
 	// Отключаем автоматические редиректы для trailing slash (как в FastAPI)
 	router.RedirectTrailingSlash = false

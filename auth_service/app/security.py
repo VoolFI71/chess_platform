@@ -63,7 +63,21 @@ class RefreshTokenError(Exception):
 		super().__init__(detail)
 
 
-async def create_refresh_token(db: AsyncSession, user_id: int) -> str:
+async def create_refresh_token(
+	db: AsyncSession, user_id: int, is_active: bool = True, commit: bool = True
+) -> str:
+	"""
+	Создает новый refresh token.
+	
+	Args:
+		db: Сессия базы данных
+		user_id: ID пользователя
+		is_active: Статус активности пользователя (хранится в JWT payload для оптимизации)
+		commit: Если True, выполняет COMMIT. Если False, только flush (для оптимизации транзакций)
+	
+	Returns:
+		JWT refresh token
+	"""
 	settings = get_settings()
 	expires_delta = timedelta(days=settings.refresh_token_expire_days)
 	token_uuid = uuid4()
@@ -71,7 +85,7 @@ async def create_refresh_token(db: AsyncSession, user_id: int) -> str:
 		subject=str(user_id),
 		token_type="refresh",
 		expires_delta=expires_delta,
-		extra_claims={"jti": str(token_uuid)},
+		extra_claims={"jti": str(token_uuid), "is_active": is_active},
 	)
 	record = RefreshToken(
 		token_id=token_uuid,
@@ -80,7 +94,10 @@ async def create_refresh_token(db: AsyncSession, user_id: int) -> str:
 		expires_at=_now() + expires_delta,
 	)
 	db.add(record)
-	await db.commit()
+	if commit:
+		await db.commit()
+	else:
+		await db.flush()  # Отправляем SQL, но не коммитим (для оптимизации транзакций)
 	return token
 
 
@@ -97,6 +114,11 @@ async def validate_refresh_token(db: AsyncSession, token: str) -> RefreshToken:
 
 	if payload.get("type") != "refresh":
 		raise RefreshTokenError("Неверный тип токена")
+
+	# ОПТИМИЗАЦИЯ: Проверяем is_active из JWT payload (убираем необходимость в fetch_user_by_id)
+	is_active = payload.get("is_active", True)
+	if not is_active:
+		raise RefreshTokenError("Пользователь неактивен")
 
 	token_id = payload.get("jti")
 	if not token_id:

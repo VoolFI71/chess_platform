@@ -9,6 +9,9 @@ import (
 func NewRouter(cfg *config.Config) *gin.Engine {
 	router := gin.Default()
 
+	// Добавляем middleware для метрик
+	router.Use(MetricsMiddleware())
+
 	// Health check
 	router.GET("/health", handleHealth)
 

@@ -1288,6 +1288,123 @@ html.dark .tv-time {
     text-align: left;
 }
 
+/* ===== GAMES MAIN TITLE ===== */
+.games-main-title {
+    font-size: clamp(2rem, 5vw + 1rem, 3rem);
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 1rem;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.games-main-subtitle {
+    font-size: clamp(1rem, 2vw + 0.5rem, 1.25rem);
+    color: var(--games-muted-text);
+    text-align: center;
+    margin-bottom: 3rem;
+    line-height: 1.6;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ===== PLAY COMPUTER SECTION ===== */
+.play-computer-section {
+    padding: 4rem 0;
+    margin-top: 4rem;
+    background: linear-gradient(180deg, transparent 0%, rgba(124, 58, 237, 0.03) 100%);
+    border-radius: 1.5rem;
+}
+
+.play-computer-section .section-title {
+    text-align: center;
+    font-size: clamp(1.75rem, 4vw + 0.5rem, 2.5rem);
+    margin-bottom: 1rem;
+}
+
+.play-computer-section .section-description {
+    text-align: center;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 2rem;
+}
+
+.play-computer-cta {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+/* ===== GAMES FAQ SECTION ===== */
+.games-faq-section {
+    padding: 4rem 0;
+    margin-top: 4rem;
+}
+
+.games-faq-section .section-title {
+    text-align: center;
+    font-size: clamp(1.75rem, 4vw + 0.5rem, 2.5rem);
+    margin-bottom: 2rem;
+}
+
+.games-faq-section .faq-container {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    gap: 1.5rem;
+}
+
+.games-faq-section .faq-item {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 1.25rem;
+    padding: 2rem;
+    border: 2px solid rgba(124, 58, 237, 0.1);
+    transition: all 0.3s ease;
+}
+
+body.dark .games-faq-section .faq-item {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.games-faq-section .faq-item:hover {
+    border-color: rgba(124, 58, 237, 0.3);
+    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.15);
+}
+
+.games-faq-section .faq-item h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+.games-faq-section .faq-item p {
+    color: var(--games-muted-text);
+    line-height: 1.7;
+    font-size: 1rem;
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .play-computer-section,
+    .games-faq-section {
+        padding: 3rem 0;
+        margin-top: 3rem;
+    }
+    
+    .games-faq-section .faq-item {
+        padding: 1.5rem;
+    }
+    
+    .games-faq-section .faq-item h3 {
+        font-size: 1.125rem;
+    }
+}
+
 /* ===== QUICK GAME WRAPPER ===== */
 .quick-game-wrapper {
     width: 100%;

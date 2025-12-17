@@ -13,6 +13,13 @@ class Settings(BaseServiceSettings):
 	# Путь к CSV файлу для автоматического импорта при старте
 	# Можно установить через переменную окружения PUZZLES_CSV_FILE_PATH
 
+	# Увеличенный пул соединений для высокой нагрузки
+	# Базовый размер: 50, overflow: 100, итого до 150 соединений
+	db_pool_size: int = 50
+	db_max_overflow: int = 100
+	db_pool_timeout: int = 30  # Таймаут ожидания свободного соединения (секунды)
+	db_pool_recycle: int = 3600  # Пересоздание соединений через 1 час
+
 
 get_settings = make_get_settings(Settings)
 

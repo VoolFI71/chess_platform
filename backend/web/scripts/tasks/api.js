@@ -401,9 +401,15 @@
     },
 
     async submitAttempt(success) {
-      // Проверяем авторизацию перед отправкой попытки
-      if (!TasksState.currentUser) {
+      // Проверяем авторизацию только для режимов, требующих авторизации
+      const selectedMode = TasksConstants.MODES.find(m => m.id === TasksState.selectedMode.id);
+      if (selectedMode && selectedMode.requiresAuth && !TasksState.currentUser) {
         window.location.href = '/login';
+        return Promise.resolve();
+      }
+      
+      // Для режима марафон без авторизации просто пропускаем отправку на сервер
+      if (TasksState.selectedMode.id === 'marathon' && !TasksState.currentUser) {
         return Promise.resolve();
       }
       
@@ -478,7 +484,7 @@
         // Для режима марафон загрузка следующей задачи происходит в handlePuzzleSolved
         if (success && TasksState.selectedMode.id !== 'marathon') {
           await new Promise(resolve => {
-            window.TasksUtils.createTimer(resolve, 1500);
+            window.TasksUtils.createTimer(resolve, 300);
           });
           window.TasksUI.setPuzzleStatus('Загружаем следующую задачу...', false);
           await window.TasksAPI.loadPuzzleForCurrentMode();

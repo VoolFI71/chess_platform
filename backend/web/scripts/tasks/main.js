@@ -131,7 +131,7 @@
         window.TasksUtils.createTimer(() => {
           window.TasksUI.setPuzzleStatus('Загружаем следующую задачу...', false);
           window.TasksAPI.loadPuzzleForCurrentMode();
-        }, 1500);
+        }, 300);
       } else {
         // Отправляем попытку только для авторизованных пользователей в других режимах
         if (TasksState.currentUser) {
@@ -185,12 +185,12 @@
       window.TasksAPI.submitAttempt(false).then(() => {
         window.TasksUtils.createTimer(() => {
           window.TasksAPI.loadPuzzleForCurrentMode();
-        }, 1000);
+        }, 300);
       }).catch(() => {
         // Если отправка не удалась, все равно загружаем следующую задачу
         window.TasksUtils.createTimer(() => {
           window.TasksAPI.loadPuzzleForCurrentMode();
-        }, 1000);
+        }, 300);
       });
     },
 

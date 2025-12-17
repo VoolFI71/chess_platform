@@ -98,28 +98,7 @@
   function initLiveStats() {
     // Подключаемся к WebSocket для real-time обновлений
     connectStatsWebSocket();
-
-    // Анимируем счетчики статистики при первой загрузке
-    const statUsers = document.getElementById('stat-users');
-    const statPuzzlesSolved = document.getElementById('stat-puzzles-solved');
-    const statGamesPlayed = document.getElementById('stat-games-played');
-    const statTotalPuzzles = document.getElementById('stat-total-puzzles');
-
-    // Используем данные из глобальной статистики если они есть
-    setTimeout(() => {
-      if (statUsers && window.globalStats?.total_users) {
-        animateCounter(statUsers, window.globalStats.total_users);
-      }
-      if (statPuzzlesSolved && window.globalStats?.total_puzzle_attempts) {
-        animateCounter(statPuzzlesSolved, window.globalStats.total_puzzle_attempts);
-      }
-      if (statGamesPlayed && window.globalStats?.total_games) {
-        animateCounter(statGamesPlayed, window.globalStats.total_games);
-      }
-      if (statTotalPuzzles && window.globalStats?.total_puzzles) {
-        animateCounter(statTotalPuzzles, window.globalStats.total_puzzles);
-      }
-    }, 500);
+    // Удалено: анимация счетчиков статистики (window.globalStats не используется)
   }
 
   // Запускаем при загрузке страницы
