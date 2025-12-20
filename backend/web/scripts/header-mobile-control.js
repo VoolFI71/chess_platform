@@ -86,8 +86,7 @@
         });
       } catch (e) {
         // Игнорируем ошибки для несуществующих селекторов
-        console.debug('Header mobile control: selector not found:', selector);
-      }
+        }
     });
   }
 
@@ -118,8 +117,7 @@
           }
         });
       } catch (e) {
-        console.debug('Header mobile control: selector not found:', selector);
-      }
+        }
     });
   }
 
@@ -323,6 +321,9 @@
   }
 
   // Инициализация
+  let checkInterval = null;
+  let resizeHandler = null;
+
   function init() {
     // Глобально перехватываем установку стилей
     interceptGlobalStyleSetProperty();
@@ -332,10 +333,11 @@
 
     // Обновляем при изменении размера окна
     let resizeTimeout;
-    window.addEventListener('resize', () => {
+    resizeHandler = () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(updateHeaderVisibility, 100);
-    });
+    };
+    window.addEventListener('resize', resizeHandler);
 
     // Наблюдаем за изменениями DOM
     const observer = observeHeaderChanges();
@@ -346,7 +348,7 @@
     
     // Периодически проверяем и обёртываем новые элементы
     // Увеличиваем частоту проверки для более агрессивного контроля
-    setInterval(() => {
+    checkInterval = setInterval(() => {
       if (isMobile()) {
         hideHeaderElementsOnMobile();
         wrapExisting(); // Обёртываем новые элементы
@@ -387,7 +389,23 @@
     init();
   }
 
+  // Очистка при размонтировании
+  function cleanup() {
+    if (checkInterval) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
+    if (resizeHandler) {
+      window.removeEventListener('resize', resizeHandler);
+      resizeHandler = null;
+    }
+  }
+
+  // Очищаем при уходе со страницы
+  window.addEventListener('beforeunload', cleanup);
+
   // Экспортируем функцию для ручного вызова, если нужно
   window.updateHeaderMobileVisibility = updateHeaderVisibility;
   window.hideHeaderElementsOnMobile = hideHeaderElementsOnMobile;
+  window.cleanupHeaderMobileControl = cleanup;
 })();

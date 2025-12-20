@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"os"
 	"strings"
 
@@ -88,7 +87,7 @@ func authMiddleware(cfg *config.Config) gin.HandlerFunc {
 		}
 
 		if tokenString == "" {
-			log.Printf("[Auth] No token provided for %s %s", c.Request.Method, c.Request.URL.Path)
+			// No token provided
 			c.JSON(401, gin.H{"error": "unauthorized"})
 			c.Abort()
 			return
@@ -97,7 +96,7 @@ func authMiddleware(cfg *config.Config) gin.HandlerFunc {
 		// Валидация JWT токена
 		userID, err := validateJWT(tokenString, cfg.JWTSecret)
 		if err != nil {
-			log.Printf("[Auth] Token validation failed for %s %s: %v", c.Request.Method, c.Request.URL.Path, err)
+			// Token validation failed
 			c.JSON(401, gin.H{"error": "invalid token"})
 			c.Abort()
 			return

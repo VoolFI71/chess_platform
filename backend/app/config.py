@@ -6,6 +6,9 @@ class Settings(BaseServiceSettings):
     
     app_name: str = "Chess Courses API"
     
+    # Environment: "development" or "production" (defaults to "development" if not set)
+    environment: str = "development"
+    
     # JWT token expiration settings
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30

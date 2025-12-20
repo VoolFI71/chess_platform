@@ -38,6 +38,8 @@ services:
         condition: service_started
       games:
         condition: service_started
+      computer_games:
+        condition: service_started
       email:
         condition: service_started
       notifications:
@@ -167,6 +169,30 @@ services:
       - "8000"
     restart: unless-stopped
 
+  computer_games:
+    build:
+      context: ./computer_games_service
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_started
+      migrations:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://chess:chess@db:5432/chess?sslmode=disable
+      PORT: 8000
+      JWT_SECRET: ${JWT_SECRET:-default-secret-key-change-in-production}
+      COMPUTER_GAMES_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      STOCKFISH_PATH: /usr/bin/stockfish
+      AI_DEFAULT_SKILL_LEVEL: 5
+      AI_DEFAULT_TIME_LIMIT_MS: 2000
+      METRICS_ENABLED: "true"
+    expose:
+      - "8000"
+    restart: unless-stopped
+
   email:
     build:
       context: ./email_service_go
@@ -235,6 +261,7 @@ services:
       - payments
       - lessons
       - games
+      - computer_games
       - email
       - notifications
       - puzzles

@@ -1,0 +1,92 @@
+/* ===== COUCH PAGE RESPONSIVE ===== */
+
+/* Responsive */
+@media (max-width: 968px) {
+    .coach-profile {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+    
+    .coach-sidebar {
+        position: static;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .coach-avatar-large {
+        width: 200px;
+        height: 200px;
+        font-size: 4rem;
+    }
+    
+    .coach-actions-sidebar {
+        width: 100%;
+        max-width: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero {
+        padding: 4rem 0 5rem;
+    }
+    
+    .hero-content h1 {
+        font-size: 2.5rem;
+    }
+    
+    .coach-section {
+        padding: 3rem 1.5rem;
+    }
+    
+    .coach-stats {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 1.5rem;
+        gap: 1.5rem;
+    }
+    
+    .coach-avatar-large {
+        width: 180px;
+        height: 180px;
+        font-size: 3.5rem;
+    }
+    
+    html {
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero {
+        padding: 3rem 0 4rem;
+    }
+    
+    .coach-section {
+        padding: 2rem 1rem;
+    }
+    
+    .coach-stats {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+    
+    .coach-avatar-large {
+        width: 150px;
+        height: 150px;
+        font-size: 3rem;
+    }
+    
+    .content-section {
+        padding: 2rem 0;
+    }
+    
+    html {
+        font-size: 14px;
+    }
+    
+    .auth-buttons,
+    .user-actions {
+        display: none;
+    }
+}

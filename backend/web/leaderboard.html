@@ -9,10 +9,13 @@
     <title>Рейтинговая таблица - ChessMint | Топ игроков</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Рейтинговая таблица ChessMint - топ игроков по блицу, рапиду, пуле и задачам. Смотрите рейтинги ELO, соревнуйтесь с лучшими шахматистами, отслеживайте свой прогресс. Актуальные рейтинги обновляются в реальном времени.">
+    <meta name="description" content="Рейтинговая таблица топ игроков по блицу, рапиду, пуле и задачам. Смотрите рейтинги ELO, соревнуйтесь с лучшими. Проверьте свой рейтинг прямо сейчас!">
     <meta name="keywords" content="рейтинговая таблица, топ игроков, лидеры, рейтинг, блиц, рапид, пуля, шахматы">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://chessmint.ru/leaderboard">
+    
+    <!-- Hreflang -->
+    <link rel="alternate" hreflang="ru" href="https://chessmint.ru/leaderboard">
     
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -46,12 +49,90 @@
       } catch {}
     </script>
     
+    <!-- Structured Data (JSON-LD) -->
+    <!-- BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Главная",
+          "item": "https://chessmint.ru/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Рейтинг",
+          "item": "https://chessmint.ru/leaderboard"
+        }
+      ]
+    }
+    </script>
+    
+    <!-- ItemList для топ игроков -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Рейтинговая таблица топ игроков ChessMint",
+      "description": "Рейтинговая таблица лучших шахматистов по блицу, рапиду, пуле и задачам",
+      "url": "https://chessmint.ru/leaderboard",
+      "numberOfItems": 10,
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Топ-1 игрок",
+          "description": "Лучший игрок в рейтинге"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Топ-2 игрок",
+          "description": "Второй в рейтинге"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Топ-3 игрок",
+          "description": "Третий в рейтинге"
+        }
+      ]
+    }
+    </script>
+    
+    <!-- WebPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Рейтинговая таблица - ChessMint",
+      "description": "Рейтинговая таблица ChessMint - топ игроков по блицу, рапиду, пуле и задачам. Смотрите рейтинги ELO, соревнуйтесь с лучшими шахматистами.",
+      "url": "https://chessmint.ru/leaderboard",
+      "inLanguage": "ru",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "ChessMint",
+        "url": "https://chessmint.ru"
+      },
+      "about": {
+        "@type": "Thing",
+        "name": "Рейтинг шахматистов",
+        "description": "Рейтинговая система ELO для шахматистов"
+      }
+    }
+    </script>
+    
     <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
     <!-- Common Styles -->
     <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
     <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
     <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
     <link rel="stylesheet" href="/styles/components/notifications.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/mini-footer.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/cabinet.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/leaderboard.css?v=2.0">
     
@@ -658,6 +739,28 @@
                 loadLeaderboard('blitz');
             });
         })();
+    </script>
+
+    <!-- Mini Footer -->
+    <footer class="mini-footer">
+        <div class="container">
+            <div class="mini-footer-content">
+                <ul class="mini-footer-links">
+                    <li><a href="/privacy">Политика конфиденциальности</a></li>
+                    <li><a href="/terms">Пользовательское соглашение</a></li>
+                </ul>
+                <p class="mini-footer-copyright">&copy; <span data-current-year>2025</span> ChessMint. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+    <script>
+        // Обновление года в футере
+        document.addEventListener('DOMContentLoaded', function() {
+            const yearSpan = document.querySelector('.mini-footer [data-current-year]');
+            if (yearSpan) {
+                yearSpan.textContent = new Date().getFullYear();
+            }
+        });
     </script>
 </body>
 </html>

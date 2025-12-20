@@ -2,11 +2,8 @@
 (function () {
   'use strict';
 
-  let ws = null;
-  let reconnectTimer = null;
-  let reconnectAttempts = 0;
-  const MAX_RECONNECT_ATTEMPTS = 5;
-  const RECONNECT_DELAY = 3000; // 3 seconds
+  let wsConnection = null;
+  const toastTimers = new Map(); // Храним таймеры для toast-уведомлений
 
   // Получаем токен из auth.js или localStorage
   function getAccessToken() {
@@ -32,8 +29,9 @@
       return;
     }
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      return; // Уже подключен
+    // Отключаемся от предыдущего подключения, если есть
+    if (wsConnection) {
+      disconnect();
     }
 
     const token = getAccessToken();
@@ -41,92 +39,48 @@
       return;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${protocol}//${window.location.host}/ws/notifications?token=${encodeURIComponent(token)}`;
+    const url = window.WebSocketUtils.createWebSocketUrl('/ws/notifications', { token });
 
-    try {
-      ws = new WebSocket(url);
-
-      ws.onopen = () => {
-        console.log('[Notifications] WebSocket connected');
-        reconnectAttempts = 0;
+    wsConnection = window.WebSocketUtils.createWebSocketConnection({
+      url,
+      onMessage: (message) => {
+        if (message.type === 'notification') {
+          handleNotification(message);
+        } else if (message === 'pong') {
+          // Ответ на ping
+        }
+      },
+      onConnect: () => {
         updateConnectionStatus(true);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'notification') {
-            handleNotification(data);
-          } else if (data === 'pong') {
-            // Ответ на ping
-          }
-        } catch (e) {
-          console.error('[Notifications] Failed to parse message:', e);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('[Notifications] WebSocket error:', error);
+      },
+      onDisconnect: () => {
         updateConnectionStatus(false);
-      };
-
-      ws.onclose = (event) => {
-        console.log('[Notifications] WebSocket closed:', event.code, event.reason);
+      },
+      onError: () => {
         updateConnectionStatus(false);
-        ws = null;
-
-        // Пытаемся переподключиться, если не было явного закрытия
-        if (event.code !== 1000 && isAuthenticated()) {
-          scheduleReconnect();
-        }
-      };
-    } catch (e) {
-      console.error('[Notifications] Failed to create WebSocket:', e);
-      scheduleReconnect();
-    }
-  }
-
-  // Планирование переподключения
-  function scheduleReconnect() {
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-    }
-
-    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      console.warn('[Notifications] Max reconnect attempts reached');
-      return;
-    }
-
-    reconnectAttempts++;
-    const delay = RECONNECT_DELAY * reconnectAttempts;
-    console.log(`[Notifications] Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
-
-    reconnectTimer = setTimeout(() => {
-      connect();
-    }, delay);
+      },
+      maxReconnectAttempts: 5,
+      baseDelay: 3000,
+      maxDelay: 30000,
+    });
   }
 
   // Отключение от WebSocket
   function disconnect() {
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
+    if (wsConnection) {
+      wsConnection.disconnect();
+      wsConnection = null;
     }
-
-    if (ws) {
-      ws.close(1000, 'Client disconnect');
-      ws = null;
-    }
-
-    reconnectAttempts = 0;
+    // Очищаем все таймеры toast-уведомлений
+    toastTimers.forEach((timer) => {
+      clearTimeout(timer);
+    });
+    toastTimers.clear();
     updateConnectionStatus(false);
   }
 
   // Обработка входящего уведомления
   function handleNotification(data) {
-    console.log('[Notifications] Received notification:', data);
-
     // Показываем уведомление в UI
     showNotificationToast(data);
 
@@ -153,33 +107,75 @@
     // Для заявок в друзья добавляем кнопки действий
     const isFriendRequest = notification.notification_type === 'friend_request';
     const friendshipId = notification.data?.friendship_id;
-    
-    let actionsHTML = '';
-    if (isFriendRequest && friendshipId) {
-      actionsHTML = `
-        <div class="notification-toast-actions">
-          <button class="notification-toast-action-btn accept-btn" data-action="accept" data-friendship-id="${friendshipId}">
-            <i class="fas fa-check"></i> Принять
-          </button>
-          <button class="notification-toast-action-btn decline-btn" data-action="decline" data-friendship-id="${friendshipId}">
-            <i class="fas fa-times"></i> Отклонить
-          </button>
-        </div>
-      `;
-    }
 
-    toast.innerHTML = `
-      <div class="notification-toast-content">
-        <div class="notification-toast-icon">${icon}</div>
-        <div class="notification-toast-body">
-          <div class="notification-toast-title">${escapeHtml(notification.title)}</div>
-          <div class="notification-toast-message">${escapeHtml(notification.message)}</div>
-          <div class="notification-toast-time">${time}</div>
-          ${actionsHTML}
-        </div>
-        <button class="notification-toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
-      </div>
-    `;
+    // Создаем структуру через DOM API для безопасности
+    const content = document.createElement('div');
+    content.className = 'notification-toast-content';
+    
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'notification-toast-icon';
+    iconDiv.innerHTML = icon; // Иконка - статический HTML
+    
+    const body = document.createElement('div');
+    body.className = 'notification-toast-body';
+    
+    const title = document.createElement('div');
+    title.className = 'notification-toast-title';
+    title.textContent = notification.title || '';
+    
+    const message = document.createElement('div');
+    message.className = 'notification-toast-message';
+    message.textContent = notification.message || '';
+    
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'notification-toast-time';
+    timeDiv.textContent = time;
+    
+    body.appendChild(title);
+    body.appendChild(message);
+    body.appendChild(timeDiv);
+    
+    // Добавляем кнопки действий, если есть
+    if (isFriendRequest && friendshipId) {
+      const actionsContainer = document.createElement('div');
+      actionsContainer.className = 'notification-toast-actions';
+      
+      const acceptBtn = document.createElement('button');
+      acceptBtn.className = 'notification-toast-action-btn accept-btn';
+      acceptBtn.setAttribute('data-action', 'accept');
+      acceptBtn.setAttribute('data-friendship-id', friendshipId.toString());
+      const acceptIcon = document.createElement('i');
+      acceptIcon.className = 'fas fa-check';
+      acceptBtn.appendChild(acceptIcon);
+      acceptBtn.appendChild(document.createTextNode(' Принять'));
+      
+      const declineBtn = document.createElement('button');
+      declineBtn.className = 'notification-toast-action-btn decline-btn';
+      declineBtn.setAttribute('data-action', 'decline');
+      declineBtn.setAttribute('data-friendship-id', friendshipId.toString());
+      const declineIcon = document.createElement('i');
+      declineIcon.className = 'fas fa-times';
+      declineBtn.appendChild(declineIcon);
+      declineBtn.appendChild(document.createTextNode(' Отклонить'));
+      
+      actionsContainer.appendChild(acceptBtn);
+      actionsContainer.appendChild(declineBtn);
+      body.appendChild(actionsContainer);
+    }
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'notification-toast-close';
+    closeBtn.textContent = '×';
+    closeBtn.onclick = function() {
+      if (toast.parentElement) {
+        toast.remove();
+      }
+    };
+    
+    content.appendChild(iconDiv);
+    content.appendChild(body);
+    content.appendChild(closeBtn);
+    toast.appendChild(content);
 
     // Добавляем в контейнер
     let container = document.getElementById('notifications-container');
@@ -193,9 +189,11 @@
     container.appendChild(toast);
 
     // Анимация появления
-    setTimeout(() => {
+    const showTimer = setTimeout(() => {
       toast.classList.add('show');
+      toastTimers.delete(`show_${notification.id}`);
     }, 10);
+    toastTimers.set(`show_${notification.id}`, showTimer);
 
     // Обработчики для кнопок действий (для заявок в друзья)
     if (isFriendRequest && friendshipId) {
@@ -219,16 +217,20 @@
 
     // Автоматическое удаление через 10 секунд (увеличено для заявок с кнопками)
     const autoHideDelay = isFriendRequest ? 10000 : 5000;
-    setTimeout(() => {
+    const hideTimer = setTimeout(() => {
       if (toast.parentElement) {
         toast.classList.remove('show');
-        setTimeout(() => {
+        const removeTimer = setTimeout(() => {
           if (toast.parentElement) {
             toast.remove();
           }
+          toastTimers.delete(`remove_${notification.id}`);
         }, 300);
+        toastTimers.set(`remove_${notification.id}`, removeTimer);
       }
+      toastTimers.delete(`hide_${notification.id}`);
     }, autoHideDelay);
+    toastTimers.set(`hide_${notification.id}`, hideTimer);
 
     // Клик по уведомлению (не по кнопкам) открывает страницу уведомлений
     toast.addEventListener('click', (e) => {
@@ -272,7 +274,6 @@
   // Обработка действий с заявкой в друзья
   async function handleFriendRequestAction(toast, friendshipId, action, button) {
     if (!window.apiFetch) {
-      console.error('[Notifications] apiFetch не доступен');
       return;
     }
 
@@ -283,7 +284,10 @@
         btn.disabled = true;
       });
     }
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.textContent = '';
+    const spinner = document.createElement('i');
+    spinner.className = 'fas fa-spinner fa-spin';
+    button.appendChild(spinner);
 
     try {
       const res = await window.apiFetch(`/api/friendships/${friendshipId}`, {
@@ -340,17 +344,17 @@
         throw new Error('Failed to process friend request');
       }
     } catch (e) {
-      console.error('[Notifications] Failed to process friend request:', e);
-      
       // Восстанавливаем кнопки
       if (actionsContainer) {
         actionsContainer.querySelectorAll('button').forEach(btn => {
           btn.disabled = false;
         });
       }
-      button.innerHTML = action === 'accepted' 
-        ? '<i class="fas fa-check"></i> Принять'
-        : '<i class="fas fa-times"></i> Отклонить';
+      button.textContent = '';
+      const icon = document.createElement('i');
+      icon.className = action === 'accepted' ? 'fas fa-check' : 'fas fa-times';
+      button.appendChild(icon);
+      button.appendChild(document.createTextNode(action === 'accepted' ? ' Принять' : ' Отклонить'));
       
       alert('Не удалось обработать заявку. Попробуйте еще раз.');
     }
@@ -386,8 +390,7 @@
       }
     } catch (e) {
       // Игнорируем ошибки для анонимных пользователей
-      // console.error('[Notifications] Failed to update unread count:', e);
-    }
+      // }
   }
 
   // Обновление badge с количеством непрочитанных
@@ -427,7 +430,7 @@
       });
       updateUnreadCount();
     } catch (e) {
-      console.error('[Notifications] Failed to mark as read:', e);
+      // Failed to mark as read
     }
   }
 

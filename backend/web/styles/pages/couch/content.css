@@ -1,0 +1,33 @@
+/* ===== COUCH PAGE CONTENT SECTIONS ===== */
+
+/* Content Sections */
+.content-section {
+    padding: 3rem 0;
+    border-bottom: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+body.dark .content-section {
+    border-bottom-color: rgba(139, 92, 246, 0.2);
+}
+
+.content-section:last-child {
+    border-bottom: none;
+}
+
+/* Achievements section - less top padding */
+.content-section:has(.achievements-list) {
+    padding-top: 0rem;
+}
+
+/* Visually Hidden - для скрытых заголовков (доступны для screen readers и SEO) */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}

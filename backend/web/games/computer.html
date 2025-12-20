@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Шахматы с компьютером онлайн бесплатно без регистрации - ChessMint | Играть против AI</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Играйте в шахматы с компьютером онлайн бесплатно без регистрации. Уровни сложности от 800 до 2800 ELO. Тренируйтесь в любое время, улучшайте навыки. Начните играть прямо сейчас!">
+  <meta name="keywords" content="шахматы с компьютером, играть в шахматы с компьютером, шахматы против компьютера, шахматы против AI, шахматы со Stockfish, шахматы для тренировки, шахматы для начинающих, игра с компьютером онлайн, шахматы онлайн бесплатно">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://chessmint.ru/games/computer">
+  
+  <!-- Hreflang -->
+  <link rel="alternate" hreflang="ru" href="https://chessmint.ru/games/computer">
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://chessmint.ru/games/computer">
+  <meta property="og:title" content="Шахматы с компьютером онлайн бесплатно без регистрации - ChessMint">
+  <meta property="og:description" content="Играйте в шахматы с компьютером онлайн бесплатно без регистрации. Уровни сложности от новичка до гроссмейстера. Тренируйтесь в любое время, улучшайте навыки игры.">
+  <meta property="og:image" content="https://chessmint.ru/favicon.svg">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="ChessMint">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Шахматы с компьютером онлайн бесплатно без регистрации - ChessMint">
+  <meta name="twitter:description" content="Играйте в шахматы с компьютером онлайн бесплатно без регистрации. Уровни сложности от новичка до гроссмейстера. Тренируйтесь в любое время.">
+  
+  <script>
+    try {
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark');
+      }
+    } catch {}
+  </script>
+  
+  <!-- Structured Data (JSON-LD) -->
+  <!-- BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Главная",
+        "item": "https://chessmint.ru/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Играть",
+        "item": "https://chessmint.ru/games"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Игра с компьютером",
+        "item": "https://chessmint.ru/games/computer"
+      }
+    ]
+  }
+  </script>
+  
+  <!-- WebApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Шахматы с компьютером - ChessMint",
+    "description": "Играйте в шахматы с компьютером онлайн бесплатно без регистрации. Уровни сложности от 800 ELO (новичок) до 2800 ELO (гроссмейстер).",
+    "url": "https://chessmint.ru/games/computer",
+    "applicationCategory": "Game",
+    "operatingSystem": "Web Browser",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "RUB"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "850"
+    },
+    "featureList": [
+      "Игра против искусственного интеллекта",
+      "Уровни сложности от новичка до гроссмейстера",
+      "Бесплатно без регистрации",
+      "Тренировка в любое время",
+      "Анализ партий"
+    ]
+  }
+  </script>
+  
+  <!-- Game -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Game",
+    "name": "Шахматы с компьютером",
+    "description": "Игра в шахматы против искусственного интеллекта с настраиваемым уровнем сложности",
+    "url": "https://chessmint.ru/games/computer",
+    "gameLocation": {
+      "@type": "Place",
+      "name": "Онлайн"
+    },
+    "numberOfPlayers": {
+      "@type": "QuantitativeValue",
+      "minValue": 1,
+      "maxValue": 1
+    },
+    "gameItem": [
+      {
+        "@type": "Thing",
+        "name": "Уровень 800 ELO",
+        "description": "Новичок - идеально для начинающих"
+      },
+      {
+        "@type": "Thing",
+        "name": "Уровень 1200 ELO",
+        "description": "Любитель - для игроков с базовыми знаниями"
+      },
+      {
+        "@type": "Thing",
+        "name": "Уровень 1600 ELO",
+        "description": "Продвинутый - для опытных игроков"
+      },
+      {
+        "@type": "Thing",
+        "name": "Уровень 2000 ELO",
+        "description": "Эксперт - для сильных игроков"
+      },
+      {
+        "@type": "Thing",
+        "name": "Уровень 2400 ELO",
+        "description": "Мастер - для мастеров"
+      },
+      {
+        "@type": "Thing",
+        "name": "Уровень 2800 ELO",
+        "description": "Гроссмейстер - максимальная сложность"
+      }
+    ]
+  }
+  </script>
+  
+  <!-- HowTo -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "Как играть в шахматы с компьютером на ChessMint",
+    "description": "Пошаговая инструкция по игре в шахматы с компьютером онлайн",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "position": 1,
+        "name": "Выберите уровень сложности",
+        "text": "Выберите уровень сложности компьютера от 800 ELO (новичок) до 2800 ELO (гроссмейстер)"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 2,
+        "name": "Начните игру",
+        "text": "Нажмите кнопку 'Начать игру' для создания новой партии"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 3,
+        "name": "Делайте ходы",
+        "text": "Делайте ходы, перетаскивая фигуры или кликая по ним и затем по целевой клетке"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 4,
+        "name": "Компьютер отвечает",
+        "text": "После вашего хода компьютер автоматически сделает ответный ход"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 5,
+        "name": "Завершите партию",
+        "text": "Партия завершается матом, патом или сдачей одного из игроков"
+      }
+    ]
+  }
+  </script>
+  
+  <!-- FAQPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Можно ли играть в шахматы с компьютером бесплатно?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Да, игра в шахматы с компьютером на ChessMint полностью бесплатна и не требует регистрации."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Какие уровни сложности доступны?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Доступны уровни от 800 ELO (новичок) до 2800 ELO (гроссмейстер). Вы можете выбрать подходящий уровень для тренировки."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Нужна ли регистрация для игры с компьютером?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Нет, регистрация не требуется. Вы можете начать играть сразу, без создания аккаунта."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Какой движок используется для игры с компьютером?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Используется современный шахматный движок на основе Stockfish для обеспечения качественной игры на всех уровнях сложности."
+        }
+      }
+    ]
+  }
+  </script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
+  <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
+  <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
+  <link rel="stylesheet" href="/styles/components/notifications.css?v=2.0">
+  <link rel="stylesheet" href="/styles/components/chess-board.css?v=2.0">
+  <link rel="stylesheet" href="/styles/components/mini-footer.css?v=2.0">
+  <link rel="stylesheet" href="/styles/pages/match.css?v=2.0">
+  <link rel="stylesheet" href="/styles/pages/games/computer.css?v=2.0">
+  
+  <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+      (function(m,e,t,r,i,k,a){
+          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+      })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105743222', 'ym');
+      ym(105743222, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
+  </script>
+  <!-- /Yandex.Metrika counter -->
+</head>
+<body>
+  <!-- Yandex.Metrika noscript -->
+  <noscript><div><img src="https://mc.yandex.ru/watch/105743222" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+  <!-- /Yandex.Metrika noscript -->
+  <!-- HEADER -->
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <a href="/" class="logo">
+          <div>
+            <div class="gradient-text">ChessMint</div>
+          </div>
+        </a>
+        <nav class="nav">
+          <button type="button" class="nav-link active" onclick="window.location.href='/games'">Играть</button>
+          <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
+          <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+        </nav>
+        <div class="header-actions">
+          <div id="userActions">
+            <div id="gamesUserInfo">
+              <span></span>
+            </div>
+          </div>
+          <button class="theme-toggle" id="themeToggleBtn" title="Переключить тему">
+            <i class="fas fa-sun" id="themeIcon"></i>
+          </button>
+          <div id="authButtons">
+            <a href="/login" class="auth-icon-btn" id="gamesAuthBtn" title="Войти / Регистрация">
+              <i class="fas fa-sign-in-alt"></i>
+            </a>
+          </div>
+          <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Открыть меню" aria-expanded="false">
+            <i class="fas fa-bars" id="menuIcon"></i>
+          </button>
+          <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+      <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+      <div class="mobile-menu-content">
+        <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Закрыть меню">
+          <i class="fas fa-times"></i>
+        </button>
+        <nav class="mobile-nav">
+          <a href="/games" class="mobile-nav-link">Играть</a>
+          <a href="/tasks" class="mobile-nav-link">Задачи</a>
+          <a href="/leaderboard" class="mobile-nav-link">Рейтинг</a>
+        </nav>
+        <div class="mobile-auth" id="mobileAuth"></div>
+        <div id="mobileUserActions" style="display: none;">
+          <div id="gamesUserInfoMobile">
+            <span></span>
+          </div>
+          <a href="/profile" class="mobile-cabinet-link">
+            <i class="fas fa-user"></i>
+            <span>Личный кабинет</span>
+          </a>
+          <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile" title="Выйти">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Выйти</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content match-main">
+    <div class="container">
+      <!-- Экран выбора настроек (показывается до начала игры) -->
+      <div id="setupScreen" class="setup-screen">
+        <div class="setup-card">
+          <h1 class="setup-title">
+            <i class="fas fa-robot"></i>
+            Игра с компьютером
+          </h1>
+          <p class="setup-description">
+            Выберите цвет фигур и уровень сложности компьютера
+          </p>
+          
+          <div class="setup-options">
+            <!-- Выбор цвета -->
+            <div class="setup-group">
+              <label class="setup-label">Ваш цвет</label>
+              <div class="color-selector">
+                <button type="button" class="color-btn" data-color="white" aria-label="Играть белыми">
+                  <i class="fas fa-chess-king"></i>
+                  <span>Белые</span>
+                </button>
+                <button type="button" class="color-btn" data-color="black" aria-label="Играть черными">
+                  <i class="fas fa-chess-king"></i>
+                  <span>Черные</span>
+                </button>
+                <button type="button" class="color-btn active" data-color="random" aria-label="Случайный цвет">
+                  <i class="fas fa-random"></i>
+                  <span>Случайно</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Выбор уровня сложности -->
+            <div class="setup-group">
+              <label class="setup-label">Уровень сложности (ELO)</label>
+              <div class="elo-selector">
+                <div class="elo-slider-wrapper">
+                  <label class="elo-label" for="eloSlider">
+                    <span>Выберите ELO компьютера:</span>
+                    <span class="elo-value" id="eloValue">1600</span>
+                  </label>
+                  <input 
+                    type="range" 
+                    id="eloSlider" 
+                    class="elo-slider" 
+                    min="1350" 
+                    max="2800" 
+                    step="50" 
+                    value="1600"
+                    aria-label="Выбор ELO компьютера"
+                  >
+                  <div class="elo-range-labels">
+                    <span>1350 (Новичок)</span>
+                    <span>2800 (Гроссмейстер)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-lg" id="startGameBtn">
+            <i class="fas fa-play"></i>
+            Начать игру
+          </button>
+        </div>
+      </div>
+
+      <!-- Экран игры (скрыт до начала игры) -->
+      <div id="gameScreen" class="game-screen" style="display: none;">
+        <div class="match-center-wrapper">
+          <!-- Левая боковая панель -->
+          <aside class="sidebar-left">
+            <section class="actions-card">
+              <div class="actions-header">
+                <h3>
+                  <i class="fas fa-cog"></i>
+                  <span>Действия</span>
+                </h3>
+              </div>
+              <div class="actions-content">
+                <button type="button" class="btn btn-secondary" id="resignBtn">
+                  <i class="fas fa-flag"></i>
+                  Сдаться
+                </button>
+                <button type="button" class="btn btn-secondary" id="newGameBtn">
+                  <i class="fas fa-redo"></i>
+                  Новая игра
+                </button>
+              </div>
+            </section>
+          </aside>
+
+          <!-- Центральная колонка с доской -->
+          <div class="board-column">
+            <!-- Игрок 1 (сверху) - только для мобильных -->
+            <div class="player-section player-top mobile-only">
+              <div class="player-bar top" id="topPlayerBarMobile">
+                <div class="player-name" id="topPlayerLabelMobile">Stockfish 1600</div>
+                <div class="player-clock" id="topClockMobile">—</div>
+              </div>
+            </div>
+
+            <!-- Доска -->
+            <div class="board-section">
+              <div class="board-card">
+                <div class="board-container">
+                  <div class="board-wrapper">
+                    <div class="board-shell">
+                      <div class="chess-board" id="computerGameBoard"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Игрок 2 (снизу) - только для мобильных -->
+            <div class="player-section player-bottom mobile-only">
+              <div class="player-bar bottom" id="bottomPlayerBarMobile">
+                <div class="player-name" id="bottomPlayerLabelMobile">Вы</div>
+                <div class="player-clock" id="bottomClockMobile">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Правая боковая панель -->
+          <aside class="sidebar-right">
+            <!-- Игрок 1 (сверху) -->
+            <div class="player-section player-top">
+              <div class="player-bar top" id="topPlayerBar">
+                <div class="player-name" id="topPlayerLabel">Stockfish 1600</div>
+                <div class="player-clock" id="topClock">—</div>
+              </div>
+            </div>
+
+            <section class="moves-card">
+              <div class="card-header">
+                <h3>
+                  <i class="fas fa-list-ol"></i>
+                  <span>Ходы</span>
+                </h3>
+              </div>
+              <div class="moves-navigation">
+                <button class="nav-arrow-btn" id="prevMoveBtn" title="Предыдущий ход (←)">
+                  <i class="fas fa-chevron-left"></i>
+                  <span class="nav-btn-label">Назад</span>
+                </button>
+                <button class="nav-arrow-btn" id="nextMoveBtn" title="Следующий ход (→)">
+                  <i class="fas fa-chevron-right"></i>
+                  <span class="nav-btn-label">Вперёд</span>
+                </button>
+              </div>
+              <div class="moves-list-container">
+                <ol class="moves-list" id="movesList"></ol>
+              </div>
+            </section>
+
+            <!-- Игрок 2 (снизу) -->
+            <div class="player-section player-bottom">
+              <div class="player-bar bottom" id="bottomPlayerBar">
+                <div class="player-name" id="bottomPlayerLabel">Вы</div>
+                <div class="player-clock" id="bottomClock">—</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="gamesToast" class="toast"></div>
+
+  <!-- Footer -->
+  <footer class="mini-footer">
+    <div class="container">
+      <div class="mini-footer-content">
+        <ul class="mini-footer-links">
+          <li><a href="/privacy">Политика конфиденциальности</a></li>
+          <li><a href="/terms">Пользовательское соглашение</a></li>
+        </ul>
+        <div class="mini-footer-copyright">
+          © <span id="currentYear">2025</span> ChessMint. Все права защищены.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <!-- Common Auth Script (must load first) -->
+  <script src="/scripts/auth.js" defer></script>
+  <script src="/scripts/mobile-menu.js" defer></script>
+  <script src="/scripts/session.js" defer></script>
+  <script src="/scripts/notifications.js" defer></script>
+  <!-- Chess Game Scripts -->
+  <script src="/scripts/chess-move-utils.js" defer></script>
+  <script src="/scripts/chess-board-core.js" defer></script>
+  <script src="/scripts/chess-pieces-svg.js" defer></script>
+  <!-- Computer Game Modules -->
+  <script src="/scripts/games/computer/state.js" defer></script>
+  <script src="/scripts/games/computer/api.js" defer></script>
+  <script src="/scripts/games/computer/board.js" defer></script>
+  <script src="/scripts/websocket-utils.js" defer></script>
+  <script src="/scripts/games/computer/websocket.js" defer></script>
+  <script src="/scripts/games/computer/main.js" defer></script>
+  <!-- Header Mobile Control - должен загружаться ПОСЛЕ всех скриптов, которые управляют хедером -->
+  <script src="/scripts/header-mobile-control.js"></script>
+  
+  <script>
+    // Mobile menu initialization - ждем загрузки всех скриптов
+    function initMobileMenu() {
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      if (mobileMenuBtn && typeof window.toggleMobileMenu === 'function') {
+        mobileMenuBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.toggleMobileMenu();
+        });
+      }
+      
+      // Mobile menu close button
+      const mobileMenuClose = document.getElementById('mobileMenuClose');
+      if (mobileMenuClose && typeof window.closeMobileMenu === 'function') {
+        mobileMenuClose.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.closeMobileMenu();
+        });
+      }
+      
+      // Mobile menu overlay
+      const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+      if (mobileMenuOverlay && typeof window.closeMobileMenu === 'function') {
+        mobileMenuOverlay.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.closeMobileMenu();
+        });
+      }
+      
+      // Mobile menu links - закрываем меню при клике на ссылку
+      document.querySelectorAll('.mobile-nav-link').forEach(function(link) {
+        link.addEventListener('click', function() {
+          if (typeof window.closeMobileMenu === 'function') {
+            window.closeMobileMenu();
+          }
+        });
+      });
+    }
+
+    // Ждем загрузки всех скриптов с defer
+    function waitForMobileMenuScript() {
+      if (typeof window.toggleMobileMenu === 'function') {
+        initMobileMenu();
+      } else {
+        // Если функция еще не загружена, ждем еще
+        setTimeout(waitForMobileMenuScript, 50);
+      }
+    }
+
+    // Инициализируем после загрузки DOM и всех скриптов
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', waitForMobileMenuScript);
+    } else {
+      waitForMobileMenuScript();
+    }
+
+    // Update year
+    document.addEventListener('DOMContentLoaded', function() {
+      const yearElement = document.getElementById('currentYear');
+      if (yearElement) {
+        yearElement.textContent = new Date().getFullYear();
+      }
+    });
+  </script>
+</body>
+</html>
+

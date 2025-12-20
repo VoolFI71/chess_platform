@@ -173,6 +173,31 @@ services:
       - "8000"
     restart: unless-stopped
 
+  computer_games:
+    build:
+      context: ./computer_games_service
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_started
+      migrations:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://chess:chess@db:5432/chess?sslmode=disable
+      PORT: 8000
+      JWT_SECRET: ${JWT_SECRET}
+      COMPUTER_GAMES_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      STOCKFISH_PATH: /usr/bin/stockfish
+      STOCKFISH_POOL_SIZE: 4
+      AI_DEFAULT_SKILL_LEVEL: 5
+      AI_DEFAULT_TIME_LIMIT_MS: 2000
+      METRICS_ENABLED: "true"
+    expose:
+      - "8000"
+    restart: unless-stopped
+
   email:
     build:
       context: ./email_service_go
@@ -255,6 +280,8 @@ services:
         condition: service_started
       games:
         condition: service_started
+      computer_games:
+        condition: service_started
       email:
         condition: service_started
       notifications:
@@ -274,17 +301,30 @@ services:
   gateway:
     image: nginx:alpine
     depends_on:
-      - api
-      - auth
-      - users
-      - courses
-      - enrollments
-      - lessons
-      - payments
-      - games
-      - email
-      - notifications
-      - puzzles
+      api:
+        condition: service_started
+      auth:
+        condition: service_started
+      users:
+        condition: service_started
+      courses:
+        condition: service_started
+      enrollments:
+        condition: service_started
+      lessons:
+        condition: service_started
+      payments:
+        condition: service_started
+      games:
+        condition: service_started
+      computer_games:
+        condition: service_started
+      email:
+        condition: service_started
+      notifications:
+        condition: service_started
+      puzzles:
+        condition: service_started
     environment:
       VIRTUAL_HOST: ${LETSENCRYPT_DOMAIN}
       VIRTUAL_PORT: 80
@@ -386,6 +426,9 @@ services:
       - GF_ANALYTICS_CHECK_FOR_UPDATES=false
       - GF_SERVER_ENABLE_GZIP=true
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      # Отключаем логирование в консоль
+      - GF_LOG_LEVEL=warn
+      - GF_LOG_FILTERS=tsdb.loki:error
       # Для работы с nginx-proxy (автоматический SSL через Let's Encrypt)
       - VIRTUAL_HOST=grafana.chessmint.ru
       - VIRTUAL_PORT=3000

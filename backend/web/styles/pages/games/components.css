@@ -1390,7 +1390,6 @@ body.dark .games-faq-section .faq-item {
 }
 
 @media (max-width: 768px) {
-    .play-computer-section,
     .games-faq-section {
         padding: 3rem 0;
         margin-top: 3rem;
@@ -1460,6 +1459,8 @@ body.dark .games-faq-section .faq-item {
     margin-top: 2rem;
     display: flex;
     justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .custom-game-container .btn {
@@ -1468,6 +1469,23 @@ body.dark .games-faq-section .faq-item {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    width: 220px; /* Одинаковая ширина для обеих кнопок */
+    justify-content: center; /* Центрируем текст */
+    box-sizing: border-box; /* Учитываем padding и border в ширине */
+}
+
+/* Убираем hover эффекты и тени у кнопки "Играть с компьютером" */
+.custom-game-container .btn-primary {
+    box-shadow: none;
+}
+
+.custom-game-container .btn-primary:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.custom-game-container .btn-primary::before {
+    display: none;
 }
 
 

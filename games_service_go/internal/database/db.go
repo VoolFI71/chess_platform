@@ -15,7 +15,7 @@ type DB struct {
 
 func NewDB(databaseURL string) (*DB, error) {
 	db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Silent), // Отключаем логирование SQL-запросов
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)

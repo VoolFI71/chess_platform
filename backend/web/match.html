@@ -55,6 +55,7 @@
   <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
   <link rel="stylesheet" href="/styles/components/notifications.css?v=2.0">
   <link rel="stylesheet" href="/styles/components/chess-board.css?v=2.0">
+  <link rel="stylesheet" href="/styles/components/mini-footer.css?v=2.0">
   <link rel="stylesheet" href="/styles/pages/match.css?v=2.0">
   
   <!-- Yandex.Metrika counter -->
@@ -99,7 +100,7 @@
               <i class="fas fa-sign-in-alt"></i>
             </a>
           </div>
-          <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu();">
+          <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Открыть меню" aria-expanded="false">
             <i class="fas fa-bars" id="menuIcon"></i>
           </button>
           <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
@@ -287,10 +288,11 @@
 
   <!-- Common Auth Script (must load first) -->
   <script src="/scripts/auth.js"></script>
-  <script src="/scripts/mobile-menu.js"></script>
+  <script src="/scripts/mobile-menu.js" defer></script>
   <script src="/scripts/notifications.js"></script>
   <!-- Match Page Scripts -->
   <script src="/scripts/chess-move-utils.js" defer></script>
+  <script src="/scripts/chess-board-core.js" defer></script>
   <script src="/scripts/chess-pieces-svg.js" defer></script>
   <!-- Match Modules -->
   <script src="/scripts/session.js" defer></script>
@@ -328,14 +330,55 @@
         });
       }
       
-      // Mobile menu handlers - используют функции из match.js
-      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-      if (mobileMenuBtn) {
-        mobileMenuBtn.addEventListener('click', function() {
-          if (typeof window.toggleMobileMenu === 'function') {
-            window.toggleMobileMenu();
+      // Mobile menu handlers - используют функции из mobile-menu.js
+      function initMobileMenu() {
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        if (!mobileMenuBtn) {
+          console.warn('[Mobile Menu Init] Mobile menu button not found');
+          return;
+        }
+        
+        // Проверяем, что функция toggleMobileMenu доступна
+        if (typeof window.toggleMobileMenu !== 'function') {
+          console.error('[Mobile Menu Init] toggleMobileMenu function is not available. Make sure mobile-menu.js is loaded.');
+          return;
+        }
+        
+        // Добавляем обработчик через addEventListener
+        mobileMenuBtn.addEventListener('click', function(e) {
+          console.log('[Mobile Menu Click] Button clicked!', e);
+          try {
+            if (typeof window.toggleMobileMenu === 'function') {
+              window.toggleMobileMenu();
+            } else {
+              console.error('[Mobile Menu Click] toggleMobileMenu function is not available');
+            }
+          } catch (error) {
+            console.error('[Mobile Menu Click] Error calling toggleMobileMenu:', error);
           }
         });
+        console.log('[Mobile Menu Init] Event listener added successfully');
+      }
+      
+      // Ждем загрузки всех скриптов с defer
+      function waitForMobileMenuScript() {
+        if (typeof window.toggleMobileMenu === 'function') {
+          initMobileMenu();
+        } else {
+          // Если функция еще не загружена, ждем еще
+          setTimeout(waitForMobileMenuScript, 50);
+        }
+      }
+      
+      // Инициализируем после загрузки DOM и всех скриптов
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          // Ждем загрузки mobile-menu.js (который загружается с defer)
+          waitForMobileMenuScript();
+        });
+      } else {
+        // Если DOM уже загружен, ждем загрузки скриптов
+        waitForMobileMenuScript();
       }
       
       document.querySelectorAll('.mobile-nav-link').forEach(function(link) {
@@ -346,6 +389,28 @@
         });
       });
     });
+  </script>
+
+  <!-- Mini Footer -->
+  <footer class="mini-footer">
+      <div class="container">
+          <div class="mini-footer-content">
+              <ul class="mini-footer-links">
+                  <li><a href="/privacy">Политика конфиденциальности</a></li>
+                  <li><a href="/terms">Пользовательское соглашение</a></li>
+              </ul>
+              <p class="mini-footer-copyright">&copy; <span data-current-year>2025</span> ChessMint. Все права защищены.</p>
+          </div>
+      </div>
+  </footer>
+  <script>
+      // Обновление года в футере
+      document.addEventListener('DOMContentLoaded', function() {
+          const yearSpan = document.querySelector('.mini-footer [data-current-year]');
+          if (yearSpan) {
+              yearSpan.textContent = new Date().getFullYear();
+          }
+      });
   </script>
 </body>
 </html>

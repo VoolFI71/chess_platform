@@ -9,10 +9,13 @@
     <title>Играть в шахматы онлайн бесплатно без регистрации - ChessMint | Блиц, Рапид</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Играйте в шахматы онлайн бесплатно без регистрации на ChessMint. Создавайте партии с друзьями или играйте с соперниками со всего мира. Блиц (1+0, 3+0, 5+0), рапид (10+0, 15+10), классика (30+0). Играть в шахматы с живыми игроками онлайн. Реальный рейтинг ELO, анализ партий.">
-    <meta name="keywords" content="играть в шахматы онлайн, онлайн шахматы, шахматы онлайн играть, играть в шахматы бесплатно, онлайн шахматы с друзьями, быстрые партии, блиц шахматы, рапид шахматы, классические шахматы онлайн, bullet шахматы, blitz шахматы, rapid шахматы, шахматы онлайн без регистрации, играть в шахматы с компьютером, онлайн шахматы рейтинг, шахматы онлайн играть бесплатно, играть в шахматы с друзьями, шахматы блиц онлайн, шахматы рапид онлайн, классические шахматы онлайн играть">
+    <meta name="description" content="Играйте в шахматы онлайн бесплатно без регистрации с живыми игроками. Блиц, рапид, классика. Реальный рейтинг ELO, анализ партий. Начните играть прямо сейчас!">
+    <meta name="keywords" content="играть в шахматы онлайн, шахматы с живыми игроками, шахматы онлайн бесплатно, блиц шахматы, рапид шахматы, классические шахматы, рейтинг ELO, онлайн шахматы, играть в шахматы бесплатно, шахматы без регистрации">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://chessmint.ru/games">
+    
+    <!-- Hreflang -->
+    <link rel="alternate" hreflang="ru" href="https://chessmint.ru/games">
     
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -65,6 +68,46 @@
         "@type": "AggregateRating",
         "ratingValue": "4.8",
         "ratingCount": "1250"
+      }
+    }
+    </script>
+    
+    <!-- Structured Data - VideoGame -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoGame",
+      "name": "ChessMint - Онлайн шахматы",
+      "description": "Играйте в шахматы онлайн с живыми игроками. Блиц, рапид, классические партии. Реальный рейтинг ELO.",
+      "url": "https://chessmint.ru/games",
+      "applicationCategory": "Game",
+      "operatingSystem": "Web Browser",
+      "gamePlatform": "Web Browser",
+      "genre": "Strategy",
+      "gameLocation": {
+        "@type": "Place",
+        "name": "Онлайн"
+      },
+      "numberOfPlayers": {
+        "@type": "QuantitativeValue",
+        "minValue": 2,
+        "maxValue": 2
+      },
+      "playMode": "MultiPlayer",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "RUB"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "1250"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "ChessMint",
+        "url": "https://chessmint.ru"
       }
     }
     </script>
@@ -210,6 +253,7 @@
     <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
     <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
     <link rel="stylesheet" href="/styles/components/notifications.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/mini-footer.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/games/games.css?v=2.0">
     
     <!-- Favicon -->
@@ -360,45 +404,49 @@
                 <div class="quick-game-wrapper">                    
                     <div class="quick-game-content">
                         <div class="quick-game-center">
-                            <div class="modes-grid modes-grid-3x3" aria-label="Режимы игры">
-                                <article class="mode-card" data-time="1+0" aria-label="Bullet 1+0 - Молниеносные партии" role="button" tabindex="0">
+                            <div class="modes-grid modes-grid-3x3" role="group" aria-label="Режимы игры">
+                                <button type="button" class="mode-card" data-time="1+0" aria-label="Bullet 1+0 - Молниеносные партии">
                                     <div class="mode-time">1+0</div>
                                     <div class="mode-label">Bullet</div>
-                                </article>
-                                <article class="mode-card" data-time="3+0" aria-label="Blitz 3+0 - Быстрый блиц" role="button" tabindex="0">
+                                </button>
+                                <button type="button" class="mode-card" data-time="3+0" aria-label="Blitz 3+0 - Быстрый блиц">
                                     <div class="mode-time">3+0</div>
                                     <div class="mode-label">Blitz</div>
-                                </article>
-                                <article class="mode-card" data-time="3+2" aria-label="Blitz 3+2 - Классический блиц" role="button" tabindex="0">
+                                </button>
+                                <button type="button" class="mode-card" data-time="3+2" aria-label="Blitz 3+2 - Классический блиц">
                                     <div class="mode-time">3+2</div>
                                     <div class="mode-label">Blitz</div>
-                                </article>
-                                <article class="mode-card" data-time="5+0" aria-label="Blitz 5+0 - Стандартный блиц" role="button" tabindex="0">
+                                </button>
+                                <button type="button" class="mode-card" data-time="5+0" aria-label="Blitz 5+0 - Стандартный блиц">
                                     <div class="mode-time">5+0</div>
                                     <div class="mode-label">Blitz</div>
-                                </article>
-                                <article class="mode-card" data-time="5+3" aria-label="Blitz 5+3 - Блиц с добавлением" role="button" tabindex="0">
+                                </button>
+                                <button type="button" class="mode-card" data-time="5+3" aria-label="Blitz 5+3 - Блиц с добавлением">
                                     <div class="mode-time">5+3</div>
                                     <div class="mode-label">Blitz</div>
-                                </article>
-                                <article class="mode-card" data-time="10+0" aria-label="Rapid 10+0 - Быстрый рапид" role="button" tabindex="0">
+                                </button>
+                                <button type="button" class="mode-card" data-time="10+0" aria-label="Rapid 10+0 - Быстрый рапид">
                                     <div class="mode-time">10+0</div>
                                     <div class="mode-label">Rapid</div>
-                                </article>
-                                <article class="mode-card" data-time="10+5" aria-label="Rapid 10+5 - Классический рапид" role="button" tabindex="0">
+                                </button>
+                                <button type="button" class="mode-card" data-time="10+5" aria-label="Rapid 10+5 - Классический рапид">
                                     <div class="mode-time">10+5</div>
                                     <div class="mode-label">Rapid</div>
-                                </article>
-                                <article class="mode-card" data-time="15+10" aria-label="Rapid 15+10 - Длинный рапид" role="button" tabindex="0">
+                                </button>
+                                <button type="button" class="mode-card" data-time="15+10" aria-label="Rapid 15+10 - Длинный рапид">
                                     <div class="mode-time">15+10</div>
                                     <div class="mode-label">Rapid</div>
-                                </article>
-                                <article class="mode-card" data-time="30+0" aria-label="Classical 30+0 - Классические шахматы" role="button" tabindex="0">
+                                </button>
+                                <button type="button" class="mode-card" data-time="30+0" aria-label="Classical 30+0 - Классические шахматы">
                                     <div class="mode-time">30+0</div>
                                     <div class="mode-label">Classical</div>
-                                </article>
+                                </button>
                             </div>
                             <div class="custom-game-container">
+                                <a href="/games/computer" class="btn btn-primary" id="playComputerBtn">
+                                    <i class="fas fa-robot" aria-hidden="true"></i>
+                                    Играть с компьютером
+                                </a>
                                 <button type="button" class="btn btn-outline" id="customGameBtn">
                                     <i class="fas fa-cog" aria-hidden="true"></i>
                                     Игра с другом
@@ -469,21 +517,12 @@
                     </section>
                 </div>
                 
-                <!-- Играть с компьютером -->
-                <section class="play-computer-section" aria-labelledby="play-computer-heading">
+                <!-- Играть с компьютером - скрыто для пользователей, видно для SEO -->
+                <section class="play-computer-section sr-only" aria-hidden="true">
                     <div class="container">
-                        <h2 id="play-computer-heading" class="section-title">
-                            Играть в шахматы с компьютером онлайн бесплатно
-                        </h2>
                         <p class="section-description">
-                            Хотите потренироваться перед игрой с живыми соперниками? Играйте в шахматы с компьютером онлайн бесплатно без регистрации. Разные уровни сложности от новичка до гроссмейстера.
+                            Играть в шахматы с компьютером онлайн бесплатно. Хотите потренироваться перед игрой с живыми соперниками? Играйте в шахматы с компьютером онлайн бесплатно без регистрации. Разные уровни сложности от новичка до гроссмейстера.
                         </p>
-                        <div class="play-computer-cta">
-                            <a href="/games/computer" class="btn btn-primary btn-lg">
-                                <i class="fas fa-robot"></i>
-                                Играть с компьютером
-                            </a>
-                        </div>
                     </div>
                 </section>
                 
@@ -701,11 +740,13 @@
     <script src="/scripts/games/games-utils.js" defer></script>
     <script src="/scripts/games/games-ui.js" defer></script>
     <script src="/scripts/games/games-actions.js" defer></script>
+    <script src="/scripts/websocket-utils.js" defer></script>
     <script src="/scripts/games/games-websocket.js" defer></script>
     <script src="/scripts/games/games-auth-ui.js" defer></script>
     <script src="/scripts/games/games-tabs.js" defer></script>
     <script src="/scripts/games/games-lobby.js" defer></script>
     <script src="/scripts/games/games-init.js" defer></script>
+    <script src="/scripts/form-utils.js" defer></script>
     <script src="/scripts/games-forms.js" defer></script>
     <!-- Header Mobile Control - должен загружаться ПОСЛЕ всех скриптов, которые управляют хедером -->
     <script src="/scripts/header-mobile-control.js"></script>
@@ -746,6 +787,28 @@
           });
         }
       });
+    </script>
+
+    <!-- Mini Footer -->
+    <footer class="mini-footer">
+        <div class="container">
+            <div class="mini-footer-content">
+                <ul class="mini-footer-links">
+                    <li><a href="/privacy">Политика конфиденциальности</a></li>
+                    <li><a href="/terms">Пользовательское соглашение</a></li>
+                </ul>
+                <p class="mini-footer-copyright">&copy; <span data-current-year>2025</span> ChessMint. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+    <script>
+        // Обновление года в футере
+        document.addEventListener('DOMContentLoaded', function() {
+            const yearSpan = document.querySelector('.mini-footer [data-current-year]');
+            if (yearSpan) {
+                yearSpan.textContent = new Date().getFullYear();
+            }
+        });
     </script>
 </body>
 </html>

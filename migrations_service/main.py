@@ -32,7 +32,8 @@ DATABASE_URL = os.getenv(
 BASE_DIR = Path(__file__).parent.parent
 
 # Migration order: services that don't depend on others first
-# Note: games_service now uses Go and doesn't use Alembic migrations
+# Note: games_service and computer_games_service use Go/GORM and don't use Alembic migrations
+# They share the same tables (games, moves) which are created separately
 MIGRATION_ORDER = [
     ("users", "users_service", "alembic_version_users"),
     ("auth", "auth_service", "alembic_version_auth"),
@@ -45,7 +46,8 @@ MIGRATION_ORDER = [
 ]
 
 # Tables to check for existence (to determine if we need to stamp initial version)
-# Note: games service tables are managed by Go/GORM, not Alembic
+# Note: games_service and computer_games_service tables (games, moves) are managed by Go/GORM, not Alembic
+# These tables are shared between both services and created separately
 SERVICE_TABLES = {
     "users": ["users", "rating_history"],  # Добавляем rating_history для проверки
     "auth": ["refresh_tokens"],

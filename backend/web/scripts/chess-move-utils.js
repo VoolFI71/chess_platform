@@ -233,7 +233,35 @@
     }
   }
 
-  function generateMoves(fen, color) {
+  // Кеш для предгенерированных ходов
+  // Ключ: `${fen}|${color}`, значение: { moves, movesByFrom, legalMovesByFrom }
+  const movesCache = new Map();
+  const MAX_CACHE_SIZE = 100; // Максимальный размер кеша
+
+  /**
+   * Очистка кеша ходов (удаляет самые старые записи)
+   */
+  function clearMovesCache() {
+    if (movesCache.size > MAX_CACHE_SIZE) {
+      // Удаляем 20% самых старых записей
+      const entriesToDelete = Math.floor(MAX_CACHE_SIZE * 0.2);
+      const keys = Array.from(movesCache.keys());
+      for (let i = 0; i < entriesToDelete; i++) {
+        movesCache.delete(keys[i]);
+      }
+    }
+  }
+
+  function generateMoves(fen, color, useCache = true) {
+    // Проверяем кеш
+    if (useCache) {
+      const cacheKey = `${fen}|${color}`;
+      const cached = movesCache.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
     const { board, castlingRights, enPassant } = parseFen(fen);
     const moves = new Set();
     const movesByFrom = new Map();
@@ -269,7 +297,155 @@
       }
     }
 
-    return { moves, movesByFrom };
+    const result = { moves, movesByFrom };
+
+    // Сохраняем в кеш
+    if (useCache) {
+      clearMovesCache();
+      const cacheKey = `${fen}|${color}`;
+      movesCache.set(cacheKey, result);
+    }
+
+    return result;
+  }
+
+  /**
+   * Предгенерация легальных ходов для позиции
+   * Фильтрует ходы, которые не оставляют короля под шахом
+   * @param {string} fen - FEN позиция
+   * @param {string} color - Цвет игрока ('white' или 'black')
+   * @param {boolean} useCache - Использовать кеш
+   * @returns {Object} { moves, movesByFrom, legalMovesByFrom }
+   */
+  function generateLegalMoves(fen, color, useCache = true) {
+    const cacheKey = `${fen}|${color}|legal`;
+    if (useCache) {
+      const cached = movesCache.get(cacheKey);
+      if (cached && cached.legalMovesByFrom) {
+        return cached;
+      }
+    }
+
+    const { moves, movesByFrom } = generateMoves(fen, color, useCache);
+    const legalMovesByFrom = new Map();
+
+    // Фильтруем только легальные ходы
+    movesByFrom.forEach((uciSet, fromSquare) => {
+      const legalMoves = Array.from(uciSet).filter(uci => {
+        return isMoveAllowed(fen, color, uci);
+      });
+      
+      if (legalMoves.length > 0) {
+        legalMovesByFrom.set(fromSquare, legalMoves);
+      }
+    });
+
+    const result = {
+      moves,
+      movesByFrom,
+      legalMovesByFrom,
+    };
+
+    // Сохраняем в кеш
+    if (useCache) {
+      clearMovesCache();
+      movesCache.set(cacheKey, result);
+    }
+
+    return result;
+  }
+
+  /**
+   * Универсальная функция предгенерации ходов для состояния
+   * Выполняет общую логику предгенерации, которую можно использовать во всех модулях
+   * @param {Object} config - Конфигурация предгенерации
+   * @param {Function} config.getFen - Функция получения FEN позиции
+   * @param {Function} config.getPlayerColor - Функция получения цвета игрока
+   * @param {Function} config.canGenerateMoves - Функция проверки возможности генерации (опционально)
+   * @param {Function} config.onMovesGenerated - Callback после генерации ходов (опционально)
+   * @param {Object} config.state - Объект состояния для сохранения результата
+   * @param {Function} config.setState - Функция обновления состояния (опционально, для match)
+   * @param {Function} config.formatMoves - Функция форматирования ходов (опционально, для match)
+   * @param {Function} config.onReset - Callback при сбросе (опционально)
+   * @returns {Map|null} legalMovesByFrom или null если генерация невозможна
+   */
+  function updateLegalMovesForState(config) {
+    const {
+      getFen,
+      getPlayerColor,
+      canGenerateMoves = null,
+      onMovesGenerated = null,
+      state = null,
+      setState = null,
+      formatMoves = null,
+      onReset = null,
+    } = config;
+
+    // Проверяем возможность генерации
+    if (canGenerateMoves && !canGenerateMoves()) {
+      if (onReset) onReset();
+      if (state) {
+        if (setState) {
+          setState({ legalMovesByFrom: new Map() }, 'updateLegalMoves:reset');
+        } else if (state.legalMovesByFrom !== undefined) {
+          state.legalMovesByFrom = new Map();
+        }
+      }
+      return null;
+    }
+
+    const fen = getFen ? getFen() : null;
+    const playerColor = getPlayerColor ? getPlayerColor() : null;
+
+    if (!fen || !playerColor) {
+      if (onReset) onReset();
+      if (state) {
+        if (setState) {
+          setState({ legalMovesByFrom: new Map() }, 'updateLegalMoves:reset');
+        } else if (state.legalMovesByFrom !== undefined) {
+          state.legalMovesByFrom = new Map();
+        }
+      }
+      return null;
+    }
+
+    const utils = window.ChessMoveUtils;
+    if (!utils || !utils.generateLegalMoves) {
+      if (onReset) onReset();
+      if (state) {
+        if (setState) {
+          setState({ legalMovesByFrom: new Map() }, 'updateLegalMoves:reset');
+        } else if (state.legalMovesByFrom !== undefined) {
+          state.legalMovesByFrom = new Map();
+        }
+      }
+      return null;
+    }
+
+    // Генерируем легальные ходы
+    const result = utils.generateLegalMoves(fen, playerColor);
+    let legalMovesByFrom = result.legalMovesByFrom || new Map();
+
+    // Форматируем ходы, если нужно (для match модуля)
+    if (formatMoves) {
+      legalMovesByFrom = formatMoves(legalMovesByFrom);
+    }
+
+    // Сохраняем в состояние
+    if (state) {
+      if (setState) {
+        setState({ legalMovesByFrom }, 'updateLegalMoves:complete');
+      } else if (state.legalMovesByFrom !== undefined) {
+        state.legalMovesByFrom = legalMovesByFrom;
+      }
+    }
+
+    // Вызываем callback
+    if (onMovesGenerated) {
+      onMovesGenerated(legalMovesByFrom, result);
+    }
+
+    return legalMovesByFrom;
   }
 
   function findKing(board, color) {
@@ -449,11 +625,55 @@
     return Array.from(entries.values());
   }
 
+  // Проверка, принадлежит ли фигура игроку
+  // Унифицированная версия для всех модулей
+  function pieceBelongsToPlayer(piece, playerColor) {
+    if (!piece) return false;
+    const pieceStr = typeof piece === 'string' ? piece : String(piece);
+    const pieceColorValue = pieceColor(pieceStr);
+    if (!pieceColorValue) return false;
+    
+    // Нормализуем playerColor (может быть 'white'/'black' или 'w'/'b')
+    const normalizedColor = playerColor === 'w' ? 'white' : 
+                           playerColor === 'b' ? 'black' : 
+                           playerColor;
+    
+    return pieceColorValue === normalizedColor;
+  }
+
+  // Получение фигуры на указанной клетке из FEN
+  function getPieceAtSquare(fen, square) {
+    if (!fen || !square) return null;
+    const coords = squareToCoords(square);
+    if (!coords) return null;
+    
+    const { board } = parseFen(fen);
+    if (!board || !board[coords.rank] || coords.rank < 0 || coords.rank >= 8) return null;
+    if (coords.file < 0 || coords.file >= 8) return null;
+    
+    const piece = board[coords.rank][coords.file];
+    return piece && piece !== EMPTY ? piece : null;
+  }
+
+  // Конвертация квадрата в индексы (для обратной совместимости)
+  function squareToIndices(square) {
+    const coords = squareToCoords(square);
+    if (!coords) return null;
+    return { file: coords.file, rank: coords.rank };
+  }
+
   window.ChessMoveUtils = {
     generateMoves,
+    generateLegalMoves,
+    updateLegalMovesForState,
     isMoveAllowed,
     getMovesForSquare,
     parseFen,
+    pieceColor,
+    pieceBelongsToPlayer,
+    getPieceAtSquare,
+    squareToCoords,
+    squareToIndices,
   };
 })();
 

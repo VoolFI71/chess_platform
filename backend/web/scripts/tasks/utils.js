@@ -32,15 +32,30 @@
 
     // Функция для очистки всех обработчиков событий
     clearAllEventListeners() {
-      if (TasksState.eventListeners) {
-        TasksState.eventListeners.forEach((handlers, element) => {
-          if (element && element.parentNode) {
-            handlers.forEach(({ type, handler }) => {
-              element.removeEventListener(type, handler);
-            });
-          }
-        });
-        TasksState.eventListeners.clear();
+      // Используем EventListenerUtils, если доступен
+      if (window.EventListenerUtils) {
+        if (TasksState.eventListeners) {
+          TasksState.eventListeners.forEach((handlers, element) => {
+            if (element && element.parentNode) {
+              handlers.forEach(({ type, handler, options }) => {
+                window.EventListenerUtils.remove(element, type, handler, options);
+              });
+            }
+          });
+          TasksState.eventListeners.clear();
+        }
+      } else {
+        // Fallback для обратной совместимости
+        if (TasksState.eventListeners) {
+          TasksState.eventListeners.forEach((handlers, element) => {
+            if (element && element.parentNode) {
+              handlers.forEach(({ type, handler }) => {
+                element.removeEventListener(type, handler);
+              });
+            }
+          });
+          TasksState.eventListeners.clear();
+        }
       }
     },
 
@@ -70,11 +85,11 @@
         };
       }
       if (mode.id === 'marathon') {
-        // Для режима марафон показываем текущий рейтинг марафона
+        // Для режима марафон показываем начальный рейтинг марафона
         const marathonRating = TasksState.marathonRating || 1000;
         return {
           icon: 'fa-star',
-          text: `Текущий рейтинг: ${marathonRating}`,
+          text: `Начальный рейтинг: ${marathonRating}`,
         };
       }
       return { icon: '', text: '' };
@@ -91,7 +106,6 @@
         try {
           TasksState.audioContext = new AudioContext();
         } catch (err) {
-          console.warn('[puzzle] Failed to create AudioContext', err);
           TasksState.audioContext = false;
           return null;
         }

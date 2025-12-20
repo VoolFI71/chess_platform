@@ -114,7 +114,6 @@ document.querySelectorAll('.mode-card[data-time]').forEach(card => {
               }
             });
           } catch (err) {
-            console.error('[Mode card click] Error:', err);
             if (window.showToast) window.showToast('Не удалось создать партию', 'error');
           } finally {
             // Restore card state
@@ -279,91 +278,172 @@ if (friendIncrementSlider && friendIncrementValue) {
 
   const customGameForm = document.getElementById('customGameForm');
   if (customGameForm && minutesSlider && incrementSlider) {
-      customGameForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-          
-          const submitBtn = customGameForm.querySelector('button[type="submit"]');
-          if (submitBtn) submitBtn.disabled = true;
+      // Используем FormUtils для обработки формы, если доступен
+      if (window.FormUtils && window.FormUtils.createFormSubmitHandler) {
+        const submitHandler = window.FormUtils.createFormSubmitHandler(
+          customGameForm,
+          async (formData) => {
+            const minutes = parseInt(minutesSlider.value) || 5;
+            const increment = parseInt(incrementSlider.value) || 0;
+            const gameType = document.querySelector('#customGameForm .type-option.active');
+            if (!gameType) {
+              throw new Error('Выберите тип игры');
+            }
 
-          try {
-              const minutes = parseInt(minutesSlider.value) || 5;
-              const increment = parseInt(incrementSlider.value) || 0;
-              const gameType = document.querySelector('#customGameForm .type-option.active');
-              if (!gameType) {
-                  if (submitBtn) submitBtn.disabled = false;
-            return;
-        }
-
-        const isRated = gameType.dataset.type === 'rated';
-        
-        // Получаем выбранный цвет
-        const colorOption = customGameForm.querySelector('.color-option.active');
-        let creatorColor = 'random';
-        if (colorOption) {
-            const selectedColor = colorOption.dataset.color;
-            if (selectedColor === 'random') {
+            const isRated = gameType.dataset.type === 'rated';
+            
+            // Получаем выбранный цвет
+            const colorOption = customGameForm.querySelector('.color-option.active');
+            let creatorColor = 'random';
+            if (colorOption) {
+              const selectedColor = colorOption.dataset.color;
+              if (selectedColor === 'random') {
                 creatorColor = Math.random() < 0.5 ? 'white' : 'black';
-            } else {
+              } else {
                 creatorColor = selectedColor;
+              }
             }
-        }
 
-              const game = await window.createGame({
-                  minutes,
-                  increment,
-                  isRated,
-                  creatorColor: creatorColor,
-                  initialFen: 'startpos',
-                  onSuccess: (game) => {
-                      // Show share screen with QR code and link
-                      const customGameShareScreen = document.getElementById('customGameShareScreen');
-                      const customGameForm = document.getElementById('customGameForm');
-                      const customGameShareLink = document.getElementById('customGameShareLink');
-                      const customGameQrImage = document.getElementById('customGameQrImage');
-                      
-                      if (game && game.id) {
-                          // Generate share link
-                          const shareLink = `${window.location.origin}/match/${game.id}`;
-                          
-                          // Update link input
-                          if (customGameShareLink) {
-                              customGameShareLink.value = shareLink;
-                          }
-                          
-                          // Update QR code
-                          if (customGameQrImage) {
-                              const encoded = encodeURIComponent(shareLink);
-                              const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&format=svg&data=${encoded}`;
-                              customGameQrImage.src = qrUrl;
-                              customGameQrImage.alt = 'QR-код приглашения';
-                          }
-                          
-                          // Hide form and show share screen
-                          if (customGameForm) customGameForm.style.display = 'none';
-                          if (customGameShareScreen) {
-                              customGameShareScreen.style.display = 'block';
-                              customGameShareScreen.classList.add('active');
-                          }
-                          
-                          // Start polling for second player
-                          startWaitingForOpponent(game.id);
-                      }
-                  },
-                  onError: (err, message) => {
-                      // Error already handled in createGame
-                      if (submitBtn) submitBtn.disabled = false;
+            const game = await window.createGame({
+              minutes,
+              increment,
+              isRated,
+              creatorColor: creatorColor,
+              initialFen: 'startpos',
+              onSuccess: (game) => {
+                // Show share screen with QR code and link
+                const customGameShareScreen = document.getElementById('customGameShareScreen');
+                const customGameForm = document.getElementById('customGameForm');
+                const customGameShareLink = document.getElementById('customGameShareLink');
+                const customGameQrImage = document.getElementById('customGameQrImage');
+                
+                if (game && game.id) {
+                  // Generate share link
+                  const shareLink = `${window.location.origin}/match/${game.id}`;
+                  
+                  // Update link input
+                  if (customGameShareLink) {
+                    customGameShareLink.value = shareLink;
                   }
-              });
-              
-              if (!game && submitBtn) {
-                  submitBtn.disabled = false;
+                  
+                  // Update QR code
+                  if (customGameQrImage) {
+                    const encoded = encodeURIComponent(shareLink);
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&format=svg&data=${encoded}`;
+                    customGameQrImage.src = qrUrl;
+                    customGameQrImage.alt = 'QR-код приглашения';
+                  }
+                  
+                  // Hide form and show share screen
+                  if (customGameForm) customGameForm.style.display = 'none';
+                  if (customGameShareScreen) {
+                    customGameShareScreen.style.display = 'block';
+                    customGameShareScreen.classList.add('active');
+                  }
+                  
+                  // Start polling for second player
+                  startWaitingForOpponent(game.id);
+                }
+              },
+              onError: (err, message) => {
+                // Error already handled in createGame
+                throw new Error(message || 'Не удалось создать игру');
+              }
+            });
+            
+            if (!game) {
+              throw new Error('Не удалось создать игру');
             }
-        } catch (err) {
-            console.error(err);
-            if (submitBtn) submitBtn.disabled = false;
-        }
-    });
-}
+          }
+        );
+        customGameForm.addEventListener('submit', submitHandler);
+      } else {
+        // Fallback для обратной совместимости
+        customGameForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+            
+            const submitBtn = customGameForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+                const minutes = parseInt(minutesSlider.value) || 5;
+                const increment = parseInt(incrementSlider.value) || 0;
+                const gameType = document.querySelector('#customGameForm .type-option.active');
+                if (!gameType) {
+                    if (submitBtn) submitBtn.disabled = false;
+              return;
+          }
+
+          const isRated = gameType.dataset.type === 'rated';
+          
+          // Получаем выбранный цвет
+          const colorOption = customGameForm.querySelector('.color-option.active');
+          let creatorColor = 'random';
+          if (colorOption) {
+              const selectedColor = colorOption.dataset.color;
+              if (selectedColor === 'random') {
+                  creatorColor = Math.random() < 0.5 ? 'white' : 'black';
+              } else {
+                  creatorColor = selectedColor;
+              }
+          }
+
+                const game = await window.createGame({
+                    minutes,
+                    increment,
+                    isRated,
+                    creatorColor: creatorColor,
+                    initialFen: 'startpos',
+                    onSuccess: (game) => {
+                        // Show share screen with QR code and link
+                        const customGameShareScreen = document.getElementById('customGameShareScreen');
+                        const customGameForm = document.getElementById('customGameForm');
+                        const customGameShareLink = document.getElementById('customGameShareLink');
+                        const customGameQrImage = document.getElementById('customGameQrImage');
+                        
+                        if (game && game.id) {
+                            // Generate share link
+                            const shareLink = `${window.location.origin}/match/${game.id}`;
+                            
+                            // Update link input
+                            if (customGameShareLink) {
+                                customGameShareLink.value = shareLink;
+                            }
+                            
+                            // Update QR code
+                            if (customGameQrImage) {
+                                const encoded = encodeURIComponent(shareLink);
+                                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&format=svg&data=${encoded}`;
+                                customGameQrImage.src = qrUrl;
+                                customGameQrImage.alt = 'QR-код приглашения';
+                            }
+                            
+                            // Hide form and show share screen
+                            if (customGameForm) customGameForm.style.display = 'none';
+                            if (customGameShareScreen) {
+                                customGameShareScreen.style.display = 'block';
+                                customGameShareScreen.classList.add('active');
+                            }
+                            
+                            // Start polling for second player
+                            startWaitingForOpponent(game.id);
+                        }
+                    },
+                    onError: (err, message) => {
+                        // Error already handled in createGame
+                        if (submitBtn) submitBtn.disabled = false;
+                    }
+                });
+                
+                if (!game && submitBtn) {
+                    submitBtn.disabled = false;
+              }
+          } catch (err) {
+              if (submitBtn) submitBtn.disabled = false;
+          }
+      });
+      }
+  }
 
   const friendGameForm = document.getElementById('friendGameForm');
   if (friendGameForm && friendMinutesSlider && friendIncrementSlider) {
@@ -429,7 +509,6 @@ if (friendIncrementSlider && friendIncrementValue) {
                   submitBtn.disabled = false;
             }
         } catch (err) {
-            console.error(err);
             if (submitBtn) submitBtn.disabled = false;
         }
     });
@@ -500,8 +579,7 @@ function startWaitingForOpponent(gameId) {
                     if (customGameModal) customGameModal.classList.remove('active');
                     return;
                 } else {
-                    console.error('Failed to check game status');
-                }
+                    }
                 return;
             }
 
@@ -524,8 +602,7 @@ function startWaitingForOpponent(gameId) {
                 window.location.href = `/match/${gameId}`;
             }
         } catch (err) {
-            console.error('Error checking game status:', err);
-        }
+            }
     }, 2000);
 }
 

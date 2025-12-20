@@ -10,6 +10,9 @@
     <meta name="robots" content="noindex, follow">
     <link rel="canonical" href="https://chessmint.ru/terms">
     
+    <!-- Hreflang -->
+    <link rel="alternate" hreflang="ru" href="https://chessmint.ru/terms">
+    
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://chessmint.ru/terms">
@@ -55,7 +58,7 @@
     <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
     <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
     <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
-    <link rel="stylesheet" href="/styles/components/footer.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/mini-footer.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/legal.css?v=2.0">
 
     <!-- Favicon -->
@@ -342,7 +345,7 @@
                             По всем вопросам, связанным с использованием Платформы, вы можете обращаться:
                         </p>
                         <ul>
-                            <li><strong>Email:</strong> support@chessmint.ru</li>
+                            <li><strong>Email:</strong> chessmint@mail.ru</li>
                             <li><strong>Платформа:</strong> chessmint.ru</li>
                         </ul>
                         <p>
@@ -350,87 +353,32 @@
                         </p>
                     </section>
 
-                    <div class="legal-footer">
-                        <p>
-                            <a href="/privacy">Политика конфиденциальности</a> | 
-                            <a href="/">На главную</a>
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="footer">
-        <div class="footer-top">
-            <div class="container">
-                <div class="footer-ornament">
-                    <span>♔</span><span>♕</span><span>♖</span><span>♗</span><span>♘</span><span>♙</span>
-                </div>
-            </div>
-        </div>
-        <div class="footer-content">
-            <div class="container">
-                <div class="footer-grid">
-                    <div class="footer-brand">
-                        <h3>ChessMint</h3>
-                        <p>
-                            Революционная платформа для изучения шахмат. Онлайн обучение, курсы, мастер-классы от гроссмейстеров.
-                        </p>
-                        <div class="social-links">
-                            <a href="https://t.me/chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="Telegram - ChessMint" aria-label="Telegram">
-                                <i class="fab fa-telegram"></i>
-                            </a>
-                            <a href="https://youtube.com/@chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="YouTube - ChessMint" aria-label="YouTube">
-                                <i class="fab fa-youtube"></i>
-                            </a>
-                            <a href="https://vk.com/chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="VK - ChessMint" aria-label="VK">
-                                <i class="fab fa-vk"></i>
-                            </a>
-                            <a href="https://instagram.com/chessmint" class="social-link" target="_blank" rel="noopener noreferrer" title="Instagram - ChessMint" aria-label="Instagram">
-                                <i class="fab fa-instagram"></i>
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="footer-section">
-                        <h4>Обучение</h4>
-                        <ul class="footer-links">
-                            <li><a href="/course">♟ Курсы</a></li>
-                            <li><a href="/tasks">♟ Решение задач</a></li>
-                        </ul>
-                    </div>
-
-                    <div class="footer-section">
-                        <h4>Сообщество</h4>
-                        <ul class="footer-links">
-                            <li><a href="/leaderboard">♟ Рейтинг</a></li>
-                            <li><a href="/games">♟ Играть</a></li>
-                        </ul>
-                    </div>
-
-                    <div class="footer-section">
-                        <h4>Поддержка</h4>
-                        <ul class="footer-links">
-                            <li><a href="/privacy">♟ Конфиденциальность</a></li>
-                            <li><a href="/terms">♟ Пользовательское соглашение</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer-bottom">
-            <div class="container">
-                <div class="footer-bottom-content">
-                    <div class="footer-copyright">
-                        &copy; 2024 ChessMint. Все права защищены. Создано с ♔ для шахматистов.
-                    </div>
-                </div>
+    <!-- Mini Footer -->
+    <footer class="mini-footer">
+        <div class="container">
+            <div class="mini-footer-content">
+                <ul class="mini-footer-links">
+                    <li><a href="/privacy">Политика конфиденциальности</a></li>
+                    <li><a href="/terms">Пользовательское соглашение</a></li>
+                </ul>
+                <p class="mini-footer-copyright">&copy; <span data-current-year>2025</span> ChessMint. Все права защищены.</p>
             </div>
         </div>
     </footer>
+    <script>
+        // Обновление года в футере
+        document.addEventListener('DOMContentLoaded', function() {
+            const yearSpan = document.querySelector('.mini-footer [data-current-year]');
+            if (yearSpan) {
+                yearSpan.textContent = new Date().getFullYear();
+            }
+        });
+    </script>
 
     <script src="/scripts/mobile-menu.js"></script>
     <script>

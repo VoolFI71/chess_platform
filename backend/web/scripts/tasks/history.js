@@ -87,11 +87,20 @@
       // innerHTML = '' автоматически удалит все обработчики, но мы удаляем их явно для безопасности
       const oldMoveElements = historyEl.querySelectorAll('.move-item');
       oldMoveElements.forEach(el => {
-        // Удаляем обработчики из TasksState.eventListeners
+        // Используем EventListenerUtils, если доступен
+        if (window.EventListenerUtils) {
+          window.EventListenerUtils.removeAllForElement(el);
+        }
+        // Также удаляем из TasksState.eventListeners для обратной совместимости
         if (TasksState.eventListeners && TasksState.eventListeners.has(el)) {
           const handlers = TasksState.eventListeners.get(el);
-          handlers.forEach(({ type, handler }) => {
-            el.removeEventListener(type, handler);
+          handlers.forEach(({ type, handler, options, remove }) => {
+            // Если есть функция remove от EventListenerUtils, используем её
+            if (remove && typeof remove === 'function') {
+              remove();
+            } else {
+              el.removeEventListener(type, handler, options);
+            }
           });
           TasksState.eventListeners.delete(el);
         }
@@ -141,10 +150,25 @@
         moveEl.addEventListener('click', clickHandler);
         
         // Сохраняем ссылку на обработчик для возможной очистки
-        if (!TasksState.eventListeners.has(moveEl)) {
-          TasksState.eventListeners.set(moveEl, new Set());
+        // Используем EventListenerUtils для отслеживания, если доступен
+        if (window.EventListenerUtils) {
+          const removeFn = window.EventListenerUtils.add(moveEl, 'click', clickHandler);
+          // Сохраняем функцию удаления для очистки
+          if (!TasksState.eventListeners.has(moveEl)) {
+            TasksState.eventListeners.set(moveEl, new Set());
+          }
+          TasksState.eventListeners.get(moveEl).add({ 
+            type: 'click', 
+            handler: clickHandler, 
+            remove: removeFn 
+          });
+        } else {
+          // Fallback для обратной совместимости
+          if (!TasksState.eventListeners.has(moveEl)) {
+            TasksState.eventListeners.set(moveEl, new Set());
+          }
+          TasksState.eventListeners.get(moveEl).add({ type: 'click', handler: clickHandler });
         }
-        TasksState.eventListeners.get(moveEl).add({ type: 'click', handler: clickHandler });
         
         historyEl.appendChild(moveEl);
       });

@@ -81,7 +81,7 @@ class PuzzleCache:
 		if cached and len(cached) > 0:
 			if not self._should_refresh(cache_key, self._cache_ttl):
 				# Кеш свежий - возвращаем задачу сразу (быстрый путь)
-			return random.choice(cached)
+ 				return random.choice(cached)
 			# Кеш устарел - обработаем ниже (stale-while-revalidate)
 			should_refresh = True
 		else:

@@ -1,6 +1,7 @@
 (() => {
   const TasksConstants = window.TasksConstants;
   const TasksState = window.TasksState;
+  const BoardCore = window.ChessBoardCore; // Общий модуль для работы с доской
   
   if (!TasksConstants || !TasksState) {
     throw new Error('Required modules not loaded. Ensure tasks/constants.js and tasks/state.js are included first.');
@@ -33,12 +34,21 @@
     },
 
     getPieceColor(piece) {
+      const utils = window.ChessMoveUtils;
+      if (utils && utils.pieceColor) {
+        const color = utils.pieceColor(piece);
+        // Конвертируем 'white'/'black' в 'w'/'b' для обратной совместимости
+        return color === 'white' ? 'w' : color === 'black' ? 'b' : null;
+      }
+      // Fallback для обратной совместимости
       if (!piece) return null;
       return piece === piece.toUpperCase() ? 'w' : 'b';
     },
 
     renderBoard() {
-      if (TasksState.renderBoardScheduled) return;
+      if (TasksState.renderBoardScheduled) {
+        return;
+      }
       
       TasksState.renderBoardScheduled = true;
       requestAnimationFrame(() => {
@@ -49,7 +59,10 @@
 
     _renderBoard() {
       const grid = document.getElementById('boardGrid');
-      if (!grid || !TasksState.board.length || !TasksState.currentFEN) return;
+      
+      if (!grid || !TasksState.board.length || !TasksState.currentFEN) {
+        return;
+      }
 
       // Определяем, чей ход (из FEN)
       const fenParts = TasksState.currentFEN.split(' ');
@@ -58,11 +71,19 @@
       // Используем фиксированную ориентацию доски (определяется при загрузке задачи)
       const isFlipped = TasksState.boardOrientation === 'black';
 
-      // Определяем файлы и ранги для отображения (всегда с точки зрения активного игрока)
-      const displayFiles = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-      const displayRanks = ['1', '2', '3', '4', '5', '6', '7', '8'];
-
-      grid.innerHTML = '';
+      // Определяем файлы и ранги для отображения
+      // ВАЖНО: Для squareName нужно переворачивать files и ranks вместе с матрицей
+      // (как в computer/board.js), чтобы squareName соответствовал реальным координатам
+      const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+      const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
+      
+      // Для squareName: переворачиваем вместе с матрицей (как в computer)
+      const filesForSquareName = isFlipped ? [...FILES].reverse() : FILES;
+      const ranksForSquareName = isFlipped ? [...RANKS].reverse() : RANKS;
+      
+      // Для отображения координат на экране (визуальные метки)
+      const displayFiles = isFlipped ? ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'] : ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+      const displayRanksForCoords = ['8', '7', '6', '5', '4', '3', '2', '1'];
 
       // Получаем легальные ходы для текущей позиции (нужно для делегирования событий)
       let movesByFrom = new Map();
@@ -73,59 +94,196 @@
         const colorForMoveGen = activeColor === 'w' ? 'white' : 'black';
         
         // Оптимизация памяти: используем кеш для позиций
-        const cacheKey = `${TasksState.currentFEN}|${colorForMoveGen}`;
-        let cachedMoves = TasksState.positionCache?.get(cacheKey);
+        const cacheKey = `${TasksState.currentFEN}|${colorForMoveGen}|legal`;
+        let cachedResult = TasksState.positionCache?.get(cacheKey);
         
-        if (!cachedMoves) {
-          const { movesByFrom: movesMap } = moveUtils.generateMoves(TasksState.currentFEN, colorForMoveGen);
-          cachedMoves = movesMap;
-          // Сохраняем в кеш с ограничением размера (предотвращает утечки памяти)
-          if (TasksState.positionCache) {
-            // Ограничиваем размер кеша до 50 позиций
-            if (TasksState.positionCache.size >= 50) {
-              // Удаляем самую старую запись (первую)
-              const firstKey = TasksState.positionCache.keys().next().value;
-              if (firstKey) {
-                TasksState.positionCache.delete(firstKey);
+        if (!cachedResult || !cachedResult.legalMovesByFrom) {
+          // Используем предгенерацию легальных ходов
+          if (moveUtils.generateLegalMoves) {
+            const result = moveUtils.generateLegalMoves(TasksState.currentFEN, colorForMoveGen);
+            cachedResult = result;
+            
+            // Сохраняем полный результат в кеш
+            if (TasksState.positionCache) {
+              if (TasksState.positionCache.size >= 50) {
+                const firstKey = TasksState.positionCache.keys().next().value;
+                if (firstKey) TasksState.positionCache.delete(firstKey);
               }
+              TasksState.positionCache.set(cacheKey, result);
+              // Также сохраняем с обычным ключом для обратной совместимости
+              TasksState.positionCache.set(`${TasksState.currentFEN}|${colorForMoveGen}`, result.legalMovesByFrom || result.movesByFrom || new Map());
             }
-            TasksState.positionCache.set(cacheKey, cachedMoves);
+          } else {
+            // Fallback: генерируем обычные ходы
+          const { movesByFrom: movesMap } = moveUtils.generateMoves(TasksState.currentFEN, colorForMoveGen);
+            cachedResult = { legalMovesByFrom: movesMap, movesByFrom: movesMap };
+          if (TasksState.positionCache) {
+            if (TasksState.positionCache.size >= 50) {
+              const firstKey = TasksState.positionCache.keys().next().value;
+                if (firstKey) TasksState.positionCache.delete(firstKey);
+            }
+              TasksState.positionCache.set(cacheKey, cachedResult);
+              TasksState.positionCache.set(`${TasksState.currentFEN}|${colorForMoveGen}`, movesMap);
+            }
           }
         }
         
-        movesByFrom = cachedMoves;
+        movesByFrom = cachedResult.legalMovesByFrom || cachedResult.movesByFrom || new Map();
       }
       
-      // Устанавливаем делегирование событий на контейнер доски (один раз, при первом рендере)
-      // Удаляем старый обработчик, если он существует (на случай пересоздания grid)
-      if (TasksState.boardClickHandler && grid) {
-        grid.removeEventListener('click', TasksState.boardClickHandler);
-      }
+      // BoardCore уже определен на уровне модуля
       
-      TasksState.boardClickHandler = (e) => {
-        if (TasksState.isPuzzleSolved || TasksState.isPuzzleFailed || !TasksState.currentFEN) return;
-        const square = e.target.closest('.square');
-        if (!square) return;
-        const squareName = square.dataset.square;
-        if (squareName && square.classList.contains('clickable')) {
+      // Обработка клика на квадрат (как в computer)
+      function handleSquareClick(squareName) {
+        if (TasksState.isPuzzleSolved || TasksState.isPuzzleFailed || !TasksState.currentFEN) {
+          return;
+        }
+
+        // Используем предгенерированные ходы
+        const normalizedSquare = squareName.toLowerCase();
+        const selectedSquare = TasksState.selectedSquare;
+        const availableTargets = TasksState.availableTargets || new Set();
+
+        // Сценарий A: Уже выбрана фигура, клик на целевую клетку
+        if (selectedSquare && availableTargets.has(normalizedSquare)) {
           if (window.TasksMoves && window.TasksMoves.handleSquareClick) {
             window.TasksMoves.handleSquareClick(squareName);
           }
+          return;
         }
-      };
-      
-      if (grid) {
-        grid.addEventListener('click', TasksState.boardClickHandler);
+
+        // Сценарий B: Клик на уже выбранную фигуру (отмена выбора)
+        if (selectedSquare === normalizedSquare) {
+          if (window.TasksMoves && window.TasksMoves.clearSelection) {
+            window.TasksMoves.clearSelection();
+          }
+          return;
+        }
+
+        // Сценарий C: Выбор новой фигуры - используем предгенерированные ходы
+        const legalMoves = movesByFrom.get(normalizedSquare);
+        
+        if (!legalMoves || (Array.isArray(legalMoves) ? legalMoves.length === 0 : legalMoves.size === 0)) {
+          // Нет ходов - сбрасываем выбор
+          if (window.TasksMoves && window.TasksMoves.clearSelection) {
+            window.TasksMoves.clearSelection();
+          }
+          return;
+        }
+
+        // Сценарий D: Обновляем выбор с предгенерированными ходами
+        const legalMovesArray = Array.isArray(legalMoves) ? legalMoves : Array.from(legalMoves);
+        const newTargets = new Set(legalMovesArray.map(m => {
+          const uci = typeof m === 'string' ? m : m.uci || '';
+          return uci.slice(2, 4).toLowerCase();
+        }));
+
+        // Используем общий модуль для обновления выбора (как в computer)
+        if (BoardCore && BoardCore.updateSelection) {
+          BoardCore.updateSelection({
+            state: TasksState,
+            square: normalizedSquare,
+            targets: newTargets,
+            getFen: () => TasksState.currentFEN,
+            utils: window.ChessMoveUtils,
+          });
+        } else {
+          // Fallback
+          TasksState.selectedSquare = normalizedSquare;
+          TasksState.availableTargets = newTargets;
+          window.TasksBoard.renderBoard();
+        }
       }
 
       // Создаем перевернутую матрицу доски, если нужно
-      const displayBoard = isFlipped ? [...TasksState.board].reverse() : TasksState.board;
+      // Используем общую функцию из ChessBoardCore, если доступна
+      let displayBoard = TasksState.board;
+      if (isFlipped && BoardCore && BoardCore.getOrientedMatrix) {
+        displayBoard = BoardCore.getOrientedMatrix([...TasksState.board], 'black');
+      } else if (isFlipped) {
+        // Fallback для обратной совместимости
+        displayBoard = [...TasksState.board].reverse().map((row) => [...row].reverse());
+      }
+
+      // Используем базовую функцию рендеринга
+      if (BoardCore && BoardCore.renderBoardBase) {
+        // Преобразуем displayBoard в формат, который ожидает renderBoardBase
+        // renderBoardBase ожидает matrix[rank][file], где rank идет сверху вниз
+        const matrix = displayBoard;
+        
+        // ВАЖНО: Для squareName переворачиваем files и ranks вместе с матрицей
+        // (как в computer/board.js), чтобы squareName соответствовал реальным координатам
+        const files = filesForSquareName;
+        const ranks = ranksForSquareName;
+
+        BoardCore.renderBoardBase({
+          boardEl: grid,
+          matrix,
+          files,
+          ranks,
+          state: TasksState,
+          getPieceSVG: (pieceStr) => window.getPieceSVG?.(pieceStr) || null,
+          onSquareClick: (!TasksState.isPuzzleSolved && !TasksState.isPuzzleFailed) ? handleSquareClick : null, // Используем прямой обработчик как в computer
+          options: {
+            selectedSquare: TasksState.selectedSquare,
+            availableTargets: TasksState.availableTargets,
+            highlightSet: new Set(),
+            baseBoard: window.ChessMoveUtils ? window.ChessMoveUtils.parseFen(TasksState.currentFEN).board : null,
+            showCoordinates: true,
+            ranksForCoords: displayRanksForCoords, // Отдельный массив для координат
+            isFlipped: isFlipped, // Передаем флаг перевернутой доски
+            customClasses: {
+              // Добавляем класс clickable для всех квадратов, если задача не решена/не провалена
+              square: (!TasksState.isPuzzleSolved && !TasksState.isPuzzleFailed) ? 'clickable' : '',
+            },
+            customPieceClasses: {},
+            pieceCheckCallback: null,
+          },
+        });
+        
+        // Добавляем курсор для кликабельных квадратов (как в computer)
+        if (!TasksState.isPuzzleSolved && !TasksState.isPuzzleFailed) {
+          const squares = grid.querySelectorAll('.square');
+          squares.forEach(square => {
+            square.style.cursor = 'pointer';
+          });
+        }
+
+        // Добавляем дополнительные обработки после рендеринга
+        displayBoard.forEach((row, rowIdx) => {
+          row.forEach((piece, colIdx) => {
+            const realRowIdx = isFlipped ? 7 - rowIdx : rowIdx;
+            const realColIdx = colIdx;
+            const squareName = window.TasksBoard.getSquareName(realRowIdx, realColIdx);
+            const square = grid.querySelector(`[data-square="${squareName}"]`);
+            
+            if (!square) {
+              return;
+            }
+
+            // Подсветка неверного хода (красным)
+            if (square.classList.contains('invalid-move')) {
+              square.style.backgroundColor = 'rgba(220, 38, 38, 0.3)';
+              square.style.boxShadow = 'inset 0 0 0 3px rgba(220, 38, 38, 0.8)';
+            }
+
+            // Координаты уже добавлены правильно в renderBoardBase, ничего не нужно исправлять
+          });
+        });
+      } else {
+        // Fallback: старая логика
+        grid.innerHTML = '';
+        
+        if (BoardCore) {
+          BoardCore.clearSquareElementsCache(TasksState);
+        }
 
       displayBoard.forEach((row, rowIdx) => {
         row.forEach((piece, colIdx) => {
-          // Вычисляем реальные индексы в исходной доске
+          // ВАЖНО: displayBoard уже перевернута (и строки, и элементы в строках)
+          // Поэтому нужно инвертировать индексы для получения реальных координат
           const realRowIdx = isFlipped ? 7 - rowIdx : rowIdx;
-          const realColIdx = colIdx; // Столбцы не переворачиваются
+          const realColIdx = isFlipped ? 7 - colIdx : colIdx;
           
           const isLight = (realRowIdx + realColIdx) % 2 === 0;
           const squareName = window.TasksBoard.getSquareName(realRowIdx, realColIdx);
@@ -133,13 +291,15 @@
           square.className = `square ${isLight ? 'light' : 'dark'}`;
           square.dataset.square = squareName;
 
-          // Подсветка выбранной клетки
-          if (TasksState.selectedSquare === squareName) {
-            square.classList.add('selected-user');
-          }
+            if (BoardCore) {
+              BoardCore.registerSquareElement(TasksState, squareName, square);
+            }
 
-          // Подсветка доступных целей (только если есть выбранная фигура и это легальная цель)
-          // availableTargets уже содержит только легальные ходы (отфильтрованы через isMoveAllowed в moves.js)
+            // НЕ подсвечиваем выбранную фигуру - подсвечиваем только возможные ходы
+            // if (TasksState.selectedSquare === squareName) {
+            //   square.classList.add('selected-user');
+            // }
+
           if (TasksState.selectedSquare && TasksState.availableTargets.has(squareName)) {
             square.classList.add('legal-target');
             const indicator = document.createElement('div');
@@ -147,7 +307,6 @@
             square.appendChild(indicator);
           }
 
-          // Подсветка неверного хода (красным)
           if (square.classList.contains('invalid-move')) {
             square.style.backgroundColor = 'rgba(220, 38, 38, 0.3)';
             square.style.boxShadow = 'inset 0 0 0 3px rgba(220, 38, 38, 0.8)';
@@ -164,8 +323,8 @@
             square.appendChild(pieceEl);
           }
 
-          // Отображаем координаты в зависимости от ориентации доски
-          const isBottomRow = isFlipped ? rowIdx === 0 : rowIdx === displayBoard.length - 1;
+          // Добавляем координаты (файлы внизу, ранги слева)
+          const isBottomRow = rowIdx === displayBoard.length - 1;
           const isLeftCol = colIdx === 0;
           
           if (isBottomRow) {
@@ -178,20 +337,42 @@
           if (isLeftCol) {
             const rankCoord = document.createElement('span');
             rankCoord.className = 'coordinate rank-coord';
-            const rankIndex = isFlipped ? rowIdx : 7 - rowIdx;
-            rankCoord.textContent = displayRanks[rankIndex];
+            // rowIdx идет от 0 (верх displayBoard) до 7 (низ displayBoard)
+            // displayRanksForCoords = ['8', '7', '6', '5', '4', '3', '2', '1']
+            // Когда isFlipped = false (белые внизу): rowIdx=7 (низ) должен показывать '1' → displayRanksForCoords[7] = '1'
+            // Когда isFlipped = true (черные внизу): rowIdx=7 (низ) должен показывать '8' → displayRanksForCoords[0] = '8'
+            // ИСПРАВЛЕНО: логика была перевернута!
+            if (!isFlipped) {
+              // Когда белые внизу: прямой индекс
+              rankCoord.textContent = displayRanksForCoords[rowIdx];
+            } else {
+              // Когда черные внизу: инвертируем индекс
+              rankCoord.textContent = displayRanksForCoords[displayRanksForCoords.length - 1 - rowIdx];
+            }
             square.appendChild(rankCoord);
           }
 
-          // Устанавливаем курсор для кликабельных клеток
           if (!TasksState.isPuzzleSolved && !TasksState.isPuzzleFailed) {
             const realPiece = TasksState.board[realRowIdx][realColIdx];
             const pieceColor = window.TasksBoard.getPieceColor(realPiece);
             const isUserPiece = pieceColor === activeColor;
             
-            const hasMoves = movesByFrom.has(squareName.toLowerCase());
+            // Проверяем movesByFrom с разными вариантами регистра
+            const squareNameLower = squareName.toLowerCase();
+            const squareNameUpper = squareName.toUpperCase();
+            const hasMoves = movesByFrom.has(squareNameLower) || movesByFrom.has(squareNameUpper) || movesByFrom.has(squareName);
             
-            if ((isUserPiece && hasMoves) || TasksState.selectedSquare) {
+            // Если выбрана фигура, кликабельными должны быть только целевые квадраты
+            const isTargetForSelected = TasksState.selectedSquare && 
+                                       TasksState.availableTargets && 
+                                       TasksState.availableTargets.has(squareName);
+            
+            // Квадрат кликабелен, если:
+            // 1. Это фигура активного игрока с возможными ходами ИЛИ
+            // 2. Это целевой квадрат для выбранной фигуры
+            const shouldBeClickable = (isUserPiece && hasMoves) || isTargetForSelected;
+            
+            if (shouldBeClickable) {
               square.style.cursor = 'pointer';
               square.classList.add('clickable');
             } else {
@@ -203,7 +384,9 @@
           grid.appendChild(square);
         });
       });
+      }
     },
   };
+  
 })();
 

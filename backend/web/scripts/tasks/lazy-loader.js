@@ -29,7 +29,7 @@
       const promise = new Promise((resolveInner, rejectInner) => {
         const script = document.createElement('script');
         script.src = src;
-        script.async = true;
+        script.async = false; // Отключаем async для сохранения порядка загрузки
         
         script.onload = () => {
           loadedModules.add(src);
@@ -56,6 +56,7 @@
   window.loadBoardModules = async function() {
     const modules = [
       '/scripts/chess-move-utils.js',
+      '/scripts/chess-board-core.js',
       '/scripts/chess-pieces-svg.js',
       '/scripts/tasks/board.js',
       '/scripts/tasks/moves.js',
@@ -64,10 +65,11 @@
     ];
 
     try {
-      await Promise.all(modules.map(loadScript));
-      console.debug('Board modules loaded');
+      // Загружаем последовательно, чтобы гарантировать порядок выполнения
+      for (const module of modules) {
+        await loadScript(module);
+      }
     } catch (error) {
-      console.error('Failed to load board modules:', error);
       throw error;
     }
   };
@@ -78,9 +80,7 @@
   window.loadAnimationModule = async function() {
     try {
       await loadScript('/scripts/tasks/animations.js');
-      console.debug('Animation module loaded');
-    } catch (error) {
-      console.error('Failed to load animation module:', error);
+      } catch (error) {
       throw error;
     }
   };

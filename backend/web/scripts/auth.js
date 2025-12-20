@@ -101,7 +101,6 @@
       setTokens(data.access_token, data.refresh_token);
       return true;
     } catch (err) {
-      console.warn('Token refresh failed', err);
       return false;
     }
   }
@@ -557,7 +556,6 @@
       lastAuthState = !!user;
       updateAuthUI(user);
     } catch (error) {
-      console.error('Failed to initialize auth:', error);
       lastAuthState = false;
       updateAuthUI(null);
     }

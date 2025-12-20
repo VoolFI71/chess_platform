@@ -145,8 +145,7 @@
     let finalCreatorColor = creatorColor;
     if (creatorColor === 'random' || !creatorColor || (creatorColor !== 'white' && creatorColor !== 'black')) {
       finalCreatorColor = Math.random() < 0.5 ? 'white' : 'black';
-      console.log('[createGame] Выбран случайный цвет:', finalCreatorColor);
-    }
+      }
     
     const payload = {
       initial_fen: initialFen === 'startpos' ? 'startpos' : initialFen,
@@ -230,7 +229,6 @@
       
       return game;
     } catch (err) {
-      console.error(err);
       const errorMessage = err.message || 'Не удалось создать партию';
       
       if (onError && typeof onError === 'function') {
@@ -275,7 +273,6 @@
         state.pendingGameId = null;
       }
     } catch (err) {
-      console.error(err);
       if (window.showToast) window.showToast('Не удалось загрузить список партий', 'error');
     }
   }

@@ -158,10 +158,11 @@
         headerCard.classList.remove('hidden');
         const modeLabel = document.getElementById('currentModeLabel');
         if (modeLabel) {
-          modeLabel.innerHTML = `
-            <i class="fas fa-layer-group"></i>
-            Режим: ${TasksState.selectedMode.name}
-          `;
+          modeLabel.textContent = '';
+          const icon = document.createElement('i');
+          icon.className = 'fas fa-layer-group';
+          modeLabel.appendChild(icon);
+          modeLabel.appendChild(document.createTextNode(` Режим: ${TasksState.selectedMode.name || ''}`));
         }
       }
 
@@ -224,7 +225,6 @@
         if (window.TasksBoard && typeof window.TasksBoard.parseFEN === 'function') {
           TasksState.board = window.TasksBoard.parseFEN(TasksState.currentFEN);
         } else {
-          console.error('TasksBoard.parseFEN not available');
           throw new Error('Модули доски не загружены');
         }
         
@@ -255,13 +255,11 @@
             // Устанавливаем индекс в 0 (первый ход игрока будет в moves[0*2+1] = moves[1])
             TasksState.currentMoveIndex = 0;
           } else {
-            console.warn('Failed to apply first opponent move');
-          }
+            }
         }
         
         // Убеждаемся, что модули доски загружены перед рендерингом
         if (!window.TasksBoard) {
-          console.error('TasksBoard module not loaded');
           throw new Error('Модули доски не загружены');
         }
         
@@ -325,7 +323,6 @@
         
         window.TasksUI.updateStats();
       } catch (err) {
-        console.error('Puzzle load failed', err);
         const errorMessage = err.message || 'Не удалось загрузить задачу.';
         window.TasksUI.setPuzzleStatus(errorMessage, true);
         
@@ -392,7 +389,6 @@
         }
       } catch (err) {
         // Тихо игнорируем ошибки загрузки статистики
-        console.debug('Failed to load puzzle stats', err);
         TasksState.puzzleStats = null;
       } finally {
         window.TasksUI.renderModes();
@@ -490,7 +486,6 @@
           await window.TasksAPI.loadPuzzleForCurrentMode();
         }
       } catch (err) {
-        console.error('Failed to submit attempt', err);
         window.TasksUI.setPuzzleStatus(err.message || 'Не удалось отправить результат.', true);
       } finally {
         TasksState.isSubmittingAttempt = false;

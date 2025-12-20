@@ -1,0 +1,384 @@
+/* ===== COUCH PAGE COACH STYLES ===== */
+
+/* Coach Section - Open Layout */
+.coach-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+}
+
+.coach-profile {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4rem;
+    margin-bottom: 6rem;
+}
+
+/* Coach Article */
+.coach-article {
+    display: contents;
+}
+
+@media (min-width: 968px) {
+    .coach-profile {
+        grid-template-columns: 300px 1fr;
+        gap: 5rem;
+    }
+}
+
+/* Coach Sidebar */
+.coach-sidebar {
+    position: sticky;
+    top: 2rem;
+    height: fit-content;
+}
+
+.coach-avatar-large {
+    width: 280px;
+    height: 280px;
+    border-radius: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
+    background-size: 400% 400%;
+    animation: gradient-animation 15s ease infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+    color: white;
+    font-weight: 900;
+    margin-bottom: 2rem;
+    box-shadow: 0 20px 60px rgba(124, 58, 237, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.coach-avatar-large::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+}
+
+.coach-badge-sidebar {
+    padding: 1rem 1.5rem;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 1.5rem;
+    color: #fff;
+    font-weight: 800;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 2rem;
+}
+
+.coach-badge-sidebar i {
+    color: #ffd700;
+    font-size: 1.25rem;
+}
+
+.coach-actions-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.coach-actions-sidebar .btn {
+    width: 100%;
+    padding: 1.25rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 1.25rem;
+}
+
+.coach-actions-sidebar .btn-outline {
+    font-size: 1.25rem;
+}
+
+/* Coach Main Content */
+.coach-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
+}
+
+.coach-header-info {
+    padding-bottom: 2rem;
+    border-bottom: 2px solid rgba(124, 58, 237, 0.1);
+}
+
+.coach-header-info header {
+    margin: 0;
+    padding: 0;
+}
+
+body.dark .coach-header-info {
+    border-bottom-color: rgba(139, 92, 246, 0.2);
+}
+
+.coach-name {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 900;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--primary), #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.2;
+}
+
+body.dark .coach-name {
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.coach-title {
+    color: var(--muted);
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    font-weight: 600;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.coach-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(59, 130, 246, 0.05));
+    border-radius: 2rem;
+    border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+body.dark .coach-stats {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(59, 130, 246, 0.1));
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 1.5rem;
+    transition: all 0.3s;
+    backdrop-filter: blur(10px);
+}
+
+body.dark .stat-item {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.stat-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(124, 58, 237, 0.2);
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #7c3aed, #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: block;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.coach-specialties {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 3rem;
+}
+
+.specialty-tag {
+    padding: 0.875rem 1.75rem;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(59, 130, 246, 0.1));
+    border: 2px solid rgba(124, 58, 237, 0.2);
+    border-radius: 2rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary);
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.specialty-tag::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(59, 130, 246, 0.2));
+    transition: left 0.3s;
+}
+
+.specialty-tag:hover {
+    transform: translateY(-2px);
+    border-color: rgba(124, 58, 237, 0.4);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+}
+
+.specialty-tag:hover::before {
+    left: 100%;
+}
+
+.details-section {
+    margin-bottom: 1.5rem;
+}
+
+.section-title {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--primary), #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    letter-spacing: -0.02em;
+}
+
+body.dark .section-title {
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.section-title i {
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, #7c3aed, #3b82f6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.courses-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.course-item {
+    padding: 1.25rem;
+    background: var(--bg-light);
+    border: 2px solid var(--border-light);
+    border-radius: 1.25rem;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.course-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(135deg, #7c3aed, #3b82f6);
+    transform: scaleY(0);
+    transition: transform 0.3s;
+}
+
+body.dark .course-item {
+    background: var(--bg-dark);
+    border-color: var(--border-dark);
+}
+
+.course-item:hover {
+    border-color: rgba(124, 58, 237, 0.3);
+    transform: translateX(8px);
+    box-shadow: 0 8px 16px rgba(124, 58, 237, 0.15);
+}
+
+.course-item:hover::before {
+    transform: scaleY(1);
+}
+
+.course-item-title {
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    color: var(--text-light);
+}
+
+body.dark .course-item-title {
+    color: var(--text-dark);
+}
+
+.course-item-desc {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.students-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.student-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-light);
+    border-radius: 1rem;
+}
+
+body.dark .student-item {
+    background: var(--bg-dark);
+    border-color: var(--border-dark);
+}
+
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.student-info {
+    flex: 1;
+}
+
+.student-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.student-rating {
+    font-size: 0.875rem;
+    color: var(--muted);
+}

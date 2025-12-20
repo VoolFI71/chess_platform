@@ -29,7 +29,6 @@
         }
       } catch (err) {
         // Тихо игнорируем ошибки авторизации - пользователь может быть неавторизован
-        console.debug('Auth check failed (user may be not authorized)', err);
         TasksState.currentUser = null;
       }
       
@@ -44,8 +43,7 @@
         try {
           sessionStorage.setItem('tasks_marathon_rating', '1000');
         } catch (e) {
-          console.debug('Failed to save marathon rating to sessionStorage', e);
-        }
+          }
       }
       
       // Рендерим режимы после проверки авторизации
@@ -69,8 +67,7 @@
         try {
           sessionStorage.setItem('tasks_marathon_rating', '1000');
         } catch (e) {
-          console.debug('Failed to save marathon rating to sessionStorage', e);
-        }
+          }
       }
       TasksState.selectedMode = next;
       window.TasksUI.renderModes();
@@ -91,7 +88,6 @@
           await window.loadBoardModules();
         }
       } catch (error) {
-        console.error('Failed to load board modules:', error);
         window.TasksUI.setPuzzleStatus('Ошибка загрузки модулей. Перезагрузите страницу.', true);
         return;
       }
@@ -119,8 +115,7 @@
         try {
           sessionStorage.setItem('tasks_marathon_rating', TasksState.marathonRating.toString());
         } catch (e) {
-          console.debug('Failed to save marathon rating to sessionStorage', e);
-        }
+          }
       }
       window.TasksUI.updateStats();
       
@@ -155,8 +150,7 @@
         try {
           sessionStorage.setItem('tasks_marathon_rating', TasksState.marathonRating.toString());
         } catch (e) {
-          console.debug('Failed to save marathon rating to sessionStorage', e);
-        }
+          }
       }
       window.TasksUI.updateStats();
       
@@ -233,8 +227,7 @@
         const icon = document.getElementById('themeIcon');
         if (icon) icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
       } catch (e) {
-        console.debug('Theme load error:', e);
-      }
+        }
     }
     
     window.TasksMain.bootstrapTasksPage();

@@ -1,0 +1,797 @@
+/* Computer Game Page Styles */
+
+/* Setup Screen */
+.setup-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 200px);
+  padding: 2rem 1rem;
+}
+
+.setup-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  padding: 3.5rem 2.5rem;
+  max-width: 650px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(20px);
+  transition: all 0.3s ease;
+}
+
+body.dark .setup-card {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+body.dark .setup-label {
+  color: #e5e7eb;
+}
+
+body.dark .color-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e5e7eb;
+}
+
+body.dark .color-btn:hover {
+  border-color: var(--primary);
+  background: rgba(30, 41, 59, 0.95);
+}
+
+body.dark .difficulty-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e5e7eb;
+}
+
+body.dark .difficulty-btn:hover {
+  border-color: var(--primary);
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.setup-title {
+  font-size: clamp(1.75rem, 4vw + 0.5rem, 2.5rem);
+  font-weight: 800;
+  margin: 0 0 0.75rem 0;
+  text-align: center;
+  color: var(--foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.875rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.setup-title i {
+  color: var(--primary);
+  font-size: 1.1em;
+}
+
+.setup-description {
+  text-align: center;
+  color: var(--muted-foreground);
+  margin-bottom: 2.5rem;
+  font-size: clamp(0.95rem, 2vw + 0.25rem, 1.125rem);
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.setup-options {
+  margin-bottom: 2.5rem;
+}
+
+.setup-group {
+  margin-bottom: 2.5rem;
+}
+
+.setup-group:last-of-type {
+  margin-bottom: 0;
+}
+
+.setup-label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  color: var(--foreground);
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Color Selector */
+.color-selector {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.color-btn {
+  flex: 1;
+  padding: 1.75rem 1.25rem;
+  background: var(--background);
+  border: 2px solid var(--border);
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  position: relative;
+  overflow: hidden;
+}
+
+.color-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.color-btn:hover::before {
+  opacity: 1;
+}
+
+.color-btn:hover {
+  border-color: var(--primary);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
+}
+
+.color-btn.active {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+  color: white;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+.color-btn.active::before {
+  opacity: 0;
+}
+
+.color-btn i {
+  font-size: 1.75rem;
+  transition: transform 0.3s ease;
+}
+
+.color-btn:hover i {
+  transform: scale(1.1);
+}
+
+.color-btn.active i {
+  transform: scale(1.15);
+}
+
+/* Difficulty Selector */
+.difficulty-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.875rem;
+}
+
+.difficulty-btn {
+  padding: 1.25rem 0.875rem;
+  background: var(--background);
+  border: 2px solid var(--border);
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--foreground);
+  position: relative;
+  overflow: hidden;
+}
+
+.difficulty-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.difficulty-btn:hover::before {
+  opacity: 1;
+}
+
+.difficulty-btn:hover {
+  border-color: var(--primary);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.2);
+}
+
+.difficulty-btn.active {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+  color: white;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+.difficulty-btn.active::before {
+  opacity: 0;
+}
+
+.difficulty-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.difficulty-rating {
+  font-size: 0.75rem;
+  opacity: 0.75;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: opacity 0.3s ease;
+}
+
+.difficulty-btn:hover .difficulty-rating {
+  opacity: 0.9;
+}
+
+.difficulty-btn.active .difficulty-rating {
+  opacity: 1;
+  font-weight: 600;
+}
+
+/* ELO Selector */
+.elo-selector {
+  margin-top: 1rem;
+}
+
+.elo-slider-wrapper {
+  margin-bottom: 1.25rem;
+}
+
+.elo-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.875rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--foreground);
+  font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.elo-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.02em;
+}
+
+.elo-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--background);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.elo-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  transition: all 0.2s ease;
+}
+
+.elo-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.6);
+}
+
+.elo-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  transition: all 0.2s ease;
+}
+
+.elo-slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.6);
+}
+
+.elo-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--background);
+}
+
+.elo-range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+body.dark .elo-slider {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+body.dark .elo-slider::-webkit-slider-thumb {
+  background: var(--primary);
+}
+
+body.dark .elo-slider::-moz-range-thumb {
+  background: var(--primary);
+}
+
+/* Start Button */
+#startGameBtn {
+  width: 100%;
+  padding: 1.125rem 2.5rem;
+  font-size: clamp(1rem, 2vw + 0.25rem, 1.125rem);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  letter-spacing: 0.01em;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#startGameBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.5);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+#startGameBtn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+#startGameBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+#startGameBtn i {
+  font-size: 1.1em;
+  transition: transform 0.3s ease;
+}
+
+#startGameBtn:hover:not(:disabled) i {
+  transform: scale(1.1);
+}
+
+/* Game Screen */
+.game-screen {
+  padding: 2rem 0;
+  min-height: calc(100vh - 200px);
+}
+
+/* Используем стили из match.css для layout, но добавляем адаптацию для больших экранов */
+.game-screen .match-center-wrapper {
+  /* Стили наследуются из match.css, но можем переопределить для компьютерных игр */
+}
+
+/* Адаптация доски для больших экранов - как в tasks.css */
+/* 1440px - средние большие мониторы */
+@media (min-width: 1440px) {
+  .game-screen .board-shell {
+    max-width: 700px;
+  }
+}
+
+/* 1600px - большие мониторы */
+@media (min-width: 1600px) {
+  .game-screen .board-shell {
+    max-width: 750px;
+  }
+  
+  .game-screen .match-center-wrapper {
+    max-width: 1700px;
+  }
+  
+  .game-screen .sidebar-left {
+    max-width: 300px;
+  }
+  
+  .game-screen .sidebar-right {
+    max-width: 360px;
+  }
+}
+
+/* 1920px - Full HD */
+@media (min-width: 1920px) {
+  .game-screen .board-shell {
+    max-width: 800px;
+  }
+  
+  .game-screen .match-center-wrapper {
+    max-width: 1800px;
+  }
+  
+  .game-screen .sidebar-left {
+    max-width: 320px;
+  }
+  
+  .game-screen .sidebar-right {
+    max-width: 380px;
+  }
+}
+
+/* 2560px - 2K мониторы */
+@media (min-width: 2560px) {
+  .game-screen .board-shell {
+    max-width: 900px;
+  }
+  
+  .game-screen .match-center-wrapper {
+    max-width: 2000px;
+    gap: 3rem;
+  }
+  
+  .game-screen .sidebar-left {
+    max-width: 360px;
+  }
+  
+  .game-screen .sidebar-right {
+    max-width: 420px;
+  }
+}
+
+/* 3840px - 4K мониторы */
+@media (min-width: 3840px) {
+  .game-screen .board-shell {
+    max-width: 1000px;
+  }
+  
+  .game-screen .match-center-wrapper {
+    max-width: 2200px;
+    gap: 4rem;
+  }
+  
+  .game-screen .sidebar-left {
+    max-width: 400px;
+  }
+  
+  .game-screen .sidebar-right {
+    max-width: 480px;
+  }
+}
+
+/* Responsive для setup screen */
+@media (max-width: 1023px) {
+  .setup-screen {
+    padding: 1.5rem 1rem;
+  }
+  
+  .setup-card {
+    padding: 3rem 2rem;
+    border-radius: 1.25rem;
+  }
+}
+
+/* Мобильные устройства - доска на всю ширину */
+@media (max-width: 767px) {
+  .game-screen {
+    padding: 0;
+  }
+  
+  /* Убираем отступы у контейнера на мобильных */
+  .game-screen .container {
+    padding: 0;
+  }
+  
+  /* Доска на всю ширину на мобильных */
+  .game-screen .match-center-wrapper {
+    padding: 0;
+    margin: 0;
+  }
+  
+  .game-screen .board-section {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .game-screen .board-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    margin: 0;
+  }
+  
+  .game-screen .board-container {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .game-screen .board-wrapper {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .game-screen .board-shell {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+  
+  .game-screen .chess-board {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .setup-screen {
+    padding: 1rem 0.5rem;
+    min-height: calc(100vh - 150px);
+  }
+  
+  .setup-card {
+    padding: 2.5rem 1.75rem;
+    border-radius: 1.25rem;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+  }
+
+  body.dark .setup-card {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  }
+
+  .setup-title {
+    gap: 0.625rem;
+  }
+
+  .setup-description {
+    margin-bottom: 2rem;
+  }
+
+  .setup-group {
+    margin-bottom: 2rem;
+  }
+
+  .setup-label {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+  }
+
+  .color-selector {
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  .color-btn {
+    padding: 1.5rem 1rem;
+  }
+
+  .difficulty-selector {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .difficulty-btn {
+    padding: 1.125rem 0.75rem;
+  }
+
+  .elo-selector {
+    margin-top: 1rem;
+  }
+
+  .elo-label {
+    font-size: 0.9rem;
+  }
+
+  .elo-value {
+    font-size: 1.1rem;
+  }
+  
+  .game-screen {
+    padding: 0;
+  }
+  
+  /* Убираем отступы у контейнера на мобильных */
+  .game-screen .container {
+    padding: 0;
+  }
+  
+  /* Доска на всю ширину на мобильных */
+  .game-screen .match-center-wrapper {
+    padding: 0;
+    margin: 0;
+  }
+  
+  .game-screen .board-section {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .game-screen .board-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    margin: 0;
+  }
+  
+  .game-screen .board-container {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .game-screen .board-wrapper {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .game-screen .board-shell {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+  
+  .game-screen .chess-board {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .setup-screen {
+    padding: 0.75rem 0.25rem;
+  }
+  
+  .setup-card {
+    padding: 2rem 1.5rem;
+    border-radius: 1rem;
+  }
+  
+  .setup-title {
+    margin-bottom: 0.625rem;
+  }
+  
+  .setup-description {
+    margin-bottom: 2rem;
+  }
+
+  .setup-group {
+    margin-bottom: 2rem;
+  }
+
+  .setup-label {
+    font-size: 0.9rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .color-selector {
+    gap: 0.75rem;
+  }
+
+  .color-btn {
+    padding: 1.375rem 0.875rem;
+  }
+
+  .color-btn i {
+    font-size: 1.5rem;
+  }
+  
+  .difficulty-selector {
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+  }
+  
+  .difficulty-btn {
+    padding: 1rem 0.75rem;
+  }
+
+  .difficulty-name {
+    font-size: 0.9rem;
+  }
+
+  .difficulty-rating {
+    font-size: 0.7rem;
+  }
+
+  .elo-selector {
+    margin-top: 0.875rem;
+  }
+
+  .elo-label {
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .elo-value {
+    font-size: 1rem;
+  }
+  
+  #startGameBtn {
+    padding: 1rem 2rem;
+  }
+  
+  .game-screen {
+    padding: 0.5rem 0;
+  }
+}
+
+@media (max-width: 375px) {
+  .setup-card {
+    padding: 1.75rem 1.25rem;
+  }
+  
+  .setup-title {
+    gap: 0.5rem;
+  }
+  
+  .color-btn {
+    padding: 1.25rem 0.75rem;
+  }
+  
+  .color-btn i {
+    font-size: 1.375rem;
+  }
+
+  .difficulty-btn {
+    padding: 0.9375rem 0.625rem;
+  }
+  
+  .difficulty-name {
+    font-size: 0.875rem;
+  }
+  
+  .difficulty-rating {
+    font-size: 0.65rem;
+  }
+
+  #startGameBtn {
+    padding: 0.9375rem 1.75rem;
+  }
+}
+

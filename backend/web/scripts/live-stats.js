@@ -7,7 +7,14 @@
   function updateOnlineCount(count) {
     const el = document.getElementById('heroOnlineCount');
     if (el) {
-      el.innerHTML = `<span style="font-weight: 600; color: #10b981;">${count}</span> игроков онлайн`;
+      el.textContent = '';
+      const span = document.createElement('span');
+      span.style.fontWeight = '600';
+      span.style.color = '#10b981';
+      span.textContent = count;
+      el.appendChild(span);
+      const text = document.createTextNode(' игроков онлайн');
+      el.appendChild(text);
     }
   }
 
@@ -20,7 +27,6 @@
       statsWs = new WebSocket(wsUrl);
 
       statsWs.onopen = () => {
-        console.log('[Stats WS] Connected');
         // Сбрасываем таймер переподключения при успешном подключении
         if (reconnectTimeout) {
           clearTimeout(reconnectTimeout);
@@ -35,29 +41,27 @@
             updateOnlineCount(data.online_players || 0);
           }
         } catch (err) {
-          console.error('[Stats WS] Failed to parse message:', err);
-        }
+          }
       };
 
       statsWs.onerror = (error) => {
-        console.error('[Stats WS] Error:', error);
-      };
+        };
 
       statsWs.onclose = () => {
-        console.log('[Stats WS] Disconnected, reconnecting...');
         statsWs = null;
         // Переподключаемся через некоторое время
         reconnectTimeout = setTimeout(connectStatsWebSocket, RECONNECT_DELAY);
       };
     } catch (err) {
-      console.error('[Stats WS] Failed to connect:', err);
       // Fallback: используем polling при ошибке WebSocket
       fallbackToPolling();
     }
   }
 
   function fallbackToPolling() {
-    console.log('[Stats] Falling back to polling');
+    // Останавливаем предыдущий polling, если есть
+    stopPolling();
+
     async function fetchOnlineCount() {
       try {
         const res = await fetch('/api/stats/online');
@@ -67,15 +71,21 @@
         const data = await res.json();
         updateOnlineCount(data.online_players || 0);
       } catch (err) {
-        console.error('Failed to update online count:', err);
         const el = document.getElementById('heroOnlineCount');
         if (el) {
-          el.innerHTML = `<span style="font-weight: 600; color: #10b981;">—</span> игроков онлайн`;
+          el.textContent = '';
+          const span = document.createElement('span');
+          span.style.fontWeight = '600';
+          span.style.color = '#10b981';
+          span.textContent = '—';
+          el.appendChild(span);
+          const text = document.createTextNode(' игроков онлайн');
+          el.appendChild(text);
         }
       }
     }
     fetchOnlineCount();
-    setInterval(fetchOnlineCount, 30000);
+    pollingInterval = setInterval(fetchOnlineCount, 30000);
   }
 
   function animateCounter(element, target, duration = 2000) {
@@ -108,19 +118,18 @@
     initLiveStats();
   }
 
+  function disconnect() {
+    if (wsConnection) {
+      wsConnection.disconnect();
+      wsConnection = null;
+    }
+    stopPolling();
+  }
+
   window.LiveStats = {
     update: (count) => updateOnlineCount(count),
     animateCounter,
-    disconnect: () => {
-      if (statsWs) {
-        statsWs.close();
-        statsWs = null;
-      }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-        reconnectTimeout = null;
-      }
-    },
+    disconnect,
   };
 })();
 

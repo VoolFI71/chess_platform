@@ -68,7 +68,6 @@
       if (window.renderGameDetail) window.renderGameDetail();
       if (window.showToast) window.showToast('Вы присоединились к партии');
     } catch (err) {
-      console.error(err);
       if (window.showToast) window.showToast('Не удалось присоединиться: ' + (err.message || ''), 'error');
     }
   }
@@ -89,7 +88,6 @@
       if (window.renderGameDetail) window.renderGameDetail();
       if (window.showToast) window.showToast('Вы сдались.');
     } catch (err) {
-      console.error(err);
       if (window.showToast) window.showToast('Не удалось сдаться: ' + (err.message || ''), 'error');
     }
   }
@@ -114,7 +112,6 @@
       if (window.renderGameDetail) window.renderGameDetail();
       if (window.showToast) window.showToast('Партия завершена по времени');
     } catch (err) {
-      console.error(err);
       if (window.showToast) window.showToast('Не удалось завершить по времени: ' + (err.message || ''), 'error');
     }
   }

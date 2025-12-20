@@ -20,7 +20,7 @@
         toast.className = 'toast';
       }, 4000);
     } else {
-      console.log(`[${type.toUpperCase()}] ${message}`);
+      }] ${message}`);
       if (type === 'error') {
         alert(message);
       }

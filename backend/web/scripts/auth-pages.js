@@ -11,9 +11,9 @@
     const params = new URLSearchParams(window.location.search);
     const raw = params.get('next');
     if (raw && raw.startsWith('/') && !raw.startsWith('//')) {
-      return { url: raw, isCustom: raw !== '/profile' };
+      return { url: raw, isCustom: raw !== '/' };
     }
-    return { url: '/profile', isCustom: false };
+    return { url: '/', isCustom: false };
   }
 
   function setTokens(access, refresh) {
@@ -90,48 +90,101 @@
       : `Ошибка ${response.status}`;
   }
 
+  // Используем FormUtils для обратной совместимости с [data-feedback]
   function showFeedback(form, message, type = 'error') {
-    const target = form.querySelector('[data-feedback]');
-    if (!target) return;
-    target.textContent = message;
-    target.classList.remove('error', 'success', 'is-visible');
-    target.classList.add(type);
-    target.classList.add('is-visible');
-    target.hidden = false;
-    target.setAttribute('role', type === 'success' ? 'status' : 'alert');
+    // Пробуем использовать FormUtils, если доступен
+    if (window.FormUtils) {
+      window.FormUtils.showFormFeedback(form, message, type);
+      // Также обновляем [data-feedback] для обратной совместимости
+      const target = form.querySelector('[data-feedback]');
+      if (target) {
+        target.textContent = message;
+        target.classList.remove('error', 'success', 'is-visible');
+        target.classList.add(type, 'is-visible');
+        target.hidden = false;
+        target.setAttribute('role', type === 'success' ? 'status' : 'alert');
+      }
+    } else {
+      // Fallback для обратной совместимости
+      const target = form.querySelector('[data-feedback]');
+      if (!target) return;
+      target.textContent = message;
+      target.classList.remove('error', 'success', 'is-visible');
+      target.classList.add(type, 'is-visible');
+      target.hidden = false;
+      target.setAttribute('role', type === 'success' ? 'status' : 'alert');
+    }
   }
 
   function clearFeedback(form) {
+    if (window.FormUtils) {
+      window.FormUtils.clearFormFeedback(form);
+    }
+    // Также очищаем [data-feedback] для обратной совместимости
     const target = form.querySelector('[data-feedback]');
-    if (!target) return;
-    target.textContent = '';
-    target.classList.remove('error', 'success', 'is-visible');
-    target.hidden = true;
-    target.removeAttribute('role');
+    if (target) {
+      target.textContent = '';
+      target.classList.remove('error', 'success', 'is-visible');
+      target.hidden = true;
+      target.removeAttribute('role');
+    }
   }
 
   function setFormLoading(form, isLoading, loadingText) {
-    const submit = form.querySelector('[type="submit"]');
-    const fields = form.querySelectorAll('input, button, textarea, select');
-    fields.forEach((field) => {
+    if (window.FormUtils) {
+      window.FormUtils.setFormLoading(form, isLoading, loadingText);
+      // Дополнительно отключаем все поля для совместимости
       if (isLoading) {
-        field.dataset._previouslyDisabled = field.disabled ? 'true' : 'false';
-        field.disabled = true;
-      } else if (field.dataset._previouslyDisabled !== 'true') {
-        field.disabled = false;
-      }
-      if (!isLoading) delete field.dataset._previouslyDisabled;
-    });
-    if (submit) {
-      if (!submit.dataset.originalContent) {
-        submit.dataset.originalContent = submit.innerHTML;
-      }
-      submit.dataset.loading = isLoading ? 'true' : 'false';
-      if (isLoading) {
-        const text = loadingText || submit.getAttribute('data-loading-text') || submit.textContent;
-        submit.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${text}</span>`;
+        const fields = form.querySelectorAll('input, button, textarea, select');
+        fields.forEach((field) => {
+          if (field.type !== 'submit') {
+            field.dataset._previouslyDisabled = field.disabled ? 'true' : 'false';
+            field.disabled = true;
+          }
+        });
       } else {
-        submit.innerHTML = submit.dataset.originalContent;
+        const fields = form.querySelectorAll('input, button, textarea, select');
+        fields.forEach((field) => {
+          if (field.dataset._previouslyDisabled !== 'true') {
+            field.disabled = false;
+          }
+          delete field.dataset._previouslyDisabled;
+        });
+      }
+    } else {
+      // Fallback для обратной совместимости
+      const submit = form.querySelector('[type="submit"]');
+      const fields = form.querySelectorAll('input, button, textarea, select');
+      fields.forEach((field) => {
+        if (isLoading) {
+          field.dataset._previouslyDisabled = field.disabled ? 'true' : 'false';
+          field.disabled = true;
+        } else if (field.dataset._previouslyDisabled !== 'true') {
+          field.disabled = false;
+        }
+        if (!isLoading) delete field.dataset._previouslyDisabled;
+      });
+      if (submit) {
+        if (!submit.dataset.originalContent) {
+          submit.dataset.originalContent = submit.innerHTML;
+        }
+        submit.dataset.loading = isLoading ? 'true' : 'false';
+        if (isLoading) {
+          const text = loadingText || submit.getAttribute('data-loading-text') || submit.textContent;
+          submit.textContent = '';
+          const spinner = document.createElement('span');
+          spinner.className = 'spinner';
+          spinner.setAttribute('aria-hidden', 'true');
+          const textSpan = document.createElement('span');
+          textSpan.textContent = text || '';
+          submit.appendChild(spinner);
+          submit.appendChild(textSpan);
+        } else {
+          submit.textContent = '';
+          if (submit.dataset.originalContent) {
+            submit.innerHTML = submit.dataset.originalContent;
+          }
+        }
       }
     }
   }
@@ -163,7 +216,6 @@
       
       // Проверяем, что ответ содержит нужные поля
       if (!data || !data.access_token || !data.refresh_token) {
-        console.error('Invalid response format:', data);
         throw new Error('Неверный формат ответа от сервера');
       }
 
@@ -171,7 +223,6 @@
       showFeedback(form, 'Готово! Перенаправляем…', 'success');
       redirectAfterSuccess();
     } catch (error) {
-      console.error('Login error:', error);
       showFeedback(form, error.message || 'Не удалось войти');
     } finally {
       setFormLoading(form, false);
@@ -304,7 +355,7 @@
       if (redirectTarget.isCustom) {
         el.textContent = `После входа мы перенаправим вас на ${redirectTarget.url}.`;
       } else {
-        el.textContent = 'После входа вы автоматически перейдёте в профиль.';
+        el.textContent = 'После входа вы автоматически перейдёте на главную страницу.';
       }
     });
   }

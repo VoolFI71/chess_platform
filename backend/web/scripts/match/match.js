@@ -466,6 +466,11 @@
 
   const getOrientedMatrix = () => {
     const matrix = getBoardMatrix();
+    // Используем общую функцию из ChessBoardCore, если доступна
+    if (BoardCore && BoardCore.getOrientedMatrix) {
+      return BoardCore.getOrientedMatrix(matrix, boardOrientation);
+    }
+    // Fallback для обратной совместимости
     if (boardOrientation === 'white') return matrix;
     return matrix.slice().reverse().map((row) => row.slice().reverse());
   };
@@ -500,11 +505,68 @@
     const selectedSquare = analysisLocked ? null : state.selectedSquare;
     const targetSquares =
       !analysisLocked && state.availableTargets instanceof Set ? state.availableTargets : new Set();
-
-    boardEl.innerHTML = '';
     const role = getCurrentUserRole();
     const expectedTurnRole = state.game?.next_turn === 'w' ? 'white' : 'black';
     const isPlayersTurn = !analysisLocked && role && role === expectedTurnRole;
+
+    // Используем базовую функцию рендеринга
+    if (BoardCore && BoardCore.renderBoardBase) {
+      BoardCore.renderBoardBase({
+        boardEl,
+        matrix,
+        files,
+        ranks,
+        state,
+        getPieceSVG: (pieceStr) => window.getPieceSVG?.(pieceStr) || null,
+        onSquareClick: handleSquareClick,
+        options: {
+          selectedSquare,
+          availableTargets: targetSquares,
+          highlightSet,
+          baseBoard,
+          showCoordinates: true,
+          customClasses: {},
+          customPieceClasses: {},
+          pieceCheckCallback: (piece, squareName) => {
+            const classes = {};
+            const pieceBelongsToPlayer = role && pieceBelongsToRole(piece, role);
+            
+            if (isPlayersTurn && pieceBelongsToPlayer) {
+              classes.own = 'piece-own';
+              const movesForPiece = state.legalMovesByFrom.get(squareName);
+              if (movesForPiece && movesForPiece.length > 0) {
+                classes.movable = 'piece-movable';
+              }
+            }
+            
+            return classes;
+          },
+        },
+      });
+      
+      // Добавляем дополнительные классы и атрибуты после рендеринга
+      const squares = boardEl.querySelectorAll('.square');
+      squares.forEach((square, idx) => {
+        const rIdx = Math.floor(idx / 8);
+        const cIdx = idx % 8;
+        const squareName = `${files[cIdx]}${ranks[rIdx]}`;
+        const piece = matrix[rIdx]?.[cIdx];
+        
+        // Добавляем square-hoverable для фигур игрока с ходами
+        if (isPlayersTurn && piece && role && pieceBelongsToRole(piece, role)) {
+          const movesForPiece = state.legalMovesByFrom.get(squareName);
+          if (movesForPiece && movesForPiece.length > 0) {
+            square.classList.add('square-hoverable');
+            square.title = 'Кликните, чтобы выбрать фигуру и увидеть возможные ходы';
+          }
+        }
+      });
+    } else {
+      // Fallback: старая логика
+      boardEl.innerHTML = '';
+      if (BoardCore) {
+        BoardCore.clearSquareElementsCache(state);
+      }
 
     matrix.forEach((row, rIdx) => {
       row.forEach((piece, cIdx) => {
@@ -512,15 +574,20 @@
         const isLight = (rIdx + cIdx) % 2 === 0;
         square.className = `square ${isLight ? 'light' : 'dark'}`;
         const squareName = `${files[cIdx]}${ranks[rIdx]}`;
+          
+          if (BoardCore) {
+            BoardCore.registerSquareElement(state, squareName, square);
+          }
         if (highlightSet.has(squareName)) {
           square.classList.add('highlighted');
           const overlay = document.createElement('div');
           overlay.className = 'highlight-overlay';
           square.appendChild(overlay);
         }
-        if (selectedSquare && squareName === selectedSquare) {
-          square.classList.add('selected-user');
-        }
+          // НЕ подсвечиваем выбранную фигуру - подсвечиваем только возможные ходы
+          // if (selectedSquare && squareName === selectedSquare) {
+          //   square.classList.add('selected-user');
+          // }
         let isCaptureTarget = false;
         if (targetSquares.has(squareName)) {
           square.classList.add('legal-target');
@@ -586,6 +653,7 @@
         boardEl.appendChild(square);
       });
     });
+    }
   }
 
   function computeOrientationFromRole() {
@@ -672,7 +740,13 @@
     const list = document.getElementById('movesList');
     if (!list) return;
     if (!state.moves.length) {
-      list.innerHTML = '<li style="justify-content:center;color:rgba(148,163,184,.7);padding:1rem;">Ходов пока нет</li>';
+      list.textContent = '';
+      const emptyItem = document.createElement('li');
+      emptyItem.style.justifyContent = 'center';
+      emptyItem.style.color = 'rgba(148,163,184,.7)';
+      emptyItem.style.padding = '1rem';
+      emptyItem.textContent = 'Ходов пока нет';
+      list.appendChild(emptyItem);
       return;
     }
     const activeIndex = getDisplayedMoveIndex();
@@ -691,20 +765,6 @@
     
     const maxMoveIndex = Math.max(...Array.from(movesByIndex.keys()));
     
-    console.log('[MOVE DEBUG] renderMoves called', {
-      totalMoves: state.moves.length,
-      activeIndex,
-      maxMoveIndex,
-      moves: state.moves.map((m, idx) => ({
-        arrayIndex: idx,
-        move_index: m.move_index,
-        san: m.san,
-        uci: m.uci,
-        color: m.color,
-        player_id: m.player_id
-      }))
-    });
-    
     // Проходим по парам ходов (1-2, 3-4, 5-6, ...)
     for (let moveNumber = 1; moveNumber <= Math.ceil(maxMoveIndex / 2); moveNumber++) {
       const whiteMoveIndex = moveNumber * 2 - 1; // 1, 3, 5, 7, ...
@@ -713,33 +773,22 @@
       const whiteMove = movesByIndex.get(whiteMoveIndex) || null;
       const blackMove = movesByIndex.get(blackMoveIndex) || null;
       
-      console.log('[MOVE DEBUG] Rendering move pair', {
-        moveNumber,
-        whiteMoveIndex,
-        blackMoveIndex,
-        whiteMove: whiteMove ? {
-          move_index: whiteMove.move_index,
-          san: whiteMove.san,
-          uci: whiteMove.uci,
-          color: whiteMove.color
-        } : null,
-        blackMove: blackMove ? {
-          move_index: blackMove.move_index,
-          san: blackMove.san,
-          uci: blackMove.uci,
-          color: blackMove.color
-        } : null
-      });
+      const row = document.createElement('li');
+      row.className = 'move-row';
       
-      rows.push(`
-        <li class="move-row">
-          <span class="move-label">${moveNumber}.</span>
-          ${renderMoveCell(whiteMove, activeIndex)}
-          ${renderMoveCell(blackMove, activeIndex)}
-        </li>
-      `);
+      const label = document.createElement('span');
+      label.className = 'move-label';
+      label.textContent = `${moveNumber}.`;
+      row.appendChild(label);
+      
+      // Добавляем ячейки ходов через DOM API
+      const whiteCell = createMoveCellElement(whiteMove, activeIndex);
+      const blackCell = createMoveCellElement(blackMove, activeIndex);
+      row.appendChild(whiteCell);
+      row.appendChild(blackCell);
+      
+      list.appendChild(row);
     }
-    list.innerHTML = rows.join('');
     list.querySelectorAll('.move-cell[data-move-index]').forEach((cell) => {
       cell.addEventListener('click', () => {
         const idx = Number(cell.dataset.moveIndex);
@@ -763,22 +812,31 @@
     }
   }
 
+  function createMoveCellElement(move, activeIndex) {
+    if (!move) {
+      const empty = document.createElement('span');
+      empty.className = 'move-cell empty';
+      empty.textContent = '—';
+      return empty;
+    }
+    const label = move.san || move.uci || '…';
+    const isActive = move.move_index === activeIndex;
+    
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `move-cell${isActive ? ' active' : ''}`;
+    button.setAttribute('data-move-index', move.move_index.toString());
+    button.textContent = label;
+    return button;
+  }
+
   function renderMoveCell(move, activeIndex) {
+    // Deprecated: используйте createMoveCellElement вместо этого
     if (!move) {
       return '<span class="move-cell empty">—</span>';
     }
     const label = move.san || move.uci || '…';
     const isActive = move.move_index === activeIndex;
-    
-    console.log('[MOVE DEBUG] renderMoveCell', {
-      move_index: move.move_index,
-      san: move.san,
-      uci: move.uci,
-      color: move.color,
-      label,
-      activeIndex,
-      isActive
-    });
     
     return `<button type="button" class="move-cell${isActive ? ' active' : ''}" data-move-index="${move.move_index}">
       ${label}
@@ -798,17 +856,61 @@
     renderMoves();
   }
 
-  function resetSelection() {
-    setState(
-      {
+  // Используем общий модуль ChessBoardCore для работы с выбором
+  const BoardCore = window.ChessBoardCore;
+
+  // Обертка для получения FEN
+  function getCurrentFen() {
+    return getFenForIndex(getDisplayedMoveIndex());
+  }
+
+  // Инкрементальный сброс выбора (использует общий модуль)
+  function resetSelectionIncremental() {
+    if (!BoardCore) {
+      // Fallback для обратной совместимости
+      setState({
         selectedSquare: null,
         availableTargets: new Set(),
-      },
-      'resetSelection'
-    );
+      }, 'resetSelection');
+      return;
+    }
+
+    BoardCore.resetSelectionIncremental({
+      state,
+      setState,
+      getFen: getCurrentFen,
+      utils: window.ChessMoveUtils,
+    });
+  }
+
+  function resetSelection() {
+    resetSelectionIncremental();
+  }
+
+  // Обертки для обратной совместимости
+  function updateSelectedSquareHighlight(squareName, isSelected) {
+    if (BoardCore) {
+      BoardCore.updateSelectedSquareHighlight(state, squareName, isSelected);
+    }
+  }
+
+  function updateAvailableTargetsHighlight(targets) {
+    if (BoardCore) {
+      BoardCore.updateAvailableTargetsHighlight(
+        state,
+        targets,
+        getCurrentFen(),
+        window.ChessMoveUtils
+      );
+    }
   }
 
   function pieceBelongsToRole(piece, role) {
+    const utils = window.ChessMoveUtils;
+    if (utils && utils.pieceBelongsToPlayer) {
+      return utils.pieceBelongsToPlayer(piece, role);
+    }
+    // Fallback для обратной совместимости
     if (!piece) return false;
     const isWhite = piece === piece.toUpperCase();
     return role === (isWhite ? 'white' : 'black');
@@ -816,6 +918,10 @@
 
   function getPieceAtSquare(fen, square) {
     const utils = window.ChessMoveUtils;
+    if (utils && utils.getPieceAtSquare) {
+      return utils.getPieceAtSquare(fen, square);
+    }
+    // Fallback для обратной совместимости
     if (!utils || !fen || !square) return null;
     const { board } = utils.parseFen(fen);
     const fileIdx = square.charCodeAt(0) - 97;
@@ -825,6 +931,10 @@
   }
 
   function updateLegalMoves() {
+    const utils = window.ChessMoveUtils;
+    
+    if (!utils || !utils.updateLegalMovesForState) {
+      // Fallback: старая логика
     setState({ legalMovesByFrom: new Map() }, 'updateLegalMoves:reset');
     resetSelection();
 
@@ -833,12 +943,10 @@
     }
 
     const bothPlayersJoined = haveBothPlayersJoined();
-
     if (state.game.status !== 'ACTIVE' && !bothPlayersJoined) {
       return;
     }
 
-    const utils = window.ChessMoveUtils;
     if (!utils) {
       return;
     }
@@ -851,19 +959,87 @@
       return;
     }
 
+      let legalMovesByFrom = null;
+      if (utils.generateLegalMoves) {
+        const result = utils.generateLegalMoves(state.game.current_pos, role);
+        legalMovesByFrom = result.legalMovesByFrom;
+      } else {
     const { movesByFrom } = utils.generateMoves(state.game.current_pos, role);
-
+        legalMovesByFrom = new Map();
     movesByFrom.forEach((uciSet, fromSquare) => {
+          const legalMoves = Array.from(uciSet).filter(uci => {
+            return utils.isMoveAllowed(state.game.current_pos, role, uci);
+          });
+          if (legalMoves.length > 0) {
+            legalMovesByFrom.set(fromSquare, legalMoves);
+          }
+        });
+      }
+
+      const formattedMoves = new Map();
+      if (legalMovesByFrom) {
+        legalMovesByFrom.forEach((uciArray, fromSquare) => {
       const entries = [];
-      uciSet.forEach((uci) => {
-        const base = uci.slice(0, 4);
-        const to = uci.slice(2, 4);
-        const promotion = uci.length > 4 ? uci.slice(4) : null;
+          uciArray.forEach((uci) => {
+            const uciStr = typeof uci === 'string' ? uci : uci.uci || '';
+            const base = uciStr.slice(0, 4);
+            const to = uciStr.slice(2, 4);
+            const promotion = uciStr.length > 4 ? uciStr.slice(4) : null;
         entries.push({ from: fromSquare, to, base, promotion });
       });
       if (entries.length) {
-        state.legalMovesByFrom.set(fromSquare, entries);
+            formattedMoves.set(fromSquare, entries);
+          }
+        });
       }
+
+      setState({ legalMovesByFrom: formattedMoves }, 'updateLegalMoves:complete');
+      return;
+    }
+
+    // Используем общую функцию предгенерации
+    utils.updateLegalMovesForState({
+      getFen: () => state.game?.current_pos || null,
+      getPlayerColor: () => {
+        const role = getCurrentUserRole();
+        return role;
+      },
+      canGenerateMoves: () => {
+        if (!state.game) return false;
+        const bothPlayersJoined = haveBothPlayersJoined();
+        if (state.game.status !== 'ACTIVE' && !bothPlayersJoined) {
+          return false;
+        }
+        const role = getCurrentUserRole();
+        if (!role) return false;
+        const expectedTurn = state.game.next_turn === 'w' ? 'white' : 'black';
+        return role === expectedTurn;
+      },
+      onReset: () => {
+        resetSelection();
+      },
+      state,
+      setState,
+      formatMoves: (legalMovesByFrom) => {
+        // Преобразуем в формат, который ожидает match модуль
+        const formattedMoves = new Map();
+        if (legalMovesByFrom) {
+          legalMovesByFrom.forEach((uciArray, fromSquare) => {
+            const entries = [];
+            uciArray.forEach((uci) => {
+              const uciStr = typeof uci === 'string' ? uci : uci.uci || '';
+              const base = uciStr.slice(0, 4);
+              const to = uciStr.slice(2, 4);
+              const promotion = uciStr.length > 4 ? uciStr.slice(4) : null;
+              entries.push({ from: fromSquare, to, base, promotion });
+            });
+            if (entries.length) {
+              formattedMoves.set(fromSquare, entries);
+      }
+          });
+        }
+        return formattedMoves;
+      },
     });
   }
 
@@ -885,8 +1061,7 @@
     }
     const success = attemptMove(chosen.base, chosen.promotion);
     if (success) {
-      resetSelection();
-      renderBoard();
+      resetSelectionIncremental();
     }
   }
 
@@ -926,7 +1101,6 @@
 
     if (state.selectedSquare === square) {
       resetSelection();
-      renderBoard();
       return;
     }
 
@@ -934,7 +1108,6 @@
 
     if (!moves || !moves.length) {
       resetSelection();
-      renderBoard();
       return;
     }
 
@@ -942,17 +1115,31 @@
 
     if (!piece || !pieceBelongsToRole(piece, role)) {
       resetSelection();
-      renderBoard();
       return;
     }
+    const newTargets = new Set(moves.map((entry) => entry.to));
+    
+    // Используем общий модуль для обновления выбора
+    if (BoardCore) {
+      BoardCore.updateSelection({
+        state,
+        setState,
+        square,
+        targets: newTargets,
+        getFen: getCurrentFen,
+        utils: window.ChessMoveUtils,
+      });
+    } else {
+      // Fallback
     setState(
       {
         selectedSquare: square,
-        availableTargets: new Set(moves.map((entry) => entry.to)),
+          availableTargets: newTargets,
       },
       'handleSquareClick:select'
     );
     renderBoard();
+    }
   }
 
   const canJoinGame = () => {
@@ -1152,35 +1339,11 @@
     const previousMoves = state.moves || [];
     const previousMovesCount = previousMoves.length;
     
-    console.log('[MOVE DEBUG] applyGameDetail called', {
-      isRealtimeMove,
-      previousMovesCount,
-      incomingMovesCount: incomingMoves.length,
-      incomingMoves: incomingMoves.map(m => ({
-        move_index: m.move_index,
-        san: m.san,
-        uci: m.uci,
-        color: m.color,
-        player_id: m.player_id
-      })),
-      previousMoves: previousMoves.map(m => ({
-        move_index: m.move_index,
-        san: m.san,
-        uci: m.uci,
-        color: m.color
-      }))
-    });
-    
     // Умное объединение ходов:
     // - Если это реальный ход через WebSocket - всегда объединяем (сервер может отправлять неполный список)
     // - Если это не реальный ход (загрузка страницы) - заменяем полностью
     let finalMoves;
     const shouldMerge = isRealtimeMove && previousMovesCount > 0;
-    console.log('[MOVE DEBUG] Merge decision', {
-      isRealtimeMove,
-      previousMovesCount,
-      shouldMerge
-    });
     if (shouldMerge) {
       // Объединяем: добавляем новые ходы к существующим
       const movesMap = new Map();
@@ -1204,30 +1367,12 @@
         const bIndex = b.move_index || 0;
         return aIndex - bIndex;
       });
-      
-      console.log('[MOVE DEBUG] Merged moves', {
-        previousCount: previousMovesCount,
-        incomingCount: incomingMoves.length,
-        finalCount: finalMoves.length,
-        finalMoves: finalMoves.map(m => ({
-          move_index: m.move_index,
-          san: m.san,
-          uci: m.uci
-        }))
-      });
     } else {
       // Полная замена (при загрузке страницы или полном обновлении)
       finalMoves = incomingMoves.slice().sort((a, b) => {
         const aIndex = a.move_index || 0;
         const bIndex = b.move_index || 0;
         return aIndex - bIndex;
-      });
-      
-      console.log('[MOVE DEBUG] Full replace', {
-        previousCount: previousMovesCount,
-        incomingCount: incomingMoves.length,
-        finalCount: finalMoves.length,
-        isRealtimeMove
       });
     }
     
@@ -1417,7 +1562,6 @@
         startGamePolling();
       }
     } catch (err) {
-      console.error(err);
       showToast('Не удалось загрузить партию', 'error');
       setState({ game: null, moves: [] }, 'loadMatch:error');
       updateUI();
@@ -1450,18 +1594,6 @@
       const previousStatus = previousGame?.status;
       const currentBothJoined = haveBothPlayersJoined(detail);
       
-      console.log('[MOVE DEBUG] pollGameState update', {
-        movesCount: detail.moves?.length || 0,
-        moves: detail.moves?.map(m => ({
-          move_index: m.move_index,
-          san: m.san,
-          uci: m.uci,
-          color: m.color,
-          player_id: m.player_id
-        })) || [],
-        previousMovesCount: state.moves?.length || 0
-      });
-      
       // Применяем обновления
       applyGameDetail(detail);
       
@@ -1487,7 +1619,7 @@
         stopGamePolling();
       }
     } catch (err) {
-      console.error('[pollGameState] Error:', err);
+      // Error polling game state
     }
   }
 
@@ -1505,9 +1637,7 @@
   }
 
   function wsLog(level, message, data = null) {
-    if (level === 'error') {
-      console.error(`[WS] ${message}`, data || '');
-    }
+    // WebSocket logging disabled
   }
 
   function connectWebSocket(gameId, options = {}) {
@@ -1609,35 +1739,6 @@
       const moveTimestamp = isRealtimeMove && payload.move?.created_at 
         ? new Date(payload.move.created_at).getTime() 
         : null;
-      
-      console.log('[MOVE DEBUG] WebSocket payload received', {
-        type: payload.type,
-        isRealtimeMove,
-        moveTimestamp,
-        payloadMove: payload.move ? {
-          move_index: payload.move.move_index,
-          san: payload.move.san,
-          uci: payload.move.uci,
-          color: payload.move.color,
-          player_id: payload.move.player_id,
-          created_at: payload.move.created_at,
-          hasSan: !!payload.move.san,
-          hasUci: !!payload.move.uci
-        } : null,
-        gameMovesCount: payload.game?.moves?.length || 0,
-        gameMoves: payload.game?.moves?.map(m => ({
-          move_index: m.move_index,
-          san: m.san,
-          uci: m.uci,
-          color: m.color,
-          player_id: m.player_id,
-          hasSan: !!m.san,
-          hasUci: !!m.uci
-        })) || [],
-        previousMovesCount: state.moves?.length || 0,
-        previousMovesWithSan: state.moves?.filter(m => m.san).length || 0
-      });
-      
       applyGameDetail(payload.game, { isRealtimeMove, moveTimestamp });
       ensurePlayerUsernames(payload.game).then(() => {
         updatePlayerLabelsAndTitle();
@@ -1733,7 +1834,6 @@
         }
         
         const headers = window.getAnonymousHeaders();
-        console.log('[joinGame] Анонимное присоединение, session_id:', headers['X-Session-ID']);
         
         res = await fetch(`/api/games/${state.matchId}/join`, {
           method: 'POST',
@@ -1743,7 +1843,6 @@
       
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('[joinGame] Ошибка присоединения:', res.status, errorText);
         let errorMessage = 'Не удалось присоединиться к партии';
         try {
           const errorData = JSON.parse(errorText);
@@ -1756,23 +1855,10 @@
       
       const detail = await res.json();
       
-      console.log('[MOVE DEBUG] Initial loadMatch', {
-        gameId: detail.id,
-        movesCount: detail.moves?.length || 0,
-        moves: detail.moves?.map(m => ({
-          move_index: m.move_index,
-          san: m.san,
-          uci: m.uci,
-          color: m.color,
-          player_id: m.player_id
-        })) || []
-      });
-      
       applyGameDetail(detail);
       connectWebSocket(state.matchId);
       showToast('Вы присоединились к партии', 'success');
     } catch (err) {
-      console.error('[joinGame] Ошибка:', err);
       const errorMessage = err.message || 'Не удалось присоединиться к партии';
       showToast(errorMessage, 'error');
     }
@@ -1792,7 +1878,6 @@
       applyGameDetail(detail);
       showToast('Вы сдались в партии', 'success');
     } catch (err) {
-      console.error(err);
       showToast('Не удалось сдаться в партии', 'error');
     }
   }
@@ -1826,7 +1911,6 @@
         'success'
       );
     } catch (err) {
-      console.error(err);
       if (autoTriggered) {
         setState({ timeoutAutoRequested: false }, 'autoTimeout:failed');
         showToast('Не удалось автоматически завершить партию по времени', 'error');

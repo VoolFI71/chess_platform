@@ -1,33 +1,41 @@
 // Games WebSocket - WebSocket connection and handling
 (() => {
   const state = window.getGamesState();
+  let wsConnection = null;
 
   function connectWebSocket(gameId) {
-    if (state.ws) {
-      state.ws.onopen = null;
-      state.ws.onclose = null;
-      state.ws.onmessage = null;
-      state.ws.close();
-      state.ws = null;
+    // Отключаемся от предыдущего подключения, если есть
+    if (wsConnection) {
+      wsConnection.disconnect();
+      wsConnection = null;
     }
+
     updateWsIndicator('offline');
     const token = window.getAccessToken ? window.getAccessToken() : '';
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const url = `${protocol}://${window.location.host}/ws/games/${gameId}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
-    const ws = new WebSocket(url);
-    state.ws = ws;
+    const url = window.WebSocketUtils.createWebSocketUrl(`/ws/games/${gameId}`, token ? { token } : {});
 
-    ws.onopen = () => updateWsIndicator('online');
-    ws.onclose = () => updateWsIndicator('offline');
-    ws.onerror = () => updateWsIndicator('offline');
-    ws.onmessage = async (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        await handleWsPayload(payload);
-      } catch (err) {
-        console.error('WS parse error', err);
-      }
-    };
+    wsConnection = window.WebSocketUtils.createWebSocketConnection({
+      url,
+      onMessage: async (message) => {
+        await handleWsPayload(message);
+      },
+      onConnect: () => {
+        updateWsIndicator('online');
+        if (wsConnection) {
+          state.ws = wsConnection.getWebSocket();
+        }
+      },
+      onDisconnect: () => {
+        updateWsIndicator('offline');
+        state.ws = null;
+      },
+      onError: () => {
+        updateWsIndicator('offline');
+      },
+      maxReconnectAttempts: 5,
+      baseDelay: 1000,
+      maxDelay: 30000,
+    });
   }
 
   async function handleWsPayload(payload) {

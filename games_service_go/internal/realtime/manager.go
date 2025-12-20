@@ -48,7 +48,7 @@ func (cm *ConnectionManager) notifyStatsChange() {
 	if statsBroadcaster != nil {
 		onlinePlayers, activeGames := cm.GetOnlineStats()
 		if err := statsBroadcaster(onlinePlayers, activeGames); err != nil {
-			log.Printf("[WS Stats] Failed to broadcast stats: %v", err)
+			// Failed to broadcast stats
 		}
 	}
 }

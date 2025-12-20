@@ -3,11 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -138,7 +136,7 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			if err == nil {
 				userID = &uid
 			} else {
-				log.Printf("[WS] JWT validation failed: %v", err)
+				// JWT validation failed
 				// Не закрываем соединение, просто работаем как viewer
 			}
 		}
@@ -149,13 +147,13 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			if _, err := uuid.Parse(sessionID); err == nil {
 				playerSessionID = &sessionID
 			} else {
-				log.Printf("[WS] Invalid session_id format: %v", err)
+				// Invalid session_id format
 			}
 		}
 
 		ws, err := wsUpgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
-			log.Printf("[WS] Failed to upgrade connection: %v", err)
+			// Failed to upgrade connection
 			return
 		}
 		defer ws.Close()
@@ -169,7 +167,7 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 		// Загружаем игру
 		gameDetail, err := service.GetGame(ctx, gameID)
 		if err != nil {
-			log.Printf("[WS] Failed to get game %s: %v", gameID, err)
+			// Failed to get game
 			ws.WriteJSON(map[string]interface{}{
 				"type":    "error",
 				"message": "Game not found",
@@ -195,7 +193,7 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			"game": gameDetail,
 		}
 		if err := wsManager.SendPersonal(ws, stateMsg); err != nil {
-			log.Printf("[WS] Failed to send initial state: %v", err)
+			// Failed to send initial state
 			return
 		}
 
@@ -206,7 +204,7 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			"viewers_count": viewersCount,
 		}
 		if err := wsManager.SendPersonal(ws, viewersMsg); err != nil {
-			log.Printf("[WS] Failed to send initial viewers count: %v", err)
+			// Failed to send initial viewers count
 		}
 
 		// Кэш последних ходов для оптимизации
@@ -220,7 +218,7 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			if err := ws.ReadJSON(&rawMessage); err != nil {
 				// Проверяем, не является ли это закрытием соединения
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Printf("[WS] Unexpected close error: %v", err)
+					// Unexpected close error
 				}
 				break
 			}
@@ -228,7 +226,7 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			// Парсим payload
 			var payload services.MakeMovePayload
 			if err := json.Unmarshal(rawMessage, &payload); err != nil {
-				log.Printf("[WS] Failed to parse payload: %v", err)
+				// Failed to parse payload
 				wsManager.SendPersonal(ws, map[string]interface{}{
 					"type":           "error",
 					"message":        "Invalid payload",
@@ -246,21 +244,10 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 				continue
 			}
 
-			playerIDStr := "anonymous"
-			if userID != nil {
-				playerIDStr = fmt.Sprintf("%d", *userID)
-			}
-			clientMoveIDStr := ""
-			if payload.ClientMoveID != nil {
-				clientMoveIDStr = *payload.ClientMoveID
-			}
-			log.Printf("[WS RECEIVE MOVE] game_id=%s player_id=%s client_move_id=%s uci=%s",
-				gameID, playerIDStr, clientMoveIDStr, payload.UCI)
-
 			// Обработка хода через service.MakeMove()
 			updatedGame, move, err := service.MakeMove(ctx, gameID, userID, playerSessionID, &payload)
 			if err != nil {
-				log.Printf("[WS] Move rejected: %v", err)
+				// Move rejected
 				wsManager.SendPersonal(ws, map[string]interface{}{
 					"type":           "move_rejected",
 					"message":        err.Error(),
@@ -287,20 +274,12 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 			if len(updatedGame.TimeControl) > 0 {
 				var tc models.TimeControl
 				if err := json.Unmarshal(updatedGame.TimeControl, &tc); err != nil {
-					log.Printf("[WS] Failed to unmarshal TimeControl for game %s: %v", gameID, err)
+					// Failed to unmarshal TimeControl
 				} else {
 					broadcastGameDetail.WhiteFinishMs = &tc.WhiteFinishMs
 					broadcastGameDetail.BlackFinishMs = &tc.BlackFinishMs
 				}
 			}
-
-			moveTimestampMs := move.CreatedAt.UnixMilli()
-			nowMs := time.Now().UTC().UnixMilli()
-
-			// Используем уже объявленную переменную clientMoveIDStr
-			log.Printf("[WS BROADCAST move_made] game_id=%s client_move_id=%s move_id=%d move_index=%d move_created_at=%s move_timestamp_ms=%d game_white_clock=%d game_black_clock=%d game_next_turn=%s now_ms=%d",
-				gameID, clientMoveIDStr, move.ID, move.MoveIndex, move.CreatedAt.Format(time.RFC3339),
-				moveTimestampMs, updatedGame.WhiteClockMs, updatedGame.BlackClockMs, updatedGame.NextTurn, nowMs)
 
 			// Broadcast обновления всем подключенным
 			moveMadeMsg := map[string]interface{}{
@@ -310,7 +289,7 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 				"game":           *broadcastGameDetail,
 			}
 			if err := wsManager.Broadcast(gameID, moveMadeMsg); err != nil {
-				log.Printf("[WS] Failed to broadcast move_made: %v", err)
+				// Failed to broadcast move_made
 			}
 
 			// Если игра завершена, отправляем game_finished
@@ -320,7 +299,7 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 					"game": broadcastGameDetail,
 				}
 				if err := wsManager.Broadcast(gameID, finishedMsg); err != nil {
-					log.Printf("[WS] Failed to broadcast game_finished: %v", err)
+					// Failed to broadcast game_finished
 				}
 			}
 		}

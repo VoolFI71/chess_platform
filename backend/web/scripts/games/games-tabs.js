@@ -23,11 +23,9 @@
 
   function setActiveTab(tab) {
     if (!tab) {
-      console.warn('setActiveTab called without tab parameter');
       return;
     }
     
-    console.log('Setting active tab to:', tab);
     state.activeTab = tab;
     
     document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -45,8 +43,7 @@
       const targetTab = content.id?.replace('-tab', '');
       if (targetTab === tab) {
         content.classList.add('active');
-        console.log('Activated tab content:', content.id);
-      } else {
+        } else {
         content.classList.remove('active');
       }
     });
@@ -60,7 +57,6 @@
     });
     
     if (tab === 'lobby') {
-      console.log('Loading lobby games...');
       if (typeof window.loadWaitingRoomGames === 'function') {
         window.loadWaitingRoomGames();
       }

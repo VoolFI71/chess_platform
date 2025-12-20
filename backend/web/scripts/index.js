@@ -143,7 +143,6 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeMob
 
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof loadTheme === 'function') loadTheme();
-  console.log('🏁 ChessMint Loaded Successfully!');
 
   // Wire hero CTA: Начать обучение
   const startCta = document.querySelector('a[href="#start"].btn.btn-primary');

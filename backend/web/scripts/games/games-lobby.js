@@ -37,7 +37,6 @@
       
       filterLobbyGames(currentLobbyFilter);
     } catch (err) {
-      console.error('Failed to load waiting room games:', err);
       const waitingRoom = document.getElementById('waitingRoom');
       if (waitingRoom) {
         if (typeof window.showLobbyEmpty === 'function') {
@@ -95,15 +94,29 @@
       const whitePlayer = game.white_id ? `ID ${game.white_id}` : 'Ожидает белых';
       const blackPlayer = game.black_id ? `ID ${game.black_id}` : 'Ожидает чёрных';
       
-      item.innerHTML = `
-        <div class="waiting-info">
-          <div class="waiting-player">${whitePlayer} vs ${blackPlayer}</div>
-          <div class="waiting-time">${timeStr} • ${rated}</div>
-        </div>
-        <button class="btn-join" data-game-id="${game.id}">Принять</button>
-      `;
+      // Создаем структуру через DOM API для безопасности
+      const waitingInfo = document.createElement('div');
+      waitingInfo.className = 'waiting-info';
       
-      const joinBtn = item.querySelector('.btn-join');
+      const playerDiv = document.createElement('div');
+      playerDiv.className = 'waiting-player';
+      playerDiv.textContent = `${whitePlayer} vs ${blackPlayer}`;
+      
+      const timeDiv = document.createElement('div');
+      timeDiv.className = 'waiting-time';
+      timeDiv.textContent = `${timeStr} • ${rated}`;
+      
+      waitingInfo.appendChild(playerDiv);
+      waitingInfo.appendChild(timeDiv);
+      
+      const joinBtn = document.createElement('button');
+      joinBtn.className = 'btn-join';
+      joinBtn.setAttribute('data-game-id', game.id.toString());
+      joinBtn.textContent = 'Принять';
+      
+      item.appendChild(waitingInfo);
+      item.appendChild(joinBtn);
+      
       joinBtn.addEventListener('click', async () => {
         await joinWaitingGame(game.id);
       });
@@ -174,17 +187,35 @@
         const whitePlayer = window.getPlayerName ? window.getPlayerName(game, 'white') : '—';
         const blackPlayer = window.getPlayerName ? window.getPlayerName(game, 'black') : '—';
         
-        item.innerHTML = `
-          <div class="tv-live-badge">
-            <div class="live-dot"></div>
-            LIVE
-          </div>
-          <div class="tv-players">
-            <div class="tv-player">⚪ ${whitePlayer}</div>
-            <div class="tv-player">⚫ ${blackPlayer}</div>
-          </div>
-          <div class="tv-time">${timeStr} • Ход ${game.move_count || 0}</div>
-        `;
+        // Создаем структуру через DOM API для безопасности
+        const liveBadge = document.createElement('div');
+        liveBadge.className = 'tv-live-badge';
+        const liveDot = document.createElement('div');
+        liveDot.className = 'live-dot';
+        liveBadge.appendChild(liveDot);
+        liveBadge.appendChild(document.createTextNode(' LIVE'));
+        
+        const playersDiv = document.createElement('div');
+        playersDiv.className = 'tv-players';
+        
+        const whitePlayerDiv = document.createElement('div');
+        whitePlayerDiv.className = 'tv-player';
+        whitePlayerDiv.textContent = `⚪ ${whitePlayer}`;
+        
+        const blackPlayerDiv = document.createElement('div');
+        blackPlayerDiv.className = 'tv-player';
+        blackPlayerDiv.textContent = `⚫ ${blackPlayer}`;
+        
+        playersDiv.appendChild(whitePlayerDiv);
+        playersDiv.appendChild(blackPlayerDiv);
+        
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'tv-time';
+        timeDiv.textContent = `${timeStr} • Ход ${game.move_count || 0}`;
+        
+        item.appendChild(liveBadge);
+        item.appendChild(playersDiv);
+        item.appendChild(timeDiv);
         
         item.addEventListener('click', () => {
           window.location.href = `/match/${game.id}`;
@@ -193,7 +224,6 @@
         tvGames.appendChild(item);
       });
     } catch (err) {
-      console.error('Failed to load TV games:', err);
       const tvGames = document.getElementById('tvGames');
       if (tvGames) {
         if (typeof window.showTVEmpty === 'function') {
@@ -241,7 +271,6 @@
         window.location.href = `/match/${game.id}`;
       }
     } catch (err) {
-      console.error(err);
       if (window.showToast) window.showToast('Не удалось присоединиться: ' + (err.message || ''), 'error');
     }
   }

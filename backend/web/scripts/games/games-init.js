@@ -10,8 +10,7 @@
       if (retryCount < MAX_RETRIES) {
         setTimeout(initialize, 50);
       } else {
-        console.error('GamesState not loaded after max retries');
-      }
+        }
       return;
     }
     
@@ -20,8 +19,7 @@
       if (retryCount < MAX_RETRIES) {
         setTimeout(initialize, 50);
       } else {
-        console.error('bindTabs not available after max retries');
-      }
+        }
       return;
     }
     
@@ -32,13 +30,11 @@
       if (retryCount < MAX_RETRIES) {
         setTimeout(initialize, 50);
       } else {
-        console.error('Column titles not found after max retries');
-      }
+        }
       return;
     }
     
     // All dependencies ready, initialize tabs
-    console.log('Initializing games tabs...');
     window.bindTabs();
   }
   

@@ -26,7 +26,12 @@ function renderLessonItem(lesson) {
   left.style.display = 'flex';
   left.style.alignItems = 'center';
   left.style.gap = '0.75rem';
-  left.innerHTML = `<i class="fas fa-play"></i> <strong>${lesson.title}</strong>`;
+  const playIcon = document.createElement('i');
+  playIcon.className = 'fas fa-play';
+  left.appendChild(playIcon);
+  const titleStrong = document.createElement('strong');
+  titleStrong.textContent = lesson.title || '';
+  left.appendChild(titleStrong);
 
   const right = document.createElement('div');
   right.style.color = 'var(--muted)';
@@ -71,8 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     lessons.forEach(l => container.appendChild(renderLessonItem(l)));
   } catch (e) {
-    console.error('Course page load failed:', e);
-  }
+    }
 });
 
 

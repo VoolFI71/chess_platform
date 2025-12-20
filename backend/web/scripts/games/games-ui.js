@@ -13,9 +13,11 @@
     if (!container) return;
 
     if (!games.length) {
-      container.innerHTML = `<div class="empty-state">${
-        view === 'waiting' ? 'Ни одной партии в ожидании. Создайте свою!' : 'Пока нет активных матчей.'
-      }</div>`;
+      container.textContent = '';
+      const emptyState = document.createElement('div');
+      emptyState.className = 'empty-state';
+      emptyState.textContent = view === 'waiting' ? 'Ни одной партии в ожидании. Создайте свою!' : 'Пока нет активных матчей.';
+      container.appendChild(emptyState);
       return;
     }
 
@@ -24,18 +26,47 @@
       const card = document.createElement('div');
       card.className = `game-card${state.selectedGameId === game.id ? ' selected' : ''}`;
       card.dataset.gameId = game.id;
-      card.innerHTML = `
-        <div class="card-top">
-          <span class="pill ${window.statusClass(game.status)}">${window.translateStatus(game.status)}</span>
-          <span style="font-size:0.85rem;color:rgba(248,250,252,0.7);">${window.describeTimeControl(game.time_control)}</span>
-        </div>
-        <div class="players">${window.getPlayerName(game, 'white')} <span style="opacity:.6;">vs</span> ${window.getPlayerName(game, 'black')}</div>
-        <div class="meta-row">
-          <span>Ходы: ${game.move_count}</span>
-          <span>ID ${game.id.slice(0, 8)}</span>
-        </div>
-        <div class="actions"></div>
-      `;
+      // Создаем структуру через DOM API для безопасности
+      const cardTop = document.createElement('div');
+      cardTop.className = 'card-top';
+      
+      const statusPill = document.createElement('span');
+      statusPill.className = `pill ${window.statusClass(game.status)}`;
+      statusPill.textContent = window.translateStatus(game.status) || '';
+      
+      const timeControlSpan = document.createElement('span');
+      timeControlSpan.style.fontSize = '0.85rem';
+      timeControlSpan.style.color = 'rgba(248,250,252,0.7)';
+      timeControlSpan.textContent = window.describeTimeControl(game.time_control) || '';
+      
+      cardTop.appendChild(statusPill);
+      cardTop.appendChild(timeControlSpan);
+      
+      const playersDiv = document.createElement('div');
+      playersDiv.className = 'players';
+      const whiteName = window.getPlayerName(game, 'white') || '';
+      const blackName = window.getPlayerName(game, 'black') || '';
+      playersDiv.textContent = `${whiteName} vs ${blackName}`;
+      
+      const metaRow = document.createElement('div');
+      metaRow.className = 'meta-row';
+      
+      const movesSpan = document.createElement('span');
+      movesSpan.textContent = `Ходы: ${game.move_count || 0}`;
+      
+      const idSpan = document.createElement('span');
+      idSpan.textContent = `ID ${(game.id || '').slice(0, 8)}`;
+      
+      metaRow.appendChild(movesSpan);
+      metaRow.appendChild(idSpan);
+      
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      
+      card.appendChild(cardTop);
+      card.appendChild(playersDiv);
+      card.appendChild(metaRow);
+      card.appendChild(actions);
       const actions = card.querySelector('.actions');
 
       const openBtn = document.createElement('button');
@@ -124,7 +155,6 @@
       renderGameDetail();
       if (window.connectWebSocket) window.connectWebSocket(gameId);
     } catch (err) {
-      console.error(err);
       if (window.showToast) window.showToast('Не удалось загрузить детали партии', 'error');
       if (placeholder) placeholder.textContent = 'Произошла ошибка при загрузке данных.';
     }
@@ -162,18 +192,32 @@
   function renderMoves() {
     const list = document.getElementById('movesList');
     if (!list) return;
+    list.textContent = '';
     if (!state.moves.length) {
-      list.innerHTML = '<li style="justify-content:center;color:rgba(148,163,184,.7);">Ходов пока нет</li>';
+      const emptyItem = document.createElement('li');
+      emptyItem.style.justifyContent = 'center';
+      emptyItem.style.color = 'rgba(148,163,184,.7)';
+      emptyItem.textContent = 'Ходов пока нет';
+      list.appendChild(emptyItem);
       return;
     }
-    list.innerHTML = '';
     state.moves.forEach((move) => {
       const row = document.createElement('li');
-      row.innerHTML = `
-        <span>#${move.move_index}</span>
-        <span>${move.san || move.uci}</span>
-        <span style="font-size:0.8rem;color:rgba(148,163,184,.8);">${move.player_id ? `ID ${move.player_id}` : '—'}</span>
-      `;
+      
+      const moveIndexSpan = document.createElement('span');
+      moveIndexSpan.textContent = `#${move.move_index || ''}`;
+      
+      const moveSpan = document.createElement('span');
+      moveSpan.textContent = move.san || move.uci || '';
+      
+      const playerSpan = document.createElement('span');
+      playerSpan.style.fontSize = '0.8rem';
+      playerSpan.style.color = 'rgba(148,163,184,.8)';
+      playerSpan.textContent = move.player_id ? `ID ${move.player_id}` : '—';
+      
+      row.appendChild(moveIndexSpan);
+      row.appendChild(moveSpan);
+      row.appendChild(playerSpan);
       list.appendChild(row);
     });
     list.scrollTop = list.scrollHeight;

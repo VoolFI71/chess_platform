@@ -44,7 +44,6 @@
         utils.storeUsername(userId, username);
         return username;
       } catch (err) {
-        console.error('Failed to fetch username:', err);
         return null;
       }
     },

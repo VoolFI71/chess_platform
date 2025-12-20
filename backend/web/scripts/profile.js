@@ -35,7 +35,6 @@ async function loadPuzzlesProgress(userId = null) {
     }
     currentPuzzleStats = await res.json();
   } catch (e) {
-    console.error('Failed to load puzzle stats:', e);
     currentPuzzleStats = null;
   }
 
@@ -85,7 +84,6 @@ async function loadPuzzleThemesStats(userId = null) {
     renderPuzzleThemesChart(data.themes || []);
     renderPuzzleThemesList(data.themes || []);
   } catch (e) {
-    console.error('Failed to load puzzle theme stats:', e);
     const container = document.getElementById('puzzleThemesList');
     if (container) {
       container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">Не удалось загрузить статистику по категориям</div>';
@@ -199,20 +197,44 @@ function renderPuzzleThemesList(themes) {
     
     const progressPercent = theme.total > 0 ? Math.round((theme.solved / theme.total) * 100) : 0;
     
-    themeCard.innerHTML = `
-      <div class="theme-stat-header">
-        <div class="theme-stat-name">${theme.theme}</div>
-        <div class="theme-stat-accuracy">${theme.accuracy}%</div>
-      </div>
-      <div class="theme-stat-progress">
-        <div class="progress-bar-wrapper">
-          <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
-        </div>
-        <div class="theme-stat-numbers">
-          <span>${theme.solved} / ${theme.total}</span>
-        </div>
-      </div>
-    `;
+    // Создаем структуру через DOM API для безопасности
+    const header = document.createElement('div');
+    header.className = 'theme-stat-header';
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'theme-stat-name';
+    nameDiv.textContent = theme.theme || '';
+    
+    const accuracyDiv = document.createElement('div');
+    accuracyDiv.className = 'theme-stat-accuracy';
+    accuracyDiv.textContent = `${theme.accuracy || 0}%`;
+    
+    header.appendChild(nameDiv);
+    header.appendChild(accuracyDiv);
+    
+    const progress = document.createElement('div');
+    progress.className = 'theme-stat-progress';
+    
+    const progressBarWrapper = document.createElement('div');
+    progressBarWrapper.className = 'progress-bar-wrapper';
+    
+    const progressBarFill = document.createElement('div');
+    progressBarFill.className = 'progress-bar-fill';
+    progressBarFill.style.width = `${progressPercent}%`;
+    
+    progressBarWrapper.appendChild(progressBarFill);
+    
+    const numbers = document.createElement('div');
+    numbers.className = 'theme-stat-numbers';
+    const numbersSpan = document.createElement('span');
+    numbersSpan.textContent = `${theme.solved || 0} / ${theme.total || 0}`;
+    numbers.appendChild(numbersSpan);
+    
+    progress.appendChild(progressBarWrapper);
+    progress.appendChild(numbers);
+    
+    themeCard.appendChild(header);
+    themeCard.appendChild(progress);
     
     container.appendChild(themeCard);
   });
@@ -539,8 +561,7 @@ function renderMatchHistory() {
           }
         }
       } catch (e) {
-        console.debug('Failed to parse game metadata for rating change:', e);
-      }
+        }
     }
     
     // Форматируем изменение рейтинга для отображения
@@ -597,12 +618,18 @@ function renderMatchHistory() {
     // Время активности
     const timeDiv = document.createElement('div');
     timeDiv.className = 'activity-time';
-    let ratingText = '';
+    timeDiv.textContent = timeControl;
     if (ratingChange && ratingChangeValue !== null) {
       const ratingColor = ratingChangeValue > 0 ? 'success' : ratingChangeValue < 0 ? 'danger' : 'warning';
-      ratingText = ` | Рейтинг: <span style="color: var(--${ratingColor}); font-weight: 600;">${ratingChange}</span>`;
+      const ratingText = document.createTextNode(' | Рейтинг: ');
+      const ratingSpan = document.createElement('span');
+      ratingSpan.style.color = `var(--${ratingColor})`;
+      ratingSpan.style.fontWeight = '600';
+      ratingSpan.textContent = ratingChange;
+      timeDiv.appendChild(ratingText);
+      timeDiv.appendChild(ratingSpan);
     }
-    timeDiv.innerHTML = `${timeControl}${ratingText} | ${matchDate}`;
+    timeDiv.appendChild(document.createTextNode(` | ${matchDate}`));
     
     contentDiv.appendChild(textDiv);
     contentDiv.appendChild(timeDiv);
@@ -685,7 +712,6 @@ async function loadMatchHistory(username = null, loadMore = false) {
           return;
         }
       } catch (e) {
-        console.error('Failed to load profile user:', e);
         container.textContent = '';
         const errorDiv = document.createElement('div');
         errorDiv.className = 'history-empty error';
@@ -735,7 +761,6 @@ async function loadMatchHistory(username = null, loadMore = false) {
         return;
       }
     } catch (e) {
-      console.error('Failed to load profile user:', e);
       container.textContent = '';
       const errorDiv = document.createElement('div');
       errorDiv.className = 'history-empty error';
@@ -835,7 +860,6 @@ async function loadMatchHistory(username = null, loadMore = false) {
     // Перерендерим после загрузки имен пользователей
     renderMatchHistory();
   } catch (error) {
-    console.error('Failed to load match history:', error);
     historyState.error = error;
     if (!loadMore) {
       container.textContent = '';
@@ -947,7 +971,6 @@ async function checkFriendshipStatus(userId) {
     }
     return null;
   } catch (e) {
-    console.error('Failed to check friendship status:', e);
     return null;
   }
 }
@@ -963,7 +986,6 @@ async function sendFriendRequest(userId) {
     });
     return res.ok;
   } catch (e) {
-    console.error('Failed to send friend request:', e);
     return false;
   }
 }
@@ -977,7 +999,6 @@ async function deleteFriendship(friendshipId) {
     });
     return res.ok || res.status === 204;
   } catch (e) {
-    console.error('Failed to delete friendship:', e);
     return false;
   }
 }
@@ -1052,7 +1073,6 @@ async function handleFriendshipButtonClick() {
       // Запрос уже отправлен - ничего не делаем
     }
   } catch (e) {
-    console.error('Failed to handle friendship action:', e);
     alert('Произошла ошибка. Попробуйте обновить страницу.');
   } finally {
     friendshipState.loading = false;
@@ -1618,7 +1638,6 @@ async function loadFriendsList() {
     
     renderFriendsList(friendsListState.friends);
   } catch (e) {
-    console.error('Failed to load friends list:', e);
     container.innerHTML = '';
     const errorDiv = document.createElement('div');
     errorDiv.style.cssText = 'text-align: center; padding: 2rem; color: var(--danger); grid-column: 1 / -1;';
@@ -1766,14 +1785,12 @@ async function inviteFriendToGame(friendId, friendUsername) {
       });
     } catch (notifError) {
       // Логируем ошибку, но не прерываем выполнение - игра уже создана
-      console.warn('Failed to send notification to friend:', notifError);
-    }
+      }
     
     // Переходим на страницу игры
     window.location.href = `/match/${game.id}`;
     
   } catch (e) {
-    console.error('Error inviting friend to game:', e);
     if (typeof window.showToast === 'function') {
       window.showToast('Ошибка при создании игры', 'error');
     } else {
@@ -1879,7 +1896,6 @@ function showAddFriendModal() {
           resultsContainer.appendChild(userCard);
         });
       } catch (e) {
-        console.error('Search error:', e);
         resultsContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger);">Ошибка поиска</div>';
       }
     }, 500);
@@ -1920,7 +1936,7 @@ function createUserSearchCard(user) {
   const rating = document.createElement('div');
   rating.className = 'friend-rating';
   const highestRating = getHighestRating(user);
-  rating.innerHTML = `⭐ ${highestRating}`;
+  rating.textContent = `⭐ ${highestRating || ''}`;
   
   info.appendChild(name);
   info.appendChild(rating);
@@ -1985,7 +2001,6 @@ function createUserSearchCard(user) {
         actionBtn.disabled = true;
       }
     } catch (e) {
-      console.error('Error:', e);
       if (typeof window.showToast === 'function') {
         window.showToast('Ошибка при добавлении друга', 'error');
       }
@@ -2110,13 +2125,11 @@ function renderFriendRequests(requests) {
   }
   
   requests.forEach(request => {
-    console.log('Processing request:', request);
     const card = createRequestCard(request);
     if (card) {
       container.appendChild(card);
     } else {
-      console.warn('Failed to create card for request:', request);
-    }
+      }
   });
 }
 
@@ -2146,16 +2159,13 @@ async function loadFriendRequests() {
     const res = await window.apiFetch('/api/friendships/requests/incoming?limit=100');
     if (!res.ok) {
       const errorText = await res.text();
-      console.error('Failed to load friend requests:', res.status, errorText);
       throw new Error('Failed to load friend requests');
     }
     const data = await res.json();
-    console.log('Friend requests data:', data);
     friendRequestsState.requests = data.friendships || [];
     friendRequestsState.loaded = true;
     renderFriendRequests(friendRequestsState.requests);
   } catch (e) {
-    console.error('Error loading friend requests:', e);
     container.innerHTML = '';
     const errorDiv = document.createElement('div');
     errorDiv.style.cssText = 'text-align: center; padding: 2rem; color: var(--danger); grid-column: 1 / -1;';
@@ -2192,7 +2202,6 @@ async function acceptFriendRequest(friendshipId) {
     });
     return res.ok;
   } catch (e) {
-    console.error('Failed to accept friend request:', e);
     return false;
   }
 }
@@ -2208,7 +2217,6 @@ async function declineFriendRequest(friendshipId) {
     });
     return res.ok;
   } catch (e) {
-    console.error('Failed to decline friend request:', e);
     return false;
   }
 }
@@ -2388,7 +2396,6 @@ async function loadRatingHistory(formatType = null) {
     
     renderRatingHistory(ratingHistoryState.entries);
   } catch (e) {
-    console.error('Failed to load rating history:', e);
     container.innerHTML = '';
     const errorDiv = document.createElement('div');
     errorDiv.style.cssText = 'text-align: center; padding: 2rem; color: var(--danger);';
@@ -2642,7 +2649,6 @@ async function loadGameStats(username = null) {
       formatStatsGrid.appendChild(emptyCard);
     }
   } catch (e) {
-    console.error('Failed to load game stats:', e);
     const formatStatsGrid = document.getElementById('formatStatsGrid');
     if (formatStatsGrid) {
       formatStatsGrid.textContent = '';
@@ -2766,7 +2772,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
           // Если не авторизован, кнопка не показывается (container.style.display = 'none' по умолчанию)
         } catch (e) {
-          console.error('Failed to load current user:', e);
           // Если ошибка авторизации, кнопка не показывается
         }
       }
@@ -2803,7 +2808,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Проверяем наличие apiFetch
     if (typeof window.apiFetch !== 'function') {
-      console.error('apiFetch не доступен. Убедитесь, что auth.js загружен.');
       renderHistoryAuthPrompt();
       return;
     }
@@ -2878,8 +2882,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderEmptyState(lockedContainer, 'Нет недоступных курсов');
     }
   } catch (e) {
-    console.error('Cabinet load failed:', e);
-  }
+    }
 });
 
 

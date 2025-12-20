@@ -25,12 +25,10 @@
 
   const setState = (updates, context = 'setState') => {
     if (!updates || typeof updates !== 'object') {
-      console.warn('[match] setState called without object payload', { updates, context });
       return state;
     }
     Object.entries(updates).forEach(([key, value]) => {
       if (!(key in state)) {
-        console.error(`[match] setState: unknown key "${key}"`, { context, updates });
         return;
       }
       state[key] = value;

@@ -1,0 +1,99 @@
+(() => {
+  'use strict';
+
+  const API_BASE = '/api/computer-games';
+
+  // Получить токен доступа
+  function getAccessToken() {
+    try {
+      return localStorage.getItem('access_token');
+    } catch {
+      return null;
+    }
+  }
+
+  // Получить session ID
+  function getSessionID() {
+    try {
+      return localStorage.getItem('session_id') || sessionStorage.getItem('session_id');
+    } catch {
+      return null;
+    }
+  }
+
+  // Построить URL
+  function buildUrl(path) {
+    return `${API_BASE}${path}`;
+  }
+
+  // Авторизованный fetch
+  async function authedFetch(url, options = {}) {
+    const token = getAccessToken();
+    const sessionID = getSessionID();
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else if (sessionID) {
+      headers['X-Session-ID'] = sessionID;
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  // Создать игру с компьютером
+  async function createComputerGame(playerColor, aiLevel) {
+    const url = buildUrl('');
+    const body = {
+      creator_color: playerColor,
+      ai_skill_level: aiLevel,
+      time_control: {
+        initial_ms: 0, // Без контроля времени для компьютерных игр
+        increment_ms: 0,
+        type: 'unlimited',
+      },
+    };
+
+    return authedFetch(url, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  // Получить игру
+  async function getGame(gameId) {
+    const url = buildUrl(`/${gameId}`);
+    return authedFetch(url);
+  }
+
+  // Получить ходы игры
+  async function getMoves(gameId) {
+    const url = buildUrl(`/${gameId}/moves`);
+    return authedFetch(url);
+  }
+
+  // Export
+  window.ComputerGameApi = {
+    createComputerGame,
+    getGame,
+    getMoves,
+    buildUrl,
+    getAccessToken,
+    getSessionID,
+  };
+})();
+

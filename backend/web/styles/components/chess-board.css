@@ -127,9 +127,20 @@ body.dark .square.dark {
 	cursor: grab;
 }
 
-.square .piece.piece-movable:hover {
+.square .piece.piece-movable:hover,
+.square.touching .piece.piece-movable {
 	transform: scale(1.05);
 	filter: brightness(1.1);
+}
+
+/* Немедленная визуальная обратная связь для touch на мобильных */  
+.square.touching {
+	background: rgba(59, 130, 246, 0.15) !important;
+	transition: background 0.05s ease;
+}
+
+.square.touching.selected-user {
+	background: rgba(34, 197, 94, 0.25) !important;
 }
 
 .square .piece.piece-own:not(.piece-movable) {

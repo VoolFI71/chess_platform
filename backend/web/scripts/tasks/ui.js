@@ -115,18 +115,20 @@
       }
 
       if (modeLabel) {
-        modeLabel.innerHTML = `
-          <i class="fas fa-layer-group"></i>
-          Режим: ${TasksState.selectedMode.name}
-        `;
+        modeLabel.textContent = '';
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-layer-group';
+        modeLabel.appendChild(icon);
+        modeLabel.appendChild(document.createTextNode(` Режим: ${TasksState.selectedMode.name || ''}`));
       }
 
       if (ratingLabel) {
         const value = puzzle && typeof puzzle.rating === 'number' ? puzzle.rating : '—';
-        ratingLabel.innerHTML = `
-          <i class="fas fa-chess"></i>
-          Рейтинг: ${value}
-        `;
+        ratingLabel.textContent = '';
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-chess';
+        ratingLabel.appendChild(icon);
+        ratingLabel.appendChild(document.createTextNode(` Рейтинг: ${value}`));
       }
 
       window.TasksUI.updatePuzzleInfo(puzzle);
@@ -149,20 +151,28 @@
       infoCard.classList.remove('hidden');
 
       if (themesValue) {
+        themesValue.textContent = '';
         if (puzzle.themes && Array.isArray(puzzle.themes) && puzzle.themes.length > 0) {
-          themesValue.innerHTML = puzzle.themes.map(theme => 
-            `<span class="info-tag">${window.TasksUtils.escapeHtml(theme)}</span>`
-          ).join('');
+          puzzle.themes.forEach(theme => {
+            const tag = document.createElement('span');
+            tag.className = 'info-tag';
+            tag.textContent = theme || '';
+            themesValue.appendChild(tag);
+          });
         } else {
           themesValue.textContent = '—';
         }
       }
 
       if (openingValue) {
+        openingValue.textContent = '';
         if (puzzle.opening_tags && Array.isArray(puzzle.opening_tags) && puzzle.opening_tags.length > 0) {
-          openingValue.innerHTML = puzzle.opening_tags.map(tag => 
-            `<span class="info-tag">${window.TasksUtils.escapeHtml(tag)}</span>`
-          ).join('');
+          puzzle.opening_tags.forEach(tag => {
+            const tagEl = document.createElement('span');
+            tagEl.className = 'info-tag';
+            tagEl.textContent = tag || '';
+            openingValue.appendChild(tagEl);
+          });
         } else {
           openingValue.textContent = '—';
         }
@@ -201,7 +211,7 @@
           if (ratingValue) ratingValue.textContent = rating;
           ratingStatItem.style.display = '';
         } else if (TasksState.selectedMode.id === 'marathon') {
-          // Для режима марафон показываем текущий рейтинг марафона
+          // Для режима марафон показываем начальный рейтинг марафона
           const marathonRating = TasksState.marathonRating || 1000;
           if (ratingValue) ratingValue.textContent = marathonRating;
           ratingStatItem.style.display = '';

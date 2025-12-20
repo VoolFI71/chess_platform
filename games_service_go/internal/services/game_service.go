@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
@@ -151,7 +150,7 @@ func (s *GameService) GetGame(ctx context.Context, gameID uuid.UUID) (*models.Ga
 	if len(game.TimeControl) > 0 {
 		var tc models.TimeControl
 		if err := json.Unmarshal(game.TimeControl, &tc); err != nil {
-			log.Printf("[GameService] Failed to unmarshal TimeControl for game %s: %v", game.ID, err)
+			// Failed to unmarshal TimeControl
 		} else {
 			detail.WhiteFinishMs = &tc.WhiteFinishMs
 			detail.BlackFinishMs = &tc.BlackFinishMs
@@ -254,9 +253,6 @@ func (s *GameService) computeClocksForMove(game *models.Game, currentTurn models
 		blackFinish += incrementMs
 	}
 
-	log.Printf("[CLOCK CALC] game_id=%s turn=%s white_past=%d black_past=%d white_finish=%d black_finish=%d elapsed_ms=%d increment_ms=%d",
-		game.ID, currentTurn, whitePast, blackPast, whiteFinish, blackFinish, elapsedMs, incrementMs)
-
 	return whitePast, blackPast, whiteFinish, blackFinish
 }
 
@@ -290,9 +286,6 @@ func (s *GameService) ComputeEffectiveClocks(ctx context.Context, game *models.G
 	} else {
 		blackPast += elapsedMs
 	}
-
-	log.Printf("[EFFECTIVE CLOCKS] game_id=%s next_turn=%s elapsed_ms=%d white_past_stored=%d black_past_stored=%d white_past_effective=%d black_past_effective=%d",
-		game.ID, game.NextTurn, elapsedMs, game.WhiteClockMs, game.BlackClockMs, whitePast, blackPast)
 
 	return whitePast, blackPast, nil
 }
@@ -330,7 +323,7 @@ func (s *GameService) JoinGame(ctx context.Context, gameID uuid.UUID, playerID *
 	var metadata map[string]interface{}
 	if len(game.Metadata) > 0 {
 		if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
-			log.Printf("[JoinGame] Failed to unmarshal metadata: %v", err)
+			// Failed to unmarshal metadata
 			metadata = make(map[string]interface{})
 		}
 	} else {
@@ -429,7 +422,6 @@ func (s *GameService) JoinGame(ctx context.Context, gameID uuid.UUID, playerID *
 			game.Status = models.GameStatusActive
 			now := time.Now().UTC()
 			game.StartedAt = &now
-			log.Printf("[GAME STARTED] game_id=%s Both players joined, game started at %s", game.ID, now.Format(time.RFC3339))
 		}
 
 		return tx.Save(&game).Error
@@ -459,7 +451,7 @@ func (s *GameService) buildGameDetail(ctx context.Context, game *models.Game) (*
 	if len(game.TimeControl) > 0 {
 		var tc models.TimeControl
 		if err := json.Unmarshal(game.TimeControl, &tc); err != nil {
-			log.Printf("[GameService] Failed to unmarshal TimeControl for game %s: %v", game.ID, err)
+			// Failed to unmarshal TimeControl
 		} else {
 			detail.WhiteFinishMs = &tc.WhiteFinishMs
 			detail.BlackFinishMs = &tc.BlackFinishMs
@@ -657,19 +649,19 @@ func (s *GameService) finishGame(ctx context.Context, tx *gorm.DB, game *models.
 	// Обновляем счетчик сыгранных партий
 	if game.WhiteID != nil {
 		if err := tx.WithContext(ctx).Exec("UPDATE users SET games_played = games_played + 1 WHERE id = ?", *game.WhiteID).Error; err != nil {
-			log.Printf("Warning: failed to update games_played for user %d: %v", *game.WhiteID, err)
+			// Warning: failed to update games_played
 		}
 	}
 	if game.BlackID != nil {
 		if err := tx.WithContext(ctx).Exec("UPDATE users SET games_played = games_played + 1 WHERE id = ?", *game.BlackID).Error; err != nil {
-			log.Printf("Warning: failed to update games_played for user %d: %v", *game.BlackID, err)
+			// Warning: failed to update games_played
 		}
 	}
 
 	// Обновляем рейтинги если игра завершена с двумя игроками
 	if game.WhiteID != nil && game.BlackID != nil {
 		if err := s.updateRatings(ctx, tx, game); err != nil {
-			log.Printf("Warning: failed to update ratings: %v", err)
+			// Warning: failed to update ratings
 			// Не прерываем транзакцию из-за ошибки обновления рейтингов
 		}
 	}
@@ -701,7 +693,7 @@ func (s *GameService) updateRatings(ctx context.Context, tx *gorm.DB, game *mode
 	ratingColumn, ok := ratingColumns[formatType]
 	if !ok {
 		// Если formatType невалидный, используем rapid по умолчанию
-		log.Printf("Warning: invalid formatType '%s', using 'rapid' as default", formatType)
+		// Warning: invalid formatType, using 'rapid' as default
 		ratingColumn = "rapid_rating"
 	}
 
@@ -766,7 +758,7 @@ func (s *GameService) updateRatings(ctx context.Context, tx *gorm.DB, game *mode
 	var metadata map[string]interface{}
 	if len(game.Metadata) > 0 {
 		if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
-			log.Printf("Warning: failed to unmarshal metadata: %v", err)
+			// Warning: failed to unmarshal metadata
 			metadata = make(map[string]interface{})
 		}
 	} else {
@@ -786,11 +778,11 @@ func (s *GameService) updateRatings(ctx context.Context, tx *gorm.DB, game *mode
 
 		metadataJSON, err := json.Marshal(metadata)
 		if err != nil {
-			log.Printf("Warning: failed to marshal metadata: %v", err)
+			// Warning: failed to marshal metadata
 		} else {
 			game.Metadata = metadataJSON
 			if err := tx.WithContext(ctx).Model(game).Update("metadata", metadataJSON).Error; err != nil {
-				log.Printf("Warning: failed to update game metadata with rating changes: %v", err)
+				// Warning: failed to update game metadata
 			}
 		}
 	}
@@ -800,7 +792,7 @@ func (s *GameService) updateRatings(ctx context.Context, tx *gorm.DB, game *mode
 		*game.WhiteID, whiteRating, whiteRatingAfter, whiteResult, *game.BlackID,
 		*game.BlackID, blackRating, blackRatingAfter, blackResult, *game.WhiteID,
 	); err != nil {
-		log.Printf("Warning: failed to save rating history: %v", err)
+		// Warning: failed to save rating history
 	}
 
 	return nil
@@ -921,7 +913,7 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 		var metadata map[string]interface{}
 		if len(game.Metadata) > 0 {
 			if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
-				log.Printf("[MakeMove] Failed to unmarshal metadata: %v", err)
+				// Failed to unmarshal metadata
 				metadata = make(map[string]interface{})
 			}
 		} else {
@@ -1016,13 +1008,6 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 			return fmt.Errorf("failed to get last move: %w", err)
 		}
 
-		playerIDStr := "anonymous"
-		if playerID != nil {
-			playerIDStr = fmt.Sprintf("%d", *playerID)
-		}
-		log.Printf("[MOVE START] game_id=%s player_id=%s move_index=%d turn=%s white_clock_before=%d black_clock_before=%d move_count=%d",
-			game.ID, playerIDStr, game.MoveCount+1, currentTurn, game.WhiteClockMs, game.BlackClockMs, game.MoveCount)
-
 		// Проверка таймаута
 		effectiveWhitePast, effectiveBlackPast, err := s.ComputeEffectiveClocks(ctx, &game, lastMove)
 		if err != nil {
@@ -1053,14 +1038,12 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 
 		if currentTurn == models.SideWhite {
 			if whiteFinish > 0 && effectiveWhitePast >= whiteFinish {
-				log.Printf("Move rejected: timeout - game_id=%s, player_id=%s, turn=white, effective_past=%d finish=%d",
-					game.ID, playerIDStr, effectiveWhitePast, whiteFinish)
+				// Move rejected: timeout
 				return fmt.Errorf("white clock expired")
 			}
 		} else {
 			if blackFinish > 0 && effectiveBlackPast >= blackFinish {
-				log.Printf("Move rejected: timeout - game_id=%s, player_id=%s, turn=black, effective_past=%d finish=%d",
-					game.ID, playerIDStr, effectiveBlackPast, blackFinish)
+				// Move rejected: timeout
 				return fmt.Errorf("black clock expired")
 			}
 		}
@@ -1072,7 +1055,6 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 		}
 
 		elapsedMs := s.computeElapsedMs(ctx, &game, lastMove)
-		log.Printf("[ELAPSED TIME] game_id=%s elapsed_ms=%d", game.ID, elapsedMs)
 
 		// Вычисляем новые значения времени
 		whitePast, blackPast, whiteFinishNew, blackFinishNew := s.computeClocksForMove(&game, currentTurn, elapsedMs, incrementMs)
@@ -1137,9 +1119,6 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 		game.BlackClockMs = blackPast
 		game.NextTurn = newNextTurn
 
-		log.Printf("[MOVE AFTER] game_id=%s move_index=%d white_past_after=%d black_past_after=%d white_finish_after=%d black_finish_after=%d next_turn_after=%s",
-			game.ID, moveIndex, whitePast, blackPast, whiteFinishNew, blackFinishNew, newNextTurn)
-
 		// Проверка окончания игры
 		outcome := board.Outcome()
 		if outcome == chess.WhiteWon {
@@ -1171,9 +1150,6 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 				return fmt.Errorf("failed to update game: %w", err)
 			}
 		}
-
-		log.Printf("[MOVE COMMITTED] game_id=%s move_index=%d white_clock_final=%d black_clock_final=%d next_turn_final=%s move_id=%d",
-			game.ID, moveIndex, game.WhiteClockMs, game.BlackClockMs, game.NextTurn, move.ID)
 
 		return nil
 	})

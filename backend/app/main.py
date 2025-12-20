@@ -97,15 +97,27 @@ def _serve_file(path: Path, request: Request = None):
         etag = md5(etag_data.encode()).hexdigest()
         response.headers["ETag"] = f'"{etag}"'
         
-        # Для CSS и JS файлов: длительное кеширование с проверкой через ETag
+        # Определяем режим разработки (dev/prod)
+        # В dev режиме отключаем кеширование для JS/CSS для удобства разработки
+        is_dev = getattr(settings, 'environment', 'development').lower() == 'development'
+        
+        # Для CSS и JS файлов: длительное кеширование с проверкой через ETag (в prod)
+        # В dev режиме: no-cache для немедленного обновления
         if path.suffix in {".css", ".js", ".woff", ".woff2", ".ttf", ".eot", ".svg", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp"}:
-            response.headers["Cache-Control"] = "public, max-age=31536000, must-revalidate"
+            if is_dev:
+                # В режиме разработки: no-cache для JS/CSS файлов
+                response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                response.headers["Pragma"] = "no-cache"
+                response.headers["Expires"] = "0"
+            else:
+                # В продакшене: длительное кеширование
+                response.headers["Cache-Control"] = "public, max-age=31536000, must-revalidate"
         else:
             # Для HTML и других файлов: короткое кеширование
             response.headers["Cache-Control"] = "public, max-age=3600, must-revalidate"
         
-        # Проверяем If-None-Match для поддержки 304 Not Modified
-        if request and request.headers.get("if-none-match") == f'"{etag}"':
+        # Проверяем If-None-Match для поддержки 304 Not Modified (только в prod)
+        if not is_dev and request and request.headers.get("if-none-match") == f'"{etag}"':
             from fastapi import Response
             return Response(status_code=304)
     except (OSError, AttributeError):
