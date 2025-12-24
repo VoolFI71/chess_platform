@@ -22,9 +22,17 @@
       }
       
       allWaitingGames = (games || []).filter(game => {
-        const hasBothPlayers = game.white_id && game.black_id;
-        return !hasBothPlayers;
+        // Проверяем наличие обоих игроков (учитывая user_id и session_id)
+        const metadata = game.metadata || {};
+        const hasWhite = game.white_id || metadata.white_session_id;
+        const hasBlack = game.black_id || metadata.black_session_id;
+        return !(hasWhite && hasBlack);
       });
+      
+      // Загружаем имена игроков для всех игр
+      if (typeof window.ensureUsernamesForGames === 'function') {
+        await window.ensureUsernamesForGames(allWaitingGames);
+      }
       
       if (allWaitingGames.length === 0) {
         if (typeof window.showLobbyEmpty === 'function') {
@@ -80,8 +88,11 @@
     
     waitingRoom.innerHTML = '';
     filteredGames.forEach(game => {
-      const hasBothPlayers = game.white_id && game.black_id;
-      if (hasBothPlayers) return;
+      // Проверяем наличие обоих игроков (учитывая user_id и session_id)
+      const metadata = game.metadata || {};
+      const hasWhite = game.white_id || metadata.white_session_id;
+      const hasBlack = game.black_id || metadata.black_session_id;
+      if (hasWhite && hasBlack) return;
       
       const item = document.createElement('div');
       item.className = 'waiting-item';
@@ -91,8 +102,14 @@
       const increment = Math.round((timeControl.increment_ms || 0) / 1000);
       const timeStr = `${minutes}+${increment}`;
       const rated = game.metadata?.rated ? 'Рейтинговая' : 'Товарищеская';
-      const whitePlayer = game.white_id ? `ID ${game.white_id}` : 'Ожидает белых';
-      const blackPlayer = game.black_id ? `ID ${game.black_id}` : 'Ожидает чёрных';
+      
+      // Используем getPlayerName для правильного отображения имен
+      const whitePlayer = window.getPlayerName ? window.getPlayerName(game, 'white') : (game.white_id ? `ID ${game.white_id}` : 'Ожидает белых');
+      const blackPlayer = window.getPlayerName ? window.getPlayerName(game, 'black') : (game.black_id ? `ID ${game.black_id}` : 'Ожидает чёрных');
+      
+      // Если игрок не присоединился, показываем "Ожидает..."
+      const whiteDisplay = hasWhite ? whitePlayer : 'Ожидает белых';
+      const blackDisplay = hasBlack ? blackPlayer : 'Ожидает чёрных';
       
       // Создаем структуру через DOM API для безопасности
       const waitingInfo = document.createElement('div');
@@ -100,7 +117,7 @@
       
       const playerDiv = document.createElement('div');
       playerDiv.className = 'waiting-player';
-      playerDiv.textContent = `${whitePlayer} vs ${blackPlayer}`;
+      playerDiv.textContent = `${whiteDisplay} vs ${blackDisplay}`;
       
       const timeDiv = document.createElement('div');
       timeDiv.className = 'waiting-time';
@@ -167,6 +184,11 @@
           tvGames.innerHTML = '<div class="empty-state">Пока нет активных матчей.</div>';
         }
         return;
+      }
+      
+      // Загружаем имена игроков для всех игр
+      if (typeof window.ensureUsernamesForGames === 'function') {
+        await window.ensureUsernamesForGames(activeGames);
       }
       
       if (typeof window.showTVContent === 'function') {

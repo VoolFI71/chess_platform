@@ -1,42 +1,31 @@
 /* How It Works Section */
 
 .how-it-works-section {
-    padding: 6rem 0;
+    padding: 4rem 0;
     position: relative;
+    background: transparent;
 }
 
 .steps-container {
     max-width: 1200px;
     margin: 3rem auto 0;
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 3rem;
     position: relative;
 }
 
 @media (min-width: 1024px) {
     .steps-container {
-        grid-template-columns: repeat(3, 1fr);
         gap: 2rem;
     }
 }
 
-/* Connecting line between steps (desktop only) */
-@media (min-width: 1024px) {
-    .steps-container::before {
-        content: '';
-        position: absolute;
-        top: 5rem;
-        left: 20%;
-        right: 20%;
-        height: 2px;
-        background: linear-gradient(90deg, 
-            #3b82f6 0%, 
-            #8b5cf6 50%, 
-            #ec4899 100%
-        );
-        opacity: 0.3;
-        z-index: 0;
+/* Support for 4 steps layout (for coaches page) */
+@media (min-width: 1440px) {
+    .steps-container {
+        gap: 2.5rem;
     }
 }
 
@@ -44,6 +33,8 @@
     position: relative;
     text-align: center;
     z-index: 1;
+    flex: 0 0 auto;
+    max-width: 280px;
 }
 
 .step-number {
@@ -92,12 +83,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
-    background: rgba(255, 255, 255, 0.8);
+    font-size: 2rem;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(59, 130, 246, 0.1));
     backdrop-filter: blur(10px);
-    border: 2px solid rgba(124, 58, 237, 0.1);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(124, 58, 237, 0.2);
+    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.15);
     transition: all 0.3s ease;
+    color: #7c3aed;
+}
+
+body.dark .step-icon {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15));
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #8b5cf6;
 }
 
 body.dark .step-icon {
@@ -107,7 +105,13 @@ body.dark .step-icon {
 
 .step-card:hover .step-icon {
     transform: scale(1.1) rotate(5deg);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 15px 40px rgba(124, 58, 237, 0.25);
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(59, 130, 246, 0.2));
+}
+
+body.dark .step-card:hover .step-icon {
+    box-shadow: 0 15px 40px rgba(139, 92, 246, 0.35);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(59, 130, 246, 0.25));
 }
 
 .step-title {
@@ -205,10 +209,8 @@ body.dark .step-time {
         gap: 3rem;
     }
     
-    .step-number {
-        width: 6rem;
-        height: 6rem;
-        font-size: 2.5rem;
+    .step-card {
+        max-width: 320px;
     }
     
     .step-icon {
@@ -230,7 +232,7 @@ body.dark .step-time {
 /* 2K/QHD (2560px) */
 @media (min-width: 2560px) {
     .how-it-works-section {
-        padding: 10rem 0;
+        padding: 5rem 0;
     }
     
     .steps-container {
@@ -238,10 +240,8 @@ body.dark .step-time {
         gap: 3.5rem;
     }
     
-    .step-number {
-        width: 6.5rem;
-        height: 6.5rem;
-        font-size: 2.75rem;
+    .step-card {
+        max-width: 360px;
     }
     
     .step-icon {
@@ -263,7 +263,7 @@ body.dark .step-time {
 /* 4K/UHD (3840px) */
 @media (min-width: 3840px) {
     .how-it-works-section {
-        padding: 12rem 0;
+        padding: 6rem 0;
     }
     
     .steps-container {
@@ -271,10 +271,8 @@ body.dark .step-time {
         gap: 4rem;
     }
     
-    .step-number {
-        width: 7rem;
-        height: 7rem;
-        font-size: 3rem;
+    .step-card {
+        max-width: 400px;
     }
     
     .step-icon {

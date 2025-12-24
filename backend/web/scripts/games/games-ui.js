@@ -67,7 +67,6 @@
       card.appendChild(playersDiv);
       card.appendChild(metaRow);
       card.appendChild(actions);
-      const actions = card.querySelector('.actions');
 
       const openBtn = document.createElement('button');
       openBtn.className = 'btn-outline';

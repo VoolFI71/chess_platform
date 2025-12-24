@@ -129,7 +129,7 @@ func joinGame(service *services.GameService) gin.HandlerFunc {
 	}
 }
 
-func resignGame(service *services.GameService) gin.HandlerFunc {
+func resignGame(service *services.GameService, wsManager *realtime.ConnectionManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		gameIDStr := c.Param("game_id")
 		gameID, err := uuid.Parse(gameIDStr)
@@ -138,21 +138,41 @@ func resignGame(service *services.GameService) gin.HandlerFunc {
 			return
 		}
 
-		userID, ok := c.Get("user_id")
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
+		var playerID *int
+		var playerSessionID *string
+
+		// Проверяем авторизованного пользователя
+		if userID, ok := c.Get("user_id"); ok {
+			if id, ok := userID.(int); ok {
+				playerID = &id
+			}
 		}
-		playerID, ok := userID.(int)
-		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_id type"})
+
+		// Проверяем анонимного пользователя через session_id
+		if sessionID, ok := c.Get("session_id"); ok {
+			if sid, ok := sessionID.(string); ok {
+				playerSessionID = &sid
+			}
+		}
+
+		// Если нет ни user_id, ни session_id - требуем аутентификацию
+		if playerID == nil && playerSessionID == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication or session_id required"})
 			return
 		}
 
-		game, err := service.Resign(c.Request.Context(), gameID, playerID)
+		game, err := service.Resign(c.Request.Context(), gameID, playerID, playerSessionID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
+		}
+
+		// Broadcast через WebSocket о завершении игры
+		if wsManager != nil && game != nil {
+			wsManager.Broadcast(gameID, map[string]interface{}{
+				"type": "game_finished",
+				"game": game,
+			})
 		}
 
 		c.JSON(http.StatusOK, game)

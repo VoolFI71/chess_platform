@@ -52,6 +52,15 @@
     overflow: hidden;
 }
 
+.coach-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
 .coach-avatar-large::before {
     content: '';
     position: absolute;
@@ -59,6 +68,8 @@
     background: 
         radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
         radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+    z-index: 2;
+    pointer-events: none;
 }
 
 .coach-badge-sidebar {
@@ -127,18 +138,12 @@ body.dark .coach-header-info {
     font-weight: 900;
     margin-bottom: 1rem;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, var(--primary), #3b82f6);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #000000;
     line-height: 1.2;
 }
 
 body.dark .coach-name {
-    background: linear-gradient(135deg, #a78bfa, #60a5fa);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #ffffff;
 }
 
 .coach-title {

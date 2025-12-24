@@ -461,7 +461,12 @@ func (s *GameService) buildGameDetail(ctx context.Context, game *models.Game) (*
 	return detail, nil
 }
 
-func (s *GameService) Resign(ctx context.Context, gameID uuid.UUID, playerID int) (*models.GameDetail, error) {
+func (s *GameService) Resign(ctx context.Context, gameID uuid.UUID, playerID *int, playerSessionID *string) (*models.GameDetail, error) {
+	// Проверяем, что передан хотя бы один идентификатор
+	if playerID == nil && playerSessionID == nil {
+		return nil, fmt.Errorf("either player_id or player_session_id must be provided")
+	}
+
 	var game models.Game
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Блокируем игру
@@ -476,22 +481,63 @@ func (s *GameService) Resign(ctx context.Context, gameID uuid.UUID, playerID int
 			return fmt.Errorf("game already finished")
 		}
 
+		// Парсим metadata для проверки анонимных игроков
+		var metadata map[string]interface{}
+		if len(game.Metadata) > 0 {
+			if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
+				metadata = make(map[string]interface{})
+			}
+		} else {
+			metadata = make(map[string]interface{})
+		}
+
 		// Проверяем, что игрок участвует в партии
-		if (game.WhiteID == nil || *game.WhiteID != playerID) &&
-			(game.BlackID == nil || *game.BlackID != playerID) {
+		var isPlayerInGame bool
+		var playerSide models.SideToMove
+
+		if playerID != nil {
+			// Проверка для авторизованного игрока
+			if game.WhiteID != nil && *game.WhiteID == *playerID {
+				isPlayerInGame = true
+				playerSide = models.SideWhite
+			} else if game.BlackID != nil && *game.BlackID == *playerID {
+				isPlayerInGame = true
+				playerSide = models.SideBlack
+			}
+		}
+
+		if !isPlayerInGame && playerSessionID != nil {
+			// Проверка для анонимного игрока через session_id
+			whiteSessionID, _ := metadata["white_session_id"].(string)
+			blackSessionID, _ := metadata["black_session_id"].(string)
+
+			if *playerSessionID == whiteSessionID {
+				isPlayerInGame = true
+				playerSide = models.SideWhite
+			} else if *playerSessionID == blackSessionID {
+				isPlayerInGame = true
+				playerSide = models.SideBlack
+			}
+		}
+
+		if !isPlayerInGame {
 			return fmt.Errorf("player not in game")
 		}
 
 		// Определяем победителя (противоположный игрок)
 		var winner models.SideToMove
-		if game.WhiteID != nil && *game.WhiteID == playerID {
+		if playerSide == models.SideWhite {
 			winner = models.SideBlack
 		} else {
 			winner = models.SideWhite
 		}
 
 		reason := string(models.TerminationResignation)
-		return s.finishGame(ctx, tx, &game, &winner, reason, &playerID)
+		var endedBy *int
+		if playerID != nil {
+			endedBy = playerID
+		}
+		return s.finishGame(ctx, tx, &game, &winner, reason, endedBy)
 	})
 
 	if err != nil {
@@ -593,6 +639,92 @@ func (s *GameService) Timeout(ctx context.Context, gameID uuid.UUID, playerID in
 
 	// Перезагружаем игру
 	return s.GetGame(ctx, gameID)
+}
+
+// TimeoutAuto автоматически завершает игру по таймауту (используется watchdog)
+// Не требует playerID и не проверяет участие игрока
+func (s *GameService) TimeoutAuto(ctx context.Context, gameID uuid.UUID, loserColor string) error {
+	var game models.Game
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Блокируем игру
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&game, "id = ?", gameID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("game not found")
+			}
+			return err
+		}
+
+		if game.Status == models.GameStatusFinished {
+			return fmt.Errorf("game already finished")
+		}
+
+		// Вычисляем эффективные часы
+		lastMove, err := s.getLastMove(ctx, gameID)
+		if err != nil {
+			return fmt.Errorf("failed to get last move: %w", err)
+		}
+
+		effectiveWhitePast, effectiveBlackPast, err := s.ComputeEffectiveClocks(ctx, &game, lastMove)
+		if err != nil {
+			return err
+		}
+
+		// Получаем finish_time из TimeControl JSON
+		whiteFinish := int64(0)
+		blackFinish := int64(0)
+		if len(game.TimeControl) > 0 {
+			var tc models.TimeControl
+			if err := json.Unmarshal(game.TimeControl, &tc); err == nil {
+				whiteFinish = tc.WhiteFinishMs
+				blackFinish = tc.BlackFinishMs
+				if whiteFinish == 0 {
+					whiteFinish = tc.InitialMs
+				}
+				if blackFinish == 0 {
+					blackFinish = tc.InitialMs
+				}
+			}
+		}
+
+		// Определяем проигравшего
+		var loser models.SideToMove
+		if loserColor == "white" {
+			loser = models.SideWhite
+			if whiteFinish == 0 || effectiveWhitePast < whiteFinish {
+				return fmt.Errorf("white clock has not expired")
+			}
+		} else {
+			loser = models.SideBlack
+			if blackFinish == 0 || effectiveBlackPast < blackFinish {
+				return fmt.Errorf("black clock has not expired")
+			}
+		}
+
+		// Обновляем past_time до эффективных значений
+		game.WhiteClockMs = effectiveWhitePast
+		game.BlackClockMs = effectiveBlackPast
+
+		// Устанавливаем past_time проигравшего равным finish_time
+		if loser == models.SideWhite {
+			game.WhiteClockMs = whiteFinish
+		} else {
+			game.BlackClockMs = blackFinish
+		}
+
+		// Определяем победителя
+		winner := models.SideBlack
+		if loser == models.SideWhite {
+			winner = models.SideBlack
+		} else {
+			winner = models.SideWhite
+		}
+
+		reason := string(models.TerminationTimeout)
+		// endedBy = nil для автоматического завершения
+		return s.finishGame(ctx, tx, &game, &winner, reason, nil)
+	})
+
+	return err
 }
 
 func (s *GameService) ListGames(ctx context.Context, limit, offset int, status *models.GameStatus) ([]models.Game, error) {

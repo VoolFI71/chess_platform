@@ -127,6 +127,21 @@ def _serve_file(path: Path, request: Request = None):
     return response
 
 
+@app.get("/coach")
+def serve_coach_default(request: Request):
+    # Redirect /coach to /coach/grisha (default coach)
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/coach/grisha", status_code=301)
+
+@app.get("/coach/{coach_slug}")
+def serve_coach_by_slug(coach_slug: str, request: Request):
+    # Always serve coach.html for pretty URL, frontend reads coach slug from path
+    coach_file = WEB_DIR / "coach.html"
+    if not coach_file.is_file():
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    # Frontend JavaScript will parse coach_slug from window.location.pathname
+    return _serve_file(coach_file, request)
+
 @app.get("/course/{course_id}")
 def serve_course_by_id(course_id: int, request: Request):
     # Always serve course.html for pretty URL, frontend reads courseId from path

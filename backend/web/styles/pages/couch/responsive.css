@@ -90,3 +90,130 @@
         display: none;
     }
 }
+
+/* ===== LARGE MONITORS ADAPTATION ===== */
+/* Full HD (1920px) */
+@media (min-width: 1920px) {
+    .coach-section {
+        padding: 6rem 2rem;
+    }
+    
+    .coach-profile {
+        gap: 6rem;
+        margin-bottom: 8rem;
+    }
+    
+    .coach-avatar-large {
+        width: 320px;
+        height: 320px;
+    }
+    
+    .coach-name {
+        font-size: 2.5rem;
+    }
+    
+    .coach-title {
+        font-size: 1.25rem;
+    }
+    
+    .section-heading {
+        font-size: 2.5rem;
+        margin-bottom: 2.5rem;
+    }
+    
+    .about-coach-text {
+        font-size: 1.25rem;
+    }
+    
+    .level-item {
+        font-size: 1.25rem;
+    }
+    
+    .level-item i {
+        font-size: 1.75rem;
+    }
+}
+
+/* 2K/QHD (2560px) */
+@media (min-width: 2560px) {
+    .coach-section {
+        padding: 8rem 2rem;
+    }
+    
+    .coach-profile {
+        gap: 7rem;
+        margin-bottom: 10rem;
+    }
+    
+    .coach-avatar-large {
+        width: 360px;
+        height: 360px;
+    }
+    
+    .coach-name {
+        font-size: 3rem;
+    }
+    
+    .coach-title {
+        font-size: 1.375rem;
+    }
+    
+    .section-heading {
+        font-size: 3rem;
+        margin-bottom: 3rem;
+    }
+    
+    .about-coach-text {
+        font-size: 1.375rem;
+    }
+    
+    .level-item {
+        font-size: 1.375rem;
+    }
+    
+    .level-item i {
+        font-size: 2rem;
+    }
+}
+
+/* 4K/UHD (3840px) */
+@media (min-width: 3840px) {
+    .coach-section {
+        padding: 10rem 2rem;
+    }
+    
+    .coach-profile {
+        gap: 8rem;
+        margin-bottom: 12rem;
+    }
+    
+    .coach-avatar-large {
+        width: 400px;
+        height: 400px;
+    }
+    
+    .coach-name {
+        font-size: 3.5rem;
+    }
+    
+    .coach-title {
+        font-size: 1.5rem;
+    }
+    
+    .section-heading {
+        font-size: 3.5rem;
+        margin-bottom: 3.5rem;
+    }
+    
+    .about-coach-text {
+        font-size: 1.5rem;
+    }
+    
+    .level-item {
+        font-size: 1.5rem;
+    }
+    
+    .level-item i {
+        font-size: 2.25rem;
+    }
+}

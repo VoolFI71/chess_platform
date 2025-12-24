@@ -151,9 +151,20 @@
     const boardEl = document.getElementById('heroChessboard');
     if (!boardEl) return;
 
+    // Отключаем анимацию на мобильных устройствах для производительности
+    const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Проверяем prefers-reduced-motion
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
     currentMoveIndex = 0;
     currentFen = INITIAL_FEN;
     renderHeroBoard(currentFen);
+    
+    // Не запускаем анимацию на мобильных или если пользователь предпочитает отключенные анимации
+    if (isMobile || prefersReducedMotion) {
+      return;
+    }
     
     // Начинаем через 2 секунды после загрузки
     setTimeout(() => {

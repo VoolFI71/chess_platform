@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +24,8 @@ type ComputerGameService struct {
 	db        *database.DB
 	aiEngine  AIEngine
 	wsManager WSManager // Для отправки обновлений через WebSocket
+	// Мьютексы для предотвращения параллельных ходов AI для одной игры
+	aiMoveMutexes sync.Map // map[uuid.UUID]*sync.Mutex
 }
 
 type WSManager interface {
@@ -290,42 +293,72 @@ func (s *ComputerGameService) MakePlayerMove(ctx context.Context, gameID uuid.UU
 
 // MakeComputerMove делает ход компьютера
 func (s *ComputerGameService) MakeComputerMove(ctx context.Context, gameID uuid.UUID) error {
-	game, err := s.GetGame(ctx, gameID)
+	// Получаем или создаем мьютекс для этой игры
+	mutexInterface, _ := s.aiMoveMutexes.LoadOrStore(gameID, &sync.Mutex{})
+	mutex := mutexInterface.(*sync.Mutex)
+
+	// Блокируем, чтобы только одна горутина могла делать ход AI для этой игры
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	// Проверяем условия и получаем позицию в транзакции с блокировкой БД
+	var game models.Game
+	var currentPos string
+	var aiLevel float64
+	var moveCount int
+
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Блокируем игру для чтения
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&game, "id = ?", gameID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("game not found")
+			}
+			return err
+		}
+
+		// Проверяем, что игра активна
+		if game.Status != models.GameStatusActive && game.Status != models.GameStatusCreated {
+			return fmt.Errorf("game is not active")
+		}
+
+		// Парсим metadata
+		var metadata map[string]interface{}
+		if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
+			return fmt.Errorf("failed to parse metadata: %w", err)
+		}
+
+		aiColor, ok := metadata["ai_color"].(string)
+		if !ok {
+			return fmt.Errorf("ai_color not found in metadata")
+		}
+
+		level, ok := metadata["ai_level"].(float64)
+		if !ok {
+			level = 5 // По умолчанию
+		}
+		aiLevel = level
+
+		// Проверяем, что сейчас ход компьютера (внутри транзакции с блокировкой)
+		isComputerTurn := (aiColor == "white" && game.NextTurn == models.SideWhite) ||
+			(aiColor == "black" && game.NextTurn == models.SideBlack)
+
+		if !isComputerTurn {
+			return fmt.Errorf("not computer's turn")
+		}
+
+		// Сохраняем текущую позицию и количество ходов для проверки после получения хода от AI
+		currentPos = game.CurrentPos
+		moveCount = game.MoveCount
+
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
 
-	// Проверяем, что игра активна
-	if game.Status != models.GameStatusActive && game.Status != models.GameStatusCreated {
-		return fmt.Errorf("game is not active")
-	}
-
-	// Парсим metadata
-	var metadata map[string]interface{}
-	if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
-	}
-
-	aiColor, ok := metadata["ai_color"].(string)
-	if !ok {
-		return fmt.Errorf("ai_color not found in metadata")
-	}
-
-	aiLevel, ok := metadata["ai_level"].(float64)
-	if !ok {
-		aiLevel = 5 // По умолчанию
-	}
-
-	// Проверяем, что сейчас ход компьютера
-	isComputerTurn := (aiColor == "white" && game.NextTurn == models.SideWhite) ||
-		(aiColor == "black" && game.NextTurn == models.SideBlack)
-
-	if !isComputerTurn {
-		return fmt.Errorf("not computer's turn")
-	}
-
-	// Получаем лучший ход от AI
-	move, err := s.aiEngine.GetBestMove(game.CurrentPos, AIOptions{
+	// Выходим из транзакции, получаем ход от AI (это занимает время)
+	move, err := s.aiEngine.GetBestMove(currentPos, AIOptions{
 		SkillLevel:  int(aiLevel),
 		TimeLimitMs: 2000, // 2 секунды на ход
 	})
@@ -334,8 +367,50 @@ func (s *ComputerGameService) MakeComputerMove(ctx context.Context, gameID uuid.
 		return fmt.Errorf("failed to get AI move: %w", err)
 	}
 
-	// Применяем ход
-	if err := s.applyMove(ctx, gameID, move, nil, nil); err != nil {
+	// Снова проверяем в транзакции, что состояние не изменилось
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Блокируем игру снова
+		var currentGame models.Game
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&currentGame, "id = ?", gameID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("game not found")
+			}
+			return err
+		}
+
+		// Проверяем, что игра все еще активна
+		if currentGame.Status != models.GameStatusActive && currentGame.Status != models.GameStatusCreated {
+			return fmt.Errorf("game is not active")
+		}
+
+		// Проверяем, что позиция не изменилась (MoveCount должен быть таким же)
+		if currentGame.MoveCount != moveCount {
+			return fmt.Errorf("game state changed while AI was thinking")
+		}
+
+		// Проверяем, что это все еще ход компьютера
+		var metadata map[string]interface{}
+		if err := json.Unmarshal(currentGame.Metadata, &metadata); err != nil {
+			return fmt.Errorf("failed to parse metadata: %w", err)
+		}
+
+		aiColor, ok := metadata["ai_color"].(string)
+		if !ok {
+			return fmt.Errorf("ai_color not found in metadata")
+		}
+
+		isComputerTurn := (aiColor == "white" && currentGame.NextTurn == models.SideWhite) ||
+			(aiColor == "black" && currentGame.NextTurn == models.SideBlack)
+
+		if !isComputerTurn {
+			return fmt.Errorf("not computer's turn (state changed)")
+		}
+
+		// Применяем ход в той же транзакции
+		return s.applyMoveInTransaction(tx, &currentGame, gameID, move, nil, nil)
+	})
+
+	if err != nil {
 		return err
 	}
 
@@ -367,122 +442,127 @@ func (s *ComputerGameService) applyMove(ctx context.Context, gameID uuid.UUID, u
 			return err
 		}
 
-		if game.Status == models.GameStatusFinished {
-			return fmt.Errorf("game already finished")
-		}
-
-		// Активируем игру если она еще не начата
-		if game.Status == models.GameStatusCreated {
-			now := time.Now().UTC()
-			game.StartedAt = &now
-			game.Status = models.GameStatusActive
-		}
-
-		// Создаем доску из текущей позиции
-		board, err := boardFromFEN(game.CurrentPos)
-		if err != nil {
-			return err
-		}
-
-		// Парсим ход в UCI нотации
-		chessMove, err := chess.UCINotation{}.Decode(board.Position(), uciMove)
-		if err != nil {
-			return fmt.Errorf("invalid UCI move format: %w", err)
-		}
-
-		// Проверяем, что ход легальный
-		validMoves := board.ValidMoves()
-		var validMove *chess.Move
-		for _, m := range validMoves {
-			if m.S1() == chessMove.S1() && m.S2() == chessMove.S2() {
-				validMove = m
-				break
-			}
-		}
-
-		if validMove == nil {
-			return fmt.Errorf("illegal move")
-		}
-
-		// Делаем ход
-		board.Move(validMove)
-
-		// Получаем информацию о ходе
-		pos := board.Position()
-		isCapture := pos.Board().Piece(validMove.S2()) != chess.NoPiece || validMove.HasTag(chess.Capture)
-		san := validMove.String()
-		newFEN := pos.String()
-
-		// Проверяем шах и мат
-		outcome := board.Outcome()
-
-		// Создаем запись хода
-		moveIndex := game.MoveCount + 1
-		move := models.Move{
-			GameID:    gameID,
-			MoveIndex: moveIndex,
-			UCI:       uciMove,
-			SAN:       &san,
-			FenAfter:  newFEN,
-			IsCapture: isCapture,
-			CreatedAt: time.Now().UTC(),
-		}
-
-		if err := tx.Create(&move).Error; err != nil {
-			return fmt.Errorf("failed to insert move: %w", err)
-		}
-
-		// Обновляем игру
-		newNextTurn := models.SideBlack
-		if game.NextTurn == models.SideWhite {
-			newNextTurn = models.SideBlack
-		} else {
-			newNextTurn = models.SideWhite
-		}
-
-		game.CurrentPos = newFEN
-		game.MoveCount = moveIndex
-		game.NextTurn = newNextTurn
-
-		// Проверка окончания игры (outcome уже определен выше)
-		if outcome == chess.WhiteWon {
-			result := models.ResultWhiteWin
-			reason := models.TerminationCheckmate
-			game.Status = models.GameStatusFinished
-			game.Result = &result
-			game.TerminationReason = &reason
-			now := time.Now().UTC()
-			game.FinishedAt = &now
-		} else if outcome == chess.BlackWon {
-			result := models.ResultBlackWin
-			reason := models.TerminationCheckmate
-			game.Status = models.GameStatusFinished
-			game.Result = &result
-			game.TerminationReason = &reason
-			now := time.Now().UTC()
-			game.FinishedAt = &now
-		} else if outcome == chess.Draw {
-			result := models.ResultDraw
-			var reason models.TerminationReason = models.TerminationDraw
-			if pos.Status() == chess.Stalemate {
-				reason = models.TerminationStalemate
-			}
-			game.Status = models.GameStatusFinished
-			game.Result = &result
-			game.TerminationReason = &reason
-			now := time.Now().UTC()
-			game.FinishedAt = &now
-		}
-
-		// Сохраняем игру
-		if err := tx.Save(&game).Error; err != nil {
-			return fmt.Errorf("failed to update game: %w", err)
-		}
-
-		return nil
+		return s.applyMoveInTransaction(tx, &game, gameID, uciMove, playerID, playerSessionID)
 	})
 
 	return err
+}
+
+// applyMoveInTransaction применяет ход внутри уже открытой транзакции
+func (s *ComputerGameService) applyMoveInTransaction(tx *gorm.DB, game *models.Game, gameID uuid.UUID, uciMove string, playerID *int, playerSessionID *string) error {
+	if game.Status == models.GameStatusFinished {
+		return fmt.Errorf("game already finished")
+	}
+
+	// Активируем игру если она еще не начата
+	if game.Status == models.GameStatusCreated {
+		now := time.Now().UTC()
+		game.StartedAt = &now
+		game.Status = models.GameStatusActive
+	}
+
+	// Создаем доску из текущей позиции
+	board, err := boardFromFEN(game.CurrentPos)
+	if err != nil {
+		return err
+	}
+
+	// Парсим ход в UCI нотации
+	chessMove, err := chess.UCINotation{}.Decode(board.Position(), uciMove)
+	if err != nil {
+		return fmt.Errorf("invalid UCI move format: %w", err)
+	}
+
+	// Проверяем, что ход легальный
+	validMoves := board.ValidMoves()
+	var validMove *chess.Move
+	for _, m := range validMoves {
+		if m.S1() == chessMove.S1() && m.S2() == chessMove.S2() {
+			validMove = m
+			break
+		}
+	}
+
+	if validMove == nil {
+		return fmt.Errorf("illegal move")
+	}
+
+	// Делаем ход
+	board.Move(validMove)
+
+	// Получаем информацию о ходе
+	pos := board.Position()
+	isCapture := pos.Board().Piece(validMove.S2()) != chess.NoPiece || validMove.HasTag(chess.Capture)
+	san := validMove.String()
+	newFEN := pos.String()
+
+	// Проверяем шах и мат
+	outcome := board.Outcome()
+
+	// Создаем запись хода
+	moveIndex := game.MoveCount + 1
+	move := models.Move{
+		GameID:    gameID,
+		MoveIndex: moveIndex,
+		UCI:       uciMove,
+		SAN:       &san,
+		FenAfter:  newFEN,
+		IsCapture: isCapture,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	if err := tx.Create(&move).Error; err != nil {
+		return fmt.Errorf("failed to insert move: %w", err)
+	}
+
+	// Обновляем игру
+	newNextTurn := models.SideBlack
+	if game.NextTurn == models.SideWhite {
+		newNextTurn = models.SideBlack
+	} else {
+		newNextTurn = models.SideWhite
+	}
+
+	game.CurrentPos = newFEN
+	game.MoveCount = moveIndex
+	game.NextTurn = newNextTurn
+
+	// Проверка окончания игры (outcome уже определен выше)
+	if outcome == chess.WhiteWon {
+		result := models.ResultWhiteWin
+		reason := models.TerminationCheckmate
+		game.Status = models.GameStatusFinished
+		game.Result = &result
+		game.TerminationReason = &reason
+		now := time.Now().UTC()
+		game.FinishedAt = &now
+	} else if outcome == chess.BlackWon {
+		result := models.ResultBlackWin
+		reason := models.TerminationCheckmate
+		game.Status = models.GameStatusFinished
+		game.Result = &result
+		game.TerminationReason = &reason
+		now := time.Now().UTC()
+		game.FinishedAt = &now
+	} else if outcome == chess.Draw {
+		result := models.ResultDraw
+		var reason models.TerminationReason = models.TerminationDraw
+		if pos.Status() == chess.Stalemate {
+			reason = models.TerminationStalemate
+		}
+		game.Status = models.GameStatusFinished
+		game.Result = &result
+		game.TerminationReason = &reason
+		now := time.Now().UTC()
+		game.FinishedAt = &now
+	}
+
+	// Сохраняем игру
+	if err := tx.Save(&game).Error; err != nil {
+		return fmt.Errorf("failed to update game: %w", err)
+	}
+
+	return nil
 }
 
 // boardFromFEN создает chess.Game из FEN строки

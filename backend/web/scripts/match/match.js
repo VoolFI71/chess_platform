@@ -1774,6 +1774,24 @@
           updateClockDisplays();
         });
       }
+      
+      // Если игра завершена, обновляем UI
+      if (payload.type === 'game_finished' || (previousStatus !== 'FINISHED' && payload.game.status === 'FINISHED')) {
+        requestAnimationFrame(() => {
+          updateLegalMoves(); // Очищаем возможные ходы
+          renderBoard();
+          renderMoves();
+          updateClockDisplays();
+          updateActivePlayerIndicator(); // Убираем индикатор активного игрока
+          renderActions(); // Обновляем кнопки (убираем кнопку сдачи)
+        });
+        
+        // Показываем уведомление о завершении игры
+        if (previousStatus !== 'FINISHED') {
+          const winnerText = window.MatchUtils?.describeWinner?.(payload.game) || 'Игра завершена';
+          showToast(winnerText, 'info');
+        }
+      }
     }
   }
 

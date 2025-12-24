@@ -1,0 +1,105 @@
+/* Breadcrumbs Styles */
+.breadcrumbs {
+    display: none; /* Скрыты на странице coach */
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(124, 58, 237, 0.1);
+    background: var(--background);
+}
+
+body.dark .breadcrumbs {
+    border-bottom-color: rgba(139, 92, 246, 0.2);
+}
+
+.breadcrumbs-list {
+    display: flex;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 1rem 0;
+    margin: 0;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.breadcrumbs-separator {
+    margin: 0 0.5rem;
+}
+
+.breadcrumbs li {
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.breadcrumbs li a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.breadcrumbs li a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.breadcrumbs li span {
+    color: var(--foreground);
+}
+
+.breadcrumbs li[aria-hidden="true"] {
+    color: var(--muted);
+    pointer-events: none;
+}
+
+/* Mobile adaptation */
+@media (max-width: 768px) {
+    .breadcrumbs {
+        padding: 0.75rem 0;
+    }
+    
+    .breadcrumbs-list {
+        padding: 0.75rem 0;
+        gap: 0.375rem;
+    }
+    
+    .breadcrumbs li {
+        font-size: 0.875rem;
+    }
+    
+    .breadcrumbs-separator {
+        margin: 0 0.375rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .breadcrumbs li {
+        font-size: 0.8125rem;
+    }
+}
+
+/* Large monitors adaptation */
+@media (min-width: 1920px) {
+    .breadcrumbs {
+        padding: 1.25rem 0;
+    }
+    
+    .breadcrumbs-list {
+        padding: 1.25rem 0;
+    }
+    
+    .breadcrumbs li {
+        font-size: 1rem;
+    }
+}
+
+@media (min-width: 2560px) {
+    .breadcrumbs {
+        padding: 1.5rem 0;
+    }
+    
+    .breadcrumbs-list {
+        padding: 1.5rem 0;
+    }
+    
+    .breadcrumbs li {
+        font-size: 1.125rem;
+    }
+}

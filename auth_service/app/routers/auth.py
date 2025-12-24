@@ -2,11 +2,16 @@ from datetime import datetime, timezone
 import httpx
 import random
 import re
+import secrets
+from urllib.parse import urlencode, quote
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import get_settings
 from ..database import get_db
 from ..models import VerificationCode
 from ..schemas import (
@@ -37,6 +42,31 @@ USERNAME_ALLOWED_RE = re.compile(r"[^A-Za-z0-9_.-]+")
 
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+def _generate_oauth_username() -> str:
+	"""
+	Генерирует username для OAuth регистрации в формате: user + случайное 10-значное число.
+	Пример: user1938475618
+	"""
+	return f"user{random.randint(1000000000, 9999999999)}"
+
+
+async def _generate_unique_oauth_username() -> str:
+	"""
+	Генерирует уникальный username для OAuth регистрации.
+	Проверяет уникальность через users_service (с запасом на случай коллизий).
+	"""
+	max_attempts = 10  # Максимум попыток на случай редких коллизий
+	for _ in range(max_attempts):
+		username = _generate_oauth_username()
+		# Проверяем, существует ли пользователь с таким username
+		user_data = await fetch_user_by_login(username)
+		if not user_data:
+			return username
+	# Если все попытки исчерпаны (крайне маловероятно), возвращаем последний сгенерированный
+	# В этом случае create_user выдаст ошибку о дубликате, но это практически невозможно
+	return _generate_oauth_username()
 
 
 def _sanitize_username(raw: str | None, email: str) -> str:
@@ -382,6 +412,567 @@ async def reset_password(
 
 	return PasswordResetResponse(message="Пароль успешно изменён. Теперь вы можете войти с новым паролем.")
 
+
+# Mail.ru OAuth endpoints
+
+@router.get("/mailru/authorize")
+async def mailru_authorize(request: Request):
+	"""
+	Инициациирует OAuth авторизацию через Mail.ru.
+	Редиректит пользователя на страницу авторизации Mail.ru.
+	"""
+	settings = get_settings()
+	
+	if not settings.mailru_oauth_client_id:
+		raise HTTPException(
+			status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+			detail="Mail.ru OAuth не настроен"
+		)
+	
+	# Генерируем state для защиты от CSRF
+	state = secrets.token_urlsafe(32)
+	
+	# Сохраняем state в cookie или session (для простоты используем cookie через редирект)
+	# В production лучше использовать session storage
+	
+	# Формируем URL для авторизации
+	redirect_uri = settings.mailru_oauth_redirect_uri or f"{request.base_url}api/auth/mailru/callback"
+	
+	params = {
+		"client_id": settings.mailru_oauth_client_id,
+		"response_type": "code",
+		"redirect_uri": redirect_uri,
+		"state": state,
+		"scope": "userinfo",  # Запрашиваем доступ к userinfo
+	}
+	
+	auth_url = f"{settings.mailru_oauth_authorization_url}?{urlencode(params)}"
+	
+	# Редиректим с state в cookie
+	response = RedirectResponse(url=auth_url)
+	response.set_cookie(
+		key="oauth_state",
+		value=state,
+		max_age=600,  # 10 минут
+		httponly=True,
+		samesite="lax",
+		secure=True  # В production используйте HTTPS
+	)
+	return response
+
+
+@router.get("/mailru/callback")
+async def mailru_callback(
+	code: str,
+	state: str,
+	request: Request,
+	db: AsyncSession = Depends(get_db),
+):
+	"""
+	Обрабатывает callback от Mail.ru после авторизации.
+	Обменивает code на access_token, получает данные пользователя,
+	создает/находит пользователя и выдает JWT токены.
+	Делает редирект на фронтенд с токенами в URL fragment (безопаснее, чем query params).
+	"""
+	settings = get_settings()
+	
+	# Проверяем state для защиты от CSRF
+	cookie_state = request.cookies.get("oauth_state")
+	if not cookie_state or cookie_state != state:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Неверный state параметр"
+		)
+	
+	if not settings.mailru_oauth_client_id or not settings.mailru_oauth_client_secret:
+		raise HTTPException(
+			status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+			detail="Mail.ru OAuth не настроен"
+		)
+	
+	redirect_uri = settings.mailru_oauth_redirect_uri or f"{request.base_url}api/auth/mailru/callback"
+	
+	# Обмениваем code на access_token
+	token_data = {
+		"grant_type": "authorization_code",
+		"code": code,
+		"redirect_uri": redirect_uri,
+		"client_id": settings.mailru_oauth_client_id,
+		"client_secret": settings.mailru_oauth_client_secret,
+	}
+	
+	try:
+		token_response = await httpx.AsyncClient().post(
+			settings.mailru_oauth_token_url,
+			data=token_data,
+			headers={"Content-Type": "application/x-www-form-urlencoded"},
+		)
+		token_response.raise_for_status()
+		token_result = token_response.json()
+		access_token = token_result.get("access_token")
+		
+		if not access_token:
+			raise HTTPException(
+				status_code=status.HTTP_400_BAD_REQUEST,
+				detail="Не удалось получить access_token от Mail.ru"
+			)
+	except httpx.HTTPStatusError as exc:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail=f"Ошибка при обмене code на token: {exc.response.status_code}"
+		)
+	
+	# Получаем данные пользователя
+	try:
+		userinfo_response = await httpx.AsyncClient().get(
+			settings.mailru_oauth_userinfo_url,
+			params={"access_token": access_token},
+		)
+		userinfo_response.raise_for_status()
+		userinfo = userinfo_response.json()
+	except httpx.HTTPStatusError as exc:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail=f"Ошибка при получении данных пользователя: {exc.response.status_code}"
+		)
+	
+	# Извлекаем email (обязательное поле)
+	email = userinfo.get("email", "").lower().strip()
+	if not email:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Email не предоставлен Mail.ru"
+		)
+	
+	# Проверяем, существует ли пользователь с таким email
+	existing_user_data = await fetch_user_by_login(email)
+	
+	if existing_user_data:
+		# Пользователь уже существует - выдаем токены
+		user_id = int(existing_user_data["id"])
+		is_active = existing_user_data.get("is_active", True)
+		
+		if not is_active:
+			raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail="Пользователь неактивен"
+			)
+		
+		access = create_access_token(user_id)
+		refresh = await create_refresh_token(db, user_id, is_active=is_active)
+	else:
+		# Создаем нового пользователя
+		username = await _generate_unique_oauth_username()
+		
+		# Генерируем случайный пароль (для OAuth пользователей пароль не используется, но требуется в схеме)
+		random_password = secrets.token_urlsafe(32)
+		hashed_password = get_password_hash(random_password)
+		
+		try:
+			user = await create_user(
+				username=username,
+				email=email,
+				hashed_password=hashed_password,
+			)
+			user_id = user.id
+		except HTTPException as exc:
+			if exc.status_code == status.HTTP_409_CONFLICT:
+				# Race condition: пользователь был создан между проверкой и созданием
+				existing_user_data = await fetch_user_by_login(email)
+				if not existing_user_data:
+					raise HTTPException(
+						status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+						detail="Ошибка при создании пользователя"
+					)
+				user_id = int(existing_user_data["id"])
+			else:
+				raise
+		
+		access = create_access_token(user_id)
+		refresh = await create_refresh_token(db, user_id, is_active=True)
+	
+	# Редиректим на фронтенд с токенами в URL fragment
+	# Фрагмент не отправляется на сервер, поэтому безопаснее
+	frontend_url = "/"  # Базовый URL фронтенда
+	token_fragment = f"access_token={quote(access)}&refresh_token={quote(refresh)}&token_type=bearer"
+	redirect_url = f"{frontend_url}#{token_fragment}"
+	
+	response = RedirectResponse(url=redirect_url)
+	response.set_cookie("oauth_state", "", max_age=0)  # Очищаем cookie
+	return response
+
+
+class MailruTokenRequest(BaseModel):
+	access_token: str = Field(..., description="Access token от Mail.ru SDK")
+
+
+@router.post("/mailru/token", response_model=Token)
+async def mailru_token(
+	request: MailruTokenRequest,
+	db: AsyncSession = Depends(get_db),
+):
+	"""
+	Принимает access_token от Mail.ru SDK (полученный на фронтенде).
+	Получает данные пользователя, создает/находит пользователя и выдает JWT токены.
+	"""
+	settings = get_settings()
+	access_token = request.access_token
+	
+	# Получаем данные пользователя от Mail.ru
+	try:
+		userinfo_response = await httpx.AsyncClient().get(
+			settings.mailru_oauth_userinfo_url,
+			params={"access_token": access_token},
+		)
+		userinfo_response.raise_for_status()
+		userinfo = userinfo_response.json()
+	except httpx.HTTPStatusError as exc:
+		if exc.response.status_code == 401:
+			raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail="Недействительный access_token от Mail.ru"
+			)
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail=f"Ошибка при получении данных пользователя: {exc.response.status_code}"
+		)
+	
+	# Извлекаем email (обязательное поле)
+	email = userinfo.get("email", "").lower().strip()
+	if not email:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Email не предоставлен Mail.ru"
+		)
+	
+	# Проверяем, существует ли пользователь с таким email
+	existing_user_data = await fetch_user_by_login(email)
+	
+	if existing_user_data:
+		# Пользователь уже существует - выдаем токены
+		user_id = int(existing_user_data["id"])
+		is_active = existing_user_data.get("is_active", True)
+		
+		if not is_active:
+			raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail="Пользователь неактивен"
+			)
+		
+		access = create_access_token(user_id)
+		refresh = await create_refresh_token(db, user_id, is_active=is_active)
+	else:
+		# Создаем нового пользователя
+		username = await _generate_unique_oauth_username()
+		
+		# Генерируем случайный пароль (для OAuth пользователей пароль не используется, но требуется в схеме)
+		random_password = secrets.token_urlsafe(32)
+		hashed_password = get_password_hash(random_password)
+		
+		try:
+			user = await create_user(
+				username=username,
+				email=email,
+				hashed_password=hashed_password,
+			)
+			user_id = user.id
+		except HTTPException as exc:
+			if exc.status_code == status.HTTP_409_CONFLICT:
+				# Race condition: пользователь был создан между проверкой и созданием
+				existing_user_data = await fetch_user_by_login(email)
+				if not existing_user_data:
+					raise HTTPException(
+						status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+						detail="Ошибка при создании пользователя"
+					)
+				user_id = int(existing_user_data["id"])
+			else:
+				raise
+		
+		access = create_access_token(user_id)
+		refresh = await create_refresh_token(db, user_id, is_active=True)
+	
+	return Token(access_token=access, refresh_token=refresh)
+
+
+# ========== Google OAuth ==========
+
+@router.get("/google/authorize")
+async def google_authorize(request: Request):
+	"""
+	Инициациирует OAuth авторизацию через Google.
+	Редиректит пользователя на страницу авторизации Google.
+	"""
+	settings = get_settings()
+	
+	if not settings.google_oauth_client_id:
+		raise HTTPException(
+			status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+			detail="Google OAuth не настроен"
+		)
+	
+	# Генерируем state для защиты от CSRF
+	state = secrets.token_urlsafe(32)
+	
+	# Формируем URL для авторизации
+	redirect_uri = settings.google_oauth_redirect_uri or f"{request.base_url}api/auth/google/callback"
+	
+	params = {
+		"client_id": settings.google_oauth_client_id,
+		"response_type": "code",
+		"redirect_uri": redirect_uri,
+		"scope": "openid email profile",
+		"state": state,
+		"access_type": "online",  # offline для refresh token (если нужен)
+		"prompt": "select_account",  # Запрашиваем выбор аккаунта
+	}
+	
+	auth_url = f"{settings.google_oauth_authorization_url}?{urlencode(params)}"
+	
+	# Редиректим с state в cookie
+	response = RedirectResponse(url=auth_url)
+	response.set_cookie(
+		key="oauth_state",
+		value=state,
+		max_age=600,  # 10 минут
+		httponly=True,
+		samesite="lax",
+		secure=True  # В production используйте HTTPS
+	)
+	return response
+
+
+@router.get("/google/callback")
+async def google_callback(
+	code: str,
+	state: str,
+	request: Request,
+	db: AsyncSession = Depends(get_db),
+):
+	"""
+	Обрабатывает callback от Google после авторизации.
+	Обменивает code на access_token, получает данные пользователя,
+	создает/находит пользователя и выдает JWT токены.
+	Делает редирект на фронтенд с токенами в URL fragment.
+	"""
+	settings = get_settings()
+	
+	# Проверяем state для защиты от CSRF
+	cookie_state = request.cookies.get("oauth_state")
+	if not cookie_state or cookie_state != state:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Неверный state параметр"
+		)
+	
+	if not settings.google_oauth_client_id or not settings.google_oauth_client_secret:
+		raise HTTPException(
+			status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+			detail="Google OAuth не настроен"
+		)
+	
+	redirect_uri = settings.google_oauth_redirect_uri or f"{request.base_url}api/auth/google/callback"
+	
+	# Обмениваем code на access_token
+	token_data = {
+		"code": code,
+		"client_id": settings.google_oauth_client_id,
+		"client_secret": settings.google_oauth_client_secret,
+		"redirect_uri": redirect_uri,
+		"grant_type": "authorization_code",
+	}
+	
+	try:
+		token_response = await httpx.AsyncClient().post(
+			settings.google_oauth_token_url,
+			data=token_data,
+			headers={"Content-Type": "application/x-www-form-urlencoded"},
+		)
+		token_response.raise_for_status()
+		token_result = token_response.json()
+		access_token = token_result.get("access_token")
+		
+		if not access_token:
+			raise HTTPException(
+				status_code=status.HTTP_400_BAD_REQUEST,
+				detail="Не удалось получить access_token от Google"
+			)
+	except httpx.HTTPStatusError as exc:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail=f"Ошибка при обмене code на token: {exc.response.status_code}"
+		)
+	
+	# Получаем данные пользователя
+	try:
+		userinfo_response = await httpx.AsyncClient().get(
+			settings.google_oauth_userinfo_url,
+			headers={"Authorization": f"Bearer {access_token}"},
+		)
+		userinfo_response.raise_for_status()
+		userinfo = userinfo_response.json()
+	except httpx.HTTPStatusError as exc:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail=f"Ошибка при получении данных пользователя: {exc.response.status_code}"
+		)
+	
+	# Извлекаем email (обязательное поле)
+	email = userinfo.get("email", "").lower().strip()
+	if not email:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Email не предоставлен Google"
+		)
+	
+	# Проверяем, существует ли пользователь с таким email
+	existing_user_data = await fetch_user_by_login(email)
+	
+	if existing_user_data:
+		# Пользователь уже существует - выдаем токены
+		user_id = int(existing_user_data["id"])
+		is_active = existing_user_data.get("is_active", True)
+		
+		if not is_active:
+			raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail="Пользователь неактивен"
+			)
+		
+		access = create_access_token(user_id)
+		refresh = await create_refresh_token(db, user_id, is_active=is_active)
+	else:
+		# Создаем нового пользователя
+		username = await _generate_unique_oauth_username()
+		
+		# Генерируем случайный пароль (для OAuth пользователей пароль не используется, но требуется в схеме)
+		random_password = secrets.token_urlsafe(32)
+		hashed_password = get_password_hash(random_password)
+		
+		try:
+			user = await create_user(
+				username=username,
+				email=email,
+				hashed_password=hashed_password,
+			)
+			user_id = user.id
+		except HTTPException as exc:
+			if exc.status_code == status.HTTP_409_CONFLICT:
+				# Race condition: пользователь был создан между проверкой и созданием
+				existing_user_data = await fetch_user_by_login(email)
+				if not existing_user_data:
+					raise HTTPException(
+						status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+						detail="Ошибка при создании пользователя"
+					)
+				user_id = int(existing_user_data["id"])
+			else:
+				raise
+		
+		access = create_access_token(user_id)
+		refresh = await create_refresh_token(db, user_id, is_active=True)
+	
+	# Редиректим на фронтенд с токенами в URL fragment
+	frontend_url = "/"  # Базовый URL фронтенда
+	token_fragment = f"access_token={quote(access)}&refresh_token={quote(refresh)}&token_type=bearer"
+	redirect_url = f"{frontend_url}#{token_fragment}"
+	
+	response = RedirectResponse(url=redirect_url)
+	response.set_cookie("oauth_state", "", max_age=0)  # Очищаем cookie
+	return response
+
+
+class GoogleTokenRequest(BaseModel):
+	access_token: str = Field(..., description="Access token от Google SDK")
+
+
+@router.post("/google/token", response_model=Token)
+async def google_token(
+	request: GoogleTokenRequest,
+	db: AsyncSession = Depends(get_db),
+):
+	"""
+	Принимает access_token от Google SDK (полученный на фронтенде).
+	Получает данные пользователя, создает/находит пользователя и выдает JWT токены.
+	"""
+	settings = get_settings()
+	access_token = request.access_token
+	
+	# Получаем данные пользователя от Google
+	try:
+		userinfo_response = await httpx.AsyncClient().get(
+			settings.google_oauth_userinfo_url,
+			headers={"Authorization": f"Bearer {access_token}"},
+		)
+		userinfo_response.raise_for_status()
+		userinfo = userinfo_response.json()
+	except httpx.HTTPStatusError as exc:
+		if exc.response.status_code == 401:
+			raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail="Недействительный access_token от Google"
+			)
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail=f"Ошибка при получении данных пользователя: {exc.response.status_code}"
+		)
+	
+	# Извлекаем email (обязательное поле)
+	email = userinfo.get("email", "").lower().strip()
+	if not email:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail="Email не предоставлен Google"
+		)
+	
+	# Проверяем, существует ли пользователь с таким email
+	existing_user_data = await fetch_user_by_login(email)
+	
+	if existing_user_data:
+		# Пользователь уже существует - выдаем токены
+		user_id = int(existing_user_data["id"])
+		is_active = existing_user_data.get("is_active", True)
+		
+		if not is_active:
+			raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail="Пользователь неактивен"
+			)
+		
+		access = create_access_token(user_id)
+		refresh = await create_refresh_token(db, user_id, is_active=is_active)
+	else:
+		# Создаем нового пользователя
+		username = await _generate_unique_oauth_username()
+		
+		# Генерируем случайный пароль (для OAuth пользователей пароль не используется, но требуется в схеме)
+		random_password = secrets.token_urlsafe(32)
+		hashed_password = get_password_hash(random_password)
+		
+		try:
+			user = await create_user(
+				username=username,
+				email=email,
+				hashed_password=hashed_password,
+			)
+			user_id = user.id
+		except HTTPException as exc:
+			if exc.status_code == status.HTTP_409_CONFLICT:
+				# Race condition: пользователь был создан между проверкой и созданием
+				existing_user_data = await fetch_user_by_login(email)
+				if not existing_user_data:
+					raise HTTPException(
+						status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+						detail="Ошибка при создании пользователя"
+					)
+				user_id = int(existing_user_data["id"])
+			else:
+				raise
+		
+		access = create_access_token(user_id)
+		refresh = await create_refresh_token(db, user_id, is_active=True)
+	
+	return Token(access_token=access, refresh_token=refresh)
 
 
 

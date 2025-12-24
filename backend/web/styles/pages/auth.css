@@ -343,6 +343,25 @@ html.dark .form-input:focus {
     margin-top: 0.2rem;
 }
 
+/* Google OAuth Button */
+.google-login-button:hover {
+    background: #f9fafb !important;
+    border-color: rgba(148, 163, 184, 0.5) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+body.dark .google-login-button {
+    background: rgba(30, 31, 63, 0.85);
+    border-color: rgba(76, 106, 158, 0.45);
+    color: var(--foreground);
+}
+
+body.dark .google-login-button:hover {
+    background: rgba(30, 31, 63, 0.95) !important;
+    border-color: rgba(76, 106, 158, 0.65) !important;
+}
+
 .auth-footer {
     text-align: center;
     padding: 2rem 1.5rem;

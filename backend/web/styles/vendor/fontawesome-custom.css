@@ -46,9 +46,13 @@
 .fa-bars::before { content: "\f0c9"; }
 .fa-bolt::before { content: "\f0e7"; }
 .fa-brain::before { content: "\f5dc"; }
+.fa-book::before { content: "\f02d"; }
+.fa-book-open::before { content: "\f518"; }
 .fa-broadcast-tower::before { content: "\f519"; }
+.fa-bullseye::before { content: "\f140"; }
 .fa-calendar::before { content: "\f133"; }
 .fa-calendar-alt::before { content: "\f073"; }
+.fa-calendar-check::before { content: "\f274"; }
 .fa-certificate::before { content: "\f0a3"; }
 .fa-chalkboard-teacher::before { content: "\f51c"; }
 .fa-chart-bar::before { content: "\f080"; }
@@ -81,6 +85,7 @@
 .fa-eye::before { content: "\f06e"; }
 .fa-file-alt::before { content: "\f15c"; }
 .fa-fire::before { content: "\f06d"; }
+.fa-fist-raised::before { content: "\f6de"; }
 .fa-gamepad::before { content: "\f11b"; }
 .fa-gem::before { content: "\f3a5"; }
 .fa-graduation-cap::before { content: "\f19d"; }
@@ -88,6 +93,8 @@
 .fa-headset::before { content: "\f590"; }
 .fa-heartbeat::before { content: "\f21e"; }
 .fa-history::before { content: "\f1da"; }
+.fa-home::before { content: "\f015"; }
+.fa-hourglass-half::before { content: "\f252"; }
 .fa-inbox::before { content: "\f01c"; }
 .fa-infinity::before { content: "\f534"; }
 .fa-info-circle::before { content: "\f05a"; }
@@ -98,6 +105,7 @@
 .fa-lock::before { content: "\f023"; }
 .fa-medal::before { content: "\f5a2"; }
 .fa-minus::before { content: "\f068"; }
+.fa-mobile-alt::before { content: "\f3cd"; }
 .fa-moon::before { content: "\f186"; }
 .fa-paper-plane::before { content: "\f1d8"; }
 .fa-percentage::before { content: "\f541"; }
@@ -121,6 +129,7 @@
 .fa-sun::before { content: "\f185"; }
 .fa-sync-alt::before { content: "\f2f1"; }
 .fa-tags::before { content: "\f02c"; }
+.fa-tasks::before { content: "\f0ae"; }
 .fa-times::before { content: "\f00d"; }
 .fa-trophy::before { content: "\f091"; }
 .fa-tv::before { content: "\f26c"; }
@@ -131,6 +140,7 @@
 .fa-user-secret::before { content: "\f21b"; }
 .fa-users::before { content: "\f0c0"; }
 .fa-video::before { content: "\f03d"; }
+.fa-wallet::before { content: "\f555"; }
 
 /* Brand icons */
 .fa-instagram::before { content: "\f16d"; }

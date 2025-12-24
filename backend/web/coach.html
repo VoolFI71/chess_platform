@@ -6,10 +6,10 @@
     <meta name="theme-color" content="#1e293b">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Шахматные тренеры - ChessMint | Персональное обучение от мастеров</title>
+    <title>Григорий Пономарев - Мастер FIDE | Шахматный тренер ChessMint</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Найдите своего идеального шахматного тренера. Опытные гроссмейстеры, персональные онлайн уроки, индивидуальный подход. Запишитесь на занятия прямо сейчас!">
+    <meta name="description" content="Григорий Пономарев - Мастер FIDE (FM), Чемпион России по Быстрым Шахматам до 17 лет. Персональные онлайн уроки шахмат от опытного тренера. Индивидуальный подход, отслеживание прогресса на платформе.">
     <meta name="keywords" content="шахматные тренеры, персональный тренер по шахматам, гроссмейстер, шахматные уроки, индивидуальное обучение">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://chessmint.ru/coach">
@@ -24,20 +24,19 @@
     <meta property="og:description" content="Григорий Пономарев - Мастер FIDE (FM), Чемпион России по Быстрым Шахматам до 17 лет. Персональные онлайн уроки шахмат от опытного тренера.">
     <meta property="profile:first_name" content="Григорий">
     <meta property="profile:last_name" content="Пономарев">
-    <meta property="og:image" content="https://chessmint.ru/favicon.svg">
-    <meta property="og:image:width" content="120">
-    <meta property="og:image:height" content="120">
+    <meta property="og:image" content="https://chessmint.ru/images/coaches/grisha.jpg">
+    <meta property="og:image:width" content="280">
+    <meta property="og:image:height" content="280">
     <meta property="og:image:alt" content="ChessMint - Шахматные тренеры и персональное обучение">
     <meta property="og:locale" content="ru_RU">
     <meta property="og:site_name" content="ChessMint">
-    <meta property="article:author" content="ChessMint">
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://chessmint.ru/coach">
     <meta name="twitter:title" content="Григорий Пономарев - Мастер FIDE | Шахматный тренер">
     <meta name="twitter:description" content="Мастер FIDE (FM), Чемпион России по Быстрым Шахматам до 17 лет. Персональные онлайн уроки шахмат.">
-    <meta name="twitter:image" content="https://chessmint.ru/favicon.svg">
+    <meta name="twitter:image" content="https://chessmint.ru/images/coaches/grisha.jpg">
     <meta name="twitter:image:alt" content="ChessMint - Шахматные тренеры и персональное обучение">
     <meta name="twitter:site" content="@chessmint">
     
@@ -75,6 +74,7 @@
     <link rel="stylesheet" href="/styles/pages/couch/coach.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/couch/achievements.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/couch/content.css?v=2.0">
+    <link rel="stylesheet" href="/styles/pages/couch/breadcrumbs.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/couch/modal.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/couch/responsive.css?v=2.0">
 
@@ -93,12 +93,22 @@
         "honorificPrefix": "Мастер FIDE",
         "honorificSuffix": "FM",
         "description": "Мастер FIDE (FM), Чемпион России по Быстрым Шахматам до 17 лет. Опытный шахматный тренер, специализирующийся на персональном обучении шахматам онлайн.",
-        "url": "https://chessmint.ru/coach",
+        "url": "https://chessmint.ru/coach/grisha",
+        "image": {
+            "@type": "ImageObject",
+            "url": "https://chessmint.ru/images/coaches/grisha.jpg",
+            "width": 280,
+            "height": 280
+        },
         "sameAs": [
             "https://t.me/PROSTOCHELOVECK06"
         ],
+        "knowsAbout": ["Шахматы", "Обучение шахматам", "Персональное обучение", "Шахматная тактика", "Шахматная стратегия"],
+        "teaches": "Шахматы",
         "award": [
             "Чемпион России по Быстрым Шахматам до 17 лет 2022 г.",
+            "Командный Чемпионат России по Шахматам Высшая Лига, 1 место в составе команды \"Темус Тим\"",
+            "Чемпионат Европы по Шахматам до 12 лет, 2 место",
             "Победитель Этапа Кубка России среди Мужчин, Мемориал Чигорина 2024г",
             "Победитель 12 этапа Кубка Москвы по быстрым шахматам"
         ],
@@ -112,6 +122,28 @@
             "name": "ChessMint",
             "url": "https://chessmint.ru"
         }
+    }
+    </script>
+    
+    <!-- Structured Data (JSON-LD) - BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Главная",
+                "item": "https://chessmint.ru/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Тренеры",
+                "item": "https://chessmint.ru/coaches"
+            }
+        ]
     }
     </script>
     
@@ -135,7 +167,7 @@
         "offers": {
             "@type": "Offer",
             "description": "Персональные онлайн уроки шахмат",
-            "url": "https://chessmint.ru/coach"
+            "url": "https://chessmint.ru/coach/grisha"
         },
         "audience": {
             "@type": "EducationalAudience",
@@ -192,7 +224,7 @@
                         <div class="gradient-text">ChessMint</div>
                     </div>
                 </a>
-                <nav class="nav">
+                <nav class="nav" aria-label="Основная навигация">
                     <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
                     <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
                     <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
@@ -203,41 +235,41 @@
                             <span></span>
                         </div>
                     </div>
-                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()">
-                        <i class="fas fa-sun" id="themeIcon"></i>
+                    <button type="button" class="theme-toggle" title="Переключить тему" onclick="toggleTheme()" aria-label="Переключить тему">
+                        <i class="fas fa-sun" id="themeIcon" aria-hidden="true"></i>
                     </button>
                     <div id="authButtons">
                         <a href="/login" class="auth-icon-btn" id="gamesAuthBtn" title="Войти / Регистрация">
                             <i class="fas fa-sign-in-alt"></i>
                         </a>
                     </div>
-                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
-                        <i class="fas fa-bars" id="menuIcon"></i>
+                    <button type="button" class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Открыть меню" aria-expanded="false">
+                        <i class="fas fa-bars" id="menuIcon" aria-hidden="true"></i>
                     </button>
-                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
-                        <i class="fas fa-sign-out-alt"></i>
+                    <button type="button" class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти" aria-label="Выйти из аккаунта">
+                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
             <!-- Mobile Menu -->
             <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
             <div class="mobile-menu" id="mobileMenu">
-                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
-                    <i class="fas fa-times"></i>
+                <button type="button" class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                    <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
                 <div>
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+                    <a href="/games" class="nav-link" onclick="closeMobileMenu();">
                         <i class="fas fa-chess"></i>
                         <span>Играть</span>
-                    </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+                    </a>
+                    <a href="/tasks" class="nav-link" onclick="closeMobileMenu();">
                         <i class="fas fa-puzzle-piece"></i>
                         <span>Задачи</span>
-                    </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+                    </a>
+                    <a href="/leaderboard" class="nav-link" onclick="closeMobileMenu();">
                         <i class="fas fa-trophy"></i>
                         <span>Рейтинг</span>
-                    </button>
+                    </a>
                     <hr>
                     <div id="mobileAuthButtons">
                         <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
@@ -253,8 +285,8 @@
                             <i class="fas fa-user"></i>
                             <span>Личный кабинет</span>
                         </a>
-                        <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile" title="Выйти">
-                            <i class="fas fa-sign-out-alt"></i>
+                        <button type="button" class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile" title="Выйти" aria-label="Выйти из аккаунта">
+                            <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
                             <span>Выйти</span>
                         </button>
                     </div>
@@ -264,11 +296,33 @@
     </header>
 
     <main>
+        <!-- Breadcrumbs -->
+        <nav aria-label="Хлебные крошки" class="breadcrumbs">
+            <div class="container">
+                <ol itemscope itemtype="https://schema.org/BreadcrumbList" class="breadcrumbs-list">
+                    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                        <a itemprop="item" href="/"><span itemprop="name">Главная</span></a>
+                        <meta itemprop="position" content="1">
+                    </li>
+                    <li class="breadcrumbs-separator" aria-hidden="true">/</li>
+                    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                        <a itemprop="item" href="/coaches"><span itemprop="name">Тренеры</span></a>
+                        <meta itemprop="position" content="2">
+                    </li>
+                    <li class="breadcrumbs-separator" aria-hidden="true">/</li>
+                    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem" aria-current="page">
+                        <span itemprop="name" class="breadcrumb-coach-name">Григорий Пономарев</span>
+                        <meta itemprop="position" content="3">
+                    </li>
+                </ol>
+            </div>
+        </nav>
+
         <!-- Hero -->
         <section class="hero" aria-labelledby="hero-heading">
             <div class="container">
                 <div class="hero-content">
-                    <h1 id="hero-heading" class="gradient-text">Найдите своего идеального тренера</h1>
+                    <h1 id="hero-heading" class="gradient-text">Григорий Пономарев - Мастер FIDE | Шахматный тренер</h1>
                     <p class="hero-sub">Профессиональные шахматисты с титулами ФИДЕ готовы помочь вам расти</p>
                 </div>
             </div>
@@ -281,9 +335,11 @@
                 <article itemscope itemtype="https://schema.org/Person" class="coach-article">
                     <!-- Sidebar -->
                     <aside class="coach-sidebar">
-                        <div class="coach-avatar-large" aria-label="Аватар Григория Пономарева">ГП</div>
+                        <div class="coach-avatar-large" aria-label="Аватар Григория Пономарева">
+                            <img src="/images/coaches/grisha.jpg" alt="Григорий Пономарев - Мастер FIDE" class="coach-avatar" itemprop="image">
+                        </div>
                         <div class="coach-actions-sidebar">
-                            <a href="https://t.me/PROSTOCHELOVECK06" target="_blank" rel="noopener noreferrer" class="btn btn-outline" itemprop="sameAs" aria-label="Связаться с тренером через Telegram">
+                            <a href="https://t.me/PROSTOCHELOVECK06" target="_blank" rel="noopener noreferrer" class="btn btn-outline coach-telegram-link" itemprop="sameAs" aria-label="Связаться с тренером через Telegram">
                                 <i class="fab fa-telegram" aria-hidden="true"></i>
                                 Telegram
                             </a>
@@ -302,15 +358,58 @@
 
                         <!-- Achievements Section -->
                         <section class="content-section" aria-labelledby="achievements-heading">
-                            <h2 id="achievements-heading" class="visually-hidden">Достижения</h2>
+                            <h2 id="achievements-heading" class="section-heading">Достижения</h2>
                             <ul class="achievements-list" role="list">
                                 <li class="achievement-text-item" itemprop="award">Чемпион России по Быстрым Шахматам до 17 лет 2022 г.</li>
+                                <li class="achievement-text-item" itemprop="award">Командный Чемпионат России по Шахматам Высшая Лига, 1 место в составе команды "Темус Тим"</li>
+                                <li class="achievement-text-item" itemprop="award">Чемпионат Европы по Шахматам до 12 лет, 2 место</li>
                                 <li class="achievement-text-item" itemprop="award">Победитель Этапа Кубка России среди Мужчин, Мемориал Чигорина 2024г</li>
                                 <li class="achievement-text-item" itemprop="award">Победитель 12 этапа Кубка Москвы по быстрым шахматам</li>
                             </ul>
                         </section>
                     </div>
                 </article>
+
+                <!-- About Coach Section -->
+                <section class="content-section" aria-labelledby="about-heading">
+                    <h2 id="about-heading" class="section-heading">О тренере</h2>
+                    <div class="about-coach-content">
+                        <p class="about-coach-text">
+                            Опытный тренер с многолетней практикой, специализирующийся на персональном обучении шахматам. Помогаю ученикам всех уровней развивать шахматное мышление, улучшать тактическое зрение и стратегическое понимание игры.
+                        </p>
+                                <p class="about-coach-text">
+                                    Моя методика обучения основана на индивидуальном подходе к каждому ученику. Я анализирую ваши партии, выявляю слабые места и работаю над их устранением через практические упражнения и разбор классических позиций. Особое внимание уделяю развитию навыков расчета вариантов и пониманию позиционных принципов.
+                                </p>
+                                <p class="about-coach-text">
+                                    Весь ваш прогресс обучения автоматически отслеживается на платформе ChessMint. Вы сможете видеть свой рост рейтинга, количество решенных задач, статистику партий и другие метрики прямо в личном кабинете. Это позволяет наглядно видеть результаты нашей совместной работы и мотивирует к дальнейшему развитию.
+                                </p>
+                    </div>
+                </section>
+
+                <!-- For Whom Section -->
+                <section class="content-section" aria-labelledby="for-whom-heading">
+                    <h2 id="for-whom-heading" class="section-heading">Для кого подходит обучение</h2>
+                            <div class="for-whom-content">
+                                <ul class="levels-list">
+                                    <li class="level-item">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Новички — помогу освоить основы шахмат и развить базовые навыки</span>
+                                    </li>
+                                    <li class="level-item">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Средний уровень — улучшение тактики, стратегии и дебютного репертуара</span>
+                                    </li>
+                                    <li class="level-item">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Продвинутые игроки — работа над конкретными слабостями и подготовка к соревнованиям</span>
+                                    </li>
+                                    <li class="level-item">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Отслеживание прогресса — проверяйте свой уровень на основе решенных задач и рейтинга, вся статистика автоматически сохраняется на платформе</span>
+                                    </li>
+                                </ul>
+                            </div>
+                </section>
             </div>
         </section>
     </main>
@@ -368,7 +467,7 @@
                             <li><a href="/tasks">♟ Решение задач</a></li>
                             <li><a href="/games">♟ Играть онлайн</a></li>
                             <li><a href="/rules">♟ Правила шахмат</a></li>
-                            <li><a href="/coach">♟ Тренера</a></li>
+                            <li><a href="/coaches">♟ Тренеры</a></li>
                         </ul>
                     </div>
 
@@ -388,7 +487,7 @@
                         <ul class="footer-links">
                             <li><a href="/privacy">♟ Конфиденциальность</a></li>
                             <li><a href="/terms">♟ Пользовательское соглашение</a></li>
-                            <li><a href="chessmint@mail.ru">♟ Связаться с нами</a></li>
+                            <li><a href="mailto:chessmint@mail.ru">♟ Связаться с нами</a></li>
                             <li><a href="https://t.me/chess_mint" target="_blank" rel="noopener noreferrer">♟ Telegram</a></li>
                         </ul>
                     </div>
@@ -513,6 +612,8 @@
     <!-- Common Auth Script -->
     <script src="/scripts/auth.js"></script>
     <script src="/scripts/mobile-menu.js"></script>
+    <!-- Coach page script - динамическая загрузка данных тренера -->
+    <script src="/scripts/coach.js" defer></script>
     <!-- Header Mobile Control - должен загружаться ПОСЛЕ всех скриптов, которые управляют хедером -->
     <script src="/scripts/header-mobile-control.js"></script>
 </body>

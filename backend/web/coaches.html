@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Обучение шахматам с тренерами онлайн | ChessMint - Персональные занятия от мастеров ФИДЕ</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Профессиональные шахматные тренеры с титулами ФИДЕ. Персональные онлайн занятия, индивидуальный подход, отслеживание прогресса на платформе. Запишитесь на бесплатное пробное занятие!">
+    <meta name="keywords" content="шахматные тренеры, персональный тренер по шахматам, обучение шахматам онлайн, шахматные уроки, индивидуальное обучение, мастер FIDE">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://chessmint.ru/coaches">
+    
+    <!-- Hreflang -->
+    <link rel="alternate" hreflang="ru" href="https://chessmint.ru/coaches">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chessmint.ru/coaches">
+    <meta property="og:title" content="Обучение шахматам с тренерами онлайн | ChessMint">
+    <meta property="og:description" content="Профессиональные шахматные тренеры с титулами ФИДЕ. Персональные онлайн занятия, индивидуальный подход, отслеживание прогресса на платформе.">
+    <meta property="og:image" content="https://chessmint.ru/favicon.svg">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:site_name" content="ChessMint">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://chessmint.ru/coaches">
+    <meta name="twitter:title" content="Обучение шахматам с тренерами онлайн | ChessMint">
+    <meta name="twitter:description" content="Профессиональные шахматные тренеры с титулами ФИДЕ. Персональные онлайн занятия, индивидуальный подход.">
+    <meta name="twitter:image" content="https://chessmint.ru/favicon.svg">
+    
+    <!-- Загрузка темы до отрисовки страницы -->
+    <script>
+      (function() {
+        try {
+          const saved = localStorage.getItem('theme');
+          if (saved === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
+          }
+        } catch {}
+      })();
+    </script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"></noscript>
+    
+    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
+
+    <!-- Common Styles -->
+    <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
+    <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/footer.css?v=2.0">
+    
+    <!-- Section Styles -->
+    <link rel="stylesheet" href="/styles/sections/hero.css?v=2.0">
+    <link rel="stylesheet" href="/styles/sections/trainers.css?v=2.0">
+    <link rel="stylesheet" href="/styles/sections/how-it-works.css?v=2.0">
+    <link rel="stylesheet" href="/styles/sections/faq.css?v=2.0">
+    <link rel="stylesheet" href="/styles/sections/features.css?v=2.0">
+    
+    <!-- Coaches Page Specific Styles -->
+    <link rel="stylesheet" href="/styles/pages/coaches.css?v=2.0">
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="120x120" href="/favicon.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/favicon.png">
+    
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "name": "Обучение шахматам с тренерами",
+        "description": "Персональные онлайн уроки шахмат от мастеров ФИДЕ. Индивидуальный подход, анализ партий, работа над слабыми местами.",
+        "provider": {
+            "@type": "Organization",
+            "name": "ChessMint",
+            "url": "https://chessmint.ru"
+        },
+        "areaServed": {
+            "@type": "Country",
+            "name": "Россия"
+        },
+        "serviceType": "Обучение шахматам",
+        "offers": {
+            "@type": "Offer",
+            "description": "Персональные онлайн уроки шахмат",
+            "url": "https://chessmint.ru/coaches"
+        }
+    }
+    </script>
+    
+</head>
+
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div>
+                        <div class="gradient-text">ChessMint</div>
+                    </div>
+                </a>
+                <nav class="nav" aria-label="Основная навигация">
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                </nav>
+                <div class="header-actions">
+                    <div id="userActions">
+                        <div id="gamesUserInfo">
+                            <span></span>
+                        </div>
+                    </div>
+                    <button type="button" class="theme-toggle" title="Переключить тему" onclick="toggleTheme()" aria-label="Переключить тему">
+                        <i class="fas fa-sun" id="themeIcon" aria-hidden="true"></i>
+                    </button>
+                    <div id="authButtons">
+                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtn" title="Войти / Регистрация">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </a>
+                    </div>
+                    <button type="button" class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Открыть меню" aria-expanded="false">
+                        <i class="fas fa-bars" id="menuIcon" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти" aria-label="Выйти из аккаунта">
+                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Mobile Menu -->
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu" id="mobileMenu">
+                <button type="button" class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+                <div>
+                    <a href="/games" class="nav-link" onclick="closeMobileMenu();">
+                        <i class="fas fa-chess"></i>
+                        <span>Играть</span>
+                    </a>
+                    <a href="/tasks" class="nav-link" onclick="closeMobileMenu();">
+                        <i class="fas fa-puzzle-piece"></i>
+                        <span>Задачи</span>
+                    </a>
+                    <a href="/leaderboard" class="nav-link" onclick="closeMobileMenu();">
+                        <i class="fas fa-trophy"></i>
+                        <span>Рейтинг</span>
+                    </a>
+                    <hr>
+                    <div id="mobileAuthButtons">
+                        <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Войти / Регистрация</span>
+                        </a>
+                    </div>
+                    <div id="mobileUserActions" style="display: none;">
+                        <div id="gamesUserInfoMobile">
+                            <span></span>
+                        </div>
+                        <a href="/profile" class="mobile-cabinet-link" onclick="closeMobileMenu();">
+                            <i class="fas fa-user"></i>
+                            <span>Личный кабинет</span>
+                        </a>
+                        <button class="btn btn-outline logout-btn" id="gamesLogoutBtnMobile" title="Выйти">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Выйти</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content-wrapper">
+
+        <!-- Hero Section -->
+        <section class="hero coaches-hero" aria-labelledby="hero-heading">
+            <div class="hero-bg">
+                <div class="hero-bg-gradient"></div>
+                <div class="hero-bg-gradient"></div>
+            </div>
+            <div class="container">
+                <div class="hero-content">
+                    <div>
+                        <h1 id="hero-heading" class="hero-title">
+                            Обучение шахматам&nbsp;с <span class="gradient-text">профессиональными тренерами</span>
+                        </h1>
+                        <p class="hero-description">
+                            Персональные онлайн занятия от мастеров ФИДЕ. Индивидуальный подход, отслеживание прогресса, результаты уже после первых занятий.
+                        </p>
+                        <div class="hero-actions">
+                            <a href="#booking-form" class="btn btn-primary btn-large">
+                                <i class="fas fa-calendar-check"></i>
+                                Записаться на бесплатное занятие
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Benefits Section: Чему учим -->
+        <section class="benefits-section" aria-labelledby="benefits-heading">
+            <div class="benefits-header">
+                <h2 id="benefits-heading" class="benefits-title">
+                    Больше, чем просто игра
+                </h2>
+                <p class="benefits-subtitle">
+                    Шахматы развивают мышление, память, логику и многие другие важные навыки
+                </p>
+            </div>
+            <div class="benefits-flow">
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h3 class="benefit-title">Логика и мышление</h3>
+                        <p class="benefit-description">Развитие причинно-следственных связей</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h3 class="benefit-title">Память</h3>
+                        <p class="benefit-description">Улучшение запоминания и работы с информацией</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <h3 class="benefit-title">Целеустремленность</h3>
+                        <p class="benefit-description">Умение ставить и достигать цели</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <h3 class="benefit-title">Творческое мышление</h3>
+                        <p class="benefit-description">Поиск нестандартных решений</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-icon">
+                            <i class="fas fa-fist-raised"></i>
+                        </div>
+                        <h3 class="benefit-title">Характер и воля</h3>
+                        <p class="benefit-description">Стрессоустойчивость, принятие поражений</p>
+                    </div>
+            </div>
+        </section>
+
+        <!-- Trainers Section -->
+        <section class="trainers-showcase-section" aria-labelledby="trainers-heading">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="trainers-heading" class="section-title">
+                        Профессиональные тренеры с <span class="gradient-text">титулами ФИДЕ</span>
+                    </h2>
+                    <p class="section-description">
+                        Наши тренеры - мастера с многолетним опытом и достижениями в шахматах
+                    </p>
+                </div>
+                <div class="trainers-grid">
+                    <!-- Trainer 1: Григорий Пономарев -->
+                    <article class="trainer-card">
+                        <div class="trainer-avatar-wrapper">
+                            <img src="/images/coaches/grisha.jpg" alt="Григорий Пономарев - Мастер FIDE" class="trainer-avatar">
+                            <div class="trainer-badge">Мастер FIDE</div>
+                        </div>
+                        <div class="trainer-info">
+                            <h3 class="trainer-name">Григорий Пономарев</h3>
+                            <p class="trainer-title">Мастер FIDE (FM), Чемпион России</p>
+                            <p class="trainer-description">
+                                Опытный тренер, специализирующийся на персональном обучении. Поможет вам улучшить тактику, стратегию и дебютный репертуар.
+                            </p>
+                            <div class="trainer-achievements">
+                                <span class="achievement-tag">Чемпион России до 17 лет</span>
+                                <span class="achievement-tag">Победитель Кубка России</span>
+                            </div>
+                            <div class="trainer-actions">
+                                <a href="/coach/grisha" class="trainer-link">
+                                    Подробнее о тренере <i class="fas fa-arrow-right"></i>
+                                </a>
+                                <button class="btn btn-primary btn-small" onclick="openBookingModal('Григорий Пономарев')">
+                                    Записаться
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- Why Online Section -->
+        <section class="why-online-section" aria-labelledby="why-online-heading">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="why-online-heading" class="section-title">
+                        Почему онлайн?
+                    </h2>
+                    <p class="section-description">
+                        Преимущества онлайн обучения шахматам
+                    </p>
+                </div>
+                <div class="why-online-grid">
+                    <div class="why-online-card">
+                        <div class="why-online-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3 class="why-online-title">Безопаснее</h3>
+                        <p class="why-online-description">Не нужно никуда ехать, вы знаете где находится ребенок</p>
+                    </div>
+                    <div class="why-online-card">
+                        <div class="why-online-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <h3 class="why-online-title">Эффективнее</h3>
+                        <p class="why-online-description">Можно вернуться к записи урока и повторить материал</p>
+                    </div>
+                    <div class="why-online-card">
+                        <div class="why-online-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h3 class="why-online-title">Проще и мобильнее</h3>
+                        <p class="why-online-description">Все материалы в одном месте (компьютер/планшет/телефон)</p>
+                    </div>
+                    <div class="why-online-card">
+                        <div class="why-online-icon">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <h3 class="why-online-title">Комфортнее</h3>
+                        <p class="why-online-description">Домашняя обстановка располагает к спокойному усвоению</p>
+                    </div>
+                    <div class="why-online-card">
+                        <div class="why-online-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <h3 class="why-online-title">Дешевле</h3>
+                        <p class="why-online-description">Нет аренды классов, ниже стоимость занятий</p>
+                    </div>
+                    <div class="why-online-card">
+                        <div class="why-online-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <h3 class="why-online-title">В удобное время</h3>
+                        <p class="why-online-description">Занимайтесь когда удобно, экономия времени</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section class="how-it-works-section" aria-labelledby="how-it-works-heading">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="how-it-works-heading" class="section-title">
+                        Как проходит обучение
+                    </h2>
+                    <p class="section-description">
+                        Простой и эффективный процесс обучения
+                    </p>
+                </div>
+                <div class="steps-container">
+                    <div class="step-card">
+                        <div class="step-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <h3 class="step-title">Запись на занятие</h3>
+                        <p class="step-description">Свяжитесь с тренером или заполните форму на сайте</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <h3 class="step-title">Формат занятия</h3>
+                        <p class="step-description">Онлайн через Zoom/Skype/Telegram в удобное время</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-icon">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <h3 class="step-title">Длительность</h3>
+                        <p class="step-description">30-60 минут в зависимости от выбранного формата</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-icon">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <h3 class="step-title">Домашние задания</h3>
+                        <p class="step-description">Закрепление материала после каждого урока</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section class="pricing-section" aria-labelledby="pricing-heading">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="pricing-heading" class="section-title">
+                        Стоимость занятий
+                    </h2>
+                    <p class="section-description">
+                        Прозрачные цены и гибкие варианты оплаты
+                    </p>
+                </div>
+                <div class="pricing-table-wrapper">
+                    <table class="pricing-table">
+                        <thead>
+                            <tr>
+                                <th>Формат</th>
+                                <th>Разовое занятие</th>
+                                <th>Абонемент 8 занятий</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>30 минут</td>
+                                <td>XXX ₽</td>
+                                <td>XXX ₽ <span class="discount-badge">(выгода X%)</span></td>
+                            </tr>
+                            <tr>
+                                <td>60 минут</td>
+                                <td>XXX ₽</td>
+                                <td>XXX ₽ <span class="discount-badge">(выгода X%)</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pricing-notes">
+                    <p><strong>Пробное занятие:</strong> бесплатно / со скидкой</p>
+                    <p><strong>Формат:</strong> индивидуальные занятия онлайн</p>
+                    <p><strong>Оплата:</strong> по факту / абонемент</p>
+                </div>
+                <div class="pricing-cta">
+                    <a href="#booking-form" class="btn btn-primary btn-large">
+                        <i class="fas fa-calendar-check"></i>
+                        Записаться на пробное занятие
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Levels Section -->
+        <section class="levels-section" aria-labelledby="levels-heading">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="levels-heading" class="section-title">
+                        Обучение для всех уровней
+                    </h2>
+                    <p class="section-description">
+                        Подберем программу под ваш уровень подготовки
+                    </p>
+                </div>
+                <div class="levels-grid">
+                    <div class="level-card level-beginner">
+                        <div class="level-badge">
+                            <i class="fas fa-seedling"></i>
+                        </div>
+                        <h3 class="level-title">Начинающие</h3>
+                        <ul class="level-features">
+                            <li>Освоение основ шахмат</li>
+                            <li>Развитие базовых навыков</li>
+                            <li>Понимание правил и стратегии</li>
+                        </ul>
+                    </div>
+                    <div class="level-card level-intermediate">
+                        <div class="level-badge">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3 class="level-title">Средний уровень</h3>
+                        <ul class="level-features">
+                            <li>Улучшение тактики и стратегии</li>
+                            <li>Расширение дебютного репертуара</li>
+                            <li>Работа над типичными ошибками</li>
+                        </ul>
+                    </div>
+                    <div class="level-card level-advanced">
+                        <div class="level-badge">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3 class="level-title">Продвинутые игроки</h3>
+                        <ul class="level-features">
+                            <li>Работа над конкретными слабостями</li>
+                            <li>Подготовка к соревнованиям</li>
+                            <li>Углубленное изучение теории</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="faq-section" aria-labelledby="faq-heading">
+            <div class="container">
+                <div class="section-header">
+                    <div class="section-badge">
+                        <i class="fas fa-question-circle" aria-hidden="true"></i> FAQ
+                    </div>
+                    <h2 id="faq-heading" class="section-title">
+                        Часто задаваемые вопросы
+                    </h2>
+                    <p class="section-description">
+                        Ответы на популярные вопросы об обучении с тренерами
+                    </p>
+                </div>
+                <div class="faq-container" role="list">
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-3"
+                                type="button">
+                            <span>Как оплачиваются занятия?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-3" role="region">
+                            <p>Оплата возможна как за разовое занятие, так и за абонемент (8 занятий со скидкой). Оплата производится после занятия или при покупке абонемента. Доступны различные способы оплаты.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-4"
+                                type="button">
+                            <span>Нужна ли регистрация на платформе?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-4" role="region">
+                            <p>Да, для отслеживания прогресса и доступа к материалам рекомендуется зарегистрироваться на платформе ChessMint. Регистрация бесплатная и занимает всего минуту.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-5"
+                                type="button">
+                            <span>Подходит ли обучение для детей?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-5" role="region">
+                            <p>Конечно! Наши тренеры имеют опыт работы с детьми разного возраста. Занятия проходят в игровой форме, учитывая особенности детского восприятия. Многие наши ученики - это дети школьного возраста.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-6"
+                                type="button">
+                            <span>Как выбрать подходящего тренера?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-6" role="region">
+                            <p>Изучите профили тренеров, их достижения и специализацию. Рекомендуем начать с пробного занятия - это поможет понять, подходит ли вам стиль работы тренера.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-7"
+                                type="button">
+                            <span>Можно ли заниматься с нуля?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-7" role="region">
+                            <p>Да, наши тренеры работают с учениками любого уровня, включая тех, кто только начинает изучать шахматы. Программа обучения будет адаптирована под ваш уровень.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item" role="listitem">
+                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                aria-expanded="false" 
+                                aria-controls="faq-answer-8"
+                                type="button">
+                            <span>Что нужно для занятий?</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="faq-answer" id="faq-answer-8" role="region">
+                            <p>Для занятий вам понадобится компьютер, планшет или телефон с доступом в интернет, а также установленное приложение для видеосвязи (Zoom, Skype или Telegram). Остальное предоставит тренер.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA Section -->
+        <section id="booking-form" class="cta-final-section" aria-labelledby="cta-heading">
+            <div class="container">
+                <div class="cta-content">
+                    <h2 id="cta-heading" class="cta-title">
+                        Начните обучение уже сегодня
+                    </h2>
+                    <p class="cta-description">
+                        Получите бесплатное пробное занятие с профессиональным тренером
+                    </p>
+                    <form class="booking-form" id="coachBookingForm" onsubmit="handleBookingSubmit(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="booking-name">Имя *</label>
+                                <input type="text" id="booking-name" name="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="booking-phone">Телефон *</label>
+                                <input type="tel" id="booking-phone" name="phone" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="booking-email">Email</label>
+                                <input type="email" id="booking-email" name="email">
+                            </div>
+                            <div class="form-group">
+                                <label for="booking-level">Уровень подготовки</label>
+                                <select id="booking-level" name="level">
+                                    <option value="">Выберите уровень</option>
+                                    <option value="beginner">Начинающий</option>
+                                    <option value="intermediate">Средний</option>
+                                    <option value="advanced">Продвинутый</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="booking-comment">Комментарий</label>
+                            <textarea id="booking-comment" name="comment" rows="4" placeholder="Расскажите о ваших целях в обучении или предпочтениях"></textarea>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="consent" required>
+                                <span>Я согласен(а) на обработку персональных данных *</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-large">
+                            <i class="fas fa-paper-plane"></i>
+                            Записаться на пробное занятие
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="chess-piece-decoration">♔</div>
+        <div class="chess-piece-decoration">♛</div>
+        <div class="chess-piece-decoration">♜</div>
+        <div class="footer-top">
+            <div class="footer-ornament">
+                <span>♔</span>
+                <span>♕</span>
+                <span>♖</span>
+                <span>♗</span>
+                <span>♘</span>
+                <span>♙</span>
+            </div>
+        </div>
+        <div class="footer-content">
+            <div class="container">
+                <div class="footer-grid">
+                    <div class="footer-brand">
+                        <h3>ChessMint</h3>
+                        <p>
+                            Революционная платформа для изучения шахмат. Станьте мастером быстрее с ChessMint!
+                        </p>
+                        <div class="social-links">
+                            <a href="https://t.me/chess_mint" class="social-link" target="_blank" rel="noopener noreferrer" title="Telegram - ChessMint" aria-label="Telegram">
+                                <i class="fab fa-telegram"></i>
+                            </a>
+                            <a href="https://youtube.com/" class="social-link" target="_blank" rel="noopener noreferrer" title="YouTube - ChessMint" aria-label="YouTube">
+                                <i class="fab fa-youtube"></i>
+                            </a>
+                            <a href="https://vk.com" class="social-link" target="_blank" rel="noopener noreferrer" title="VK - ChessMint" aria-label="VK">
+                                <i class="fab fa-vk"></i>
+                            </a>
+                            <a href="https://instagram.com" class="social-link" target="_blank" rel="noopener noreferrer" title="Instagram - ChessMint" aria-label="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Обучение</h4>
+                        <ul class="footer-links">
+                            <li><a href="/tasks">♟ Решение задач</a></li>
+                            <li><a href="/games">♟ Играть онлайн</a></li>
+                            <li><a href="/rules">♟ Правила шахмат</a></li>
+                            <li><a href="/coaches">♟ Тренеры</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Информация</h4>
+                        <ul class="footer-links">
+                            <li><a href="/terms">Пользовательское соглашение</a></li>
+                            <li><a href="/privacy">Политика конфиденциальности</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2025 ChessMint. Все права защищены.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/scripts/auth.js" defer></script>
+    <script src="/scripts/header-mobile-control.js" defer></script>
+    <script src="/scripts/coaches.js" defer></script>
+</body>
+</html>

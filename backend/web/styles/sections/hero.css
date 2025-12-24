@@ -59,6 +59,10 @@
     .hero-square.highlighted {
         animation: none;
     }
+    
+    .hero-chessboard {
+        /* Статичная доска без анимации */
+    }
 }
 
 @keyframes fadeInUp {
@@ -149,6 +153,28 @@
     50% {
         transform: scale(1.05);
         box-shadow: inset 0 0 0 5px rgba(255, 215, 0, 1);
+    }
+}
+
+/* Отключаем анимацию на мобильных для производительности */
+@media (max-width: 768px) {
+    .hero-square.highlighted {
+        animation: none;
+        background: rgba(255, 215, 0, 0.5) !important;
+        will-change: auto;
+    }
+    
+    .hero-piece {
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+        will-change: auto;
+    }
+    
+    .hero-piece svg {
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+    }
+    
+    .hero-bg-gradient {
+        will-change: auto;
     }
 }
 
@@ -245,9 +271,10 @@ body.dark .hero-chessboard {
         grid-template-columns: 1fr;
     }
     
+    /* Скрываем доску на мобильных для производительности и экономии места */
+    .hero-chessboard-wrapper,
     .hero-chessboard {
-        max-width: 400px;
-        max-height: 400px;
+        display: none;
     }
     
     .hero-piece {
@@ -267,6 +294,13 @@ body.dark .hero-chessboard {
     .hero-bg-gradient {
         width: 20rem;
         height: 20rem;
+    }
+    
+    /* Отключаем сложные фильтры и анимации для производительности */
+    .hero-chessboard {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
     }
 }
 

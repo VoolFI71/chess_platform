@@ -20,7 +20,7 @@
         toast.className = 'toast';
       }, 4000);
     } else {
-      }] ${message}`);
+      console.log(message);
       if (type === 'error') {
         alert(message);
       }

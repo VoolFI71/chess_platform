@@ -541,7 +541,38 @@
     ensureLogoutButtonsPosition();
   }
 
+  // Обработка токенов из URL hash (OAuth callback)
+  function handleOAuthTokensFromHash() {
+    const hash = window.location.hash;
+    if (!hash || !hash.includes('access_token=')) {
+      return false;
+    }
+    
+    try {
+      // Извлекаем параметры из hash (формат: #access_token=...&refresh_token=...)
+      const params = new URLSearchParams(hash.substring(1)); // убираем #
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      
+      if (accessToken) {
+        setTokens(accessToken, refreshToken || '');
+        
+        // Очищаем hash из URL для безопасности и чистоты
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        
+        return true;
+      }
+    } catch (error) {
+      console.error('Error parsing OAuth tokens from hash:', error);
+    }
+    
+    return false;
+  }
+
   async function initAuth() {
+    // Сначала проверяем, есть ли токены в URL hash (OAuth callback)
+    const hasTokensFromHash = handleOAuthTokensFromHash();
+    
     try {
       let user = null;
       if (getAccessToken() || getRefreshToken()) {
@@ -555,6 +586,11 @@
       }
       lastAuthState = !!user;
       updateAuthUI(user);
+      
+      // Если токены были получены из hash, обновляем UI после успешной авторизации
+      if (hasTokensFromHash && user) {
+        // UI уже обновлен выше, можно добавить дополнительную логику если нужно
+      }
     } catch (error) {
       lastAuthState = false;
       updateAuthUI(null);
