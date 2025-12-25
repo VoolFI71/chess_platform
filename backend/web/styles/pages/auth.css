@@ -60,15 +60,15 @@ body.dark .auth-header {
     flex: 1;
     display: flex;
     align-items: center;
-    padding: clamp(3rem, 6vw, 6rem) 0;
+    padding: clamp(1rem, 2vw, 2rem) 0 clamp(2rem, 4vw, 4rem) 0;
 }
 
 .auth-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: clamp(2rem, 4vw, 4rem);
-    align-items: stretch;
+    display: flex;
+    justify-content: center;
     width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
 }
 
 .auth-card {
@@ -76,7 +76,7 @@ body.dark .auth-header {
     background: var(--card);
     color: var(--card-foreground);
     border-radius: 1.75rem;
-    padding: clamp(2.25rem, 4vw, 3rem);
+    padding: clamp(1.25rem, 2.5vw, 1.5rem);
     border: 1px solid rgba(148, 163, 184, 0.18);
     box-shadow: 0 25px 60px rgba(15, 23, 42, 0.12);
     overflow: hidden;
@@ -100,30 +100,49 @@ body.dark .auth-header {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1.25rem;
+    padding: 0.4rem 1rem;
     border-radius: 999px;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     font-weight: 600;
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.15));
     color: var(--primary);
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+body.dark .auth-accent,
+html.dark .auth-accent {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.25));
+    color: var(--primary);
 }
 
 .auth-card h1 {
-    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-size: clamp(1.5rem, 3vw, 2rem);
     line-height: 1.2;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
+    color: var(--card-foreground);
+}
+
+body.dark .auth-card h1,
+html.dark .auth-card h1 {
+    color: var(--foreground);
 }
 
 .auth-card p.lead {
-    font-size: 1.063rem;
+    font-size: 0.95rem;
     color: var(--muted);
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+body.dark .auth-card p.lead,
+html.dark .auth-card p.lead {
+    color: var(--muted);
 }
 
 body.dark .auth-card {
     border-color: rgba(59, 130, 246, 0.25);
     box-shadow: 0 25px 60px rgba(15, 23, 42, 0.45);
+    background: var(--card);
+    color: var(--card-foreground);
 }
 
 .auth-feedback {
@@ -166,7 +185,7 @@ body.dark .auth-feedback.success {
 .form-stack {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1rem;
 }
 
 .form-group {
@@ -184,10 +203,31 @@ body.dark .auth-feedback.success {
     align-items: center;
 }
 
+body.dark .form-label,
+html.dark .form-label {
+    color: var(--muted);
+}
+
+body.dark .form-label span,
+html.dark .form-label span {
+    color: var(--muted);
+}
+
+/* Стили для чекбокса и его label */
+body.dark .form-extra label,
+html.dark .form-extra label {
+    color: var(--muted) !important;
+}
+
+body.dark .form-extra label input[type="checkbox"],
+html.dark .form-extra label input[type="checkbox"] {
+    accent-color: var(--primary);
+}
+
 .form-input {
     width: 100%;
     padding: 0.875rem 1rem;
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     border: 1px solid rgba(148, 163, 184, 0.35);
     background: rgba(255, 255, 255, 0.92);
     font-size: 1rem;
@@ -207,15 +247,22 @@ body.dark .auth-feedback.success {
 
 body.dark .form-input,
 html.dark .form-input {
-    background: rgba(30, 31, 63, 0.85);
-    border-color: rgba(76, 106, 158, 0.45);
+    background: rgba(45, 45, 45, 0.95);
+    border-color: rgba(148, 163, 184, 0.3);
     color: var(--foreground);
+}
+
+body.dark .form-input::placeholder,
+html.dark .form-input::placeholder {
+    color: rgba(148, 163, 184, 0.6);
 }
 
 body.dark .form-input:focus,
 html.dark .form-input:focus {
+    background: rgba(45, 45, 45, 1);
     border-color: rgba(59, 130, 246, 0.7);
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
+    color: var(--foreground);
 }
 
 .form-extra {
@@ -226,10 +273,25 @@ html.dark .form-input:focus {
     color: var(--muted);
 }
 
+body.dark .form-extra,
+html.dark .form-extra {
+    color: var(--muted);
+}
+
+body.dark .form-extra label,
+html.dark .form-extra label {
+    color: var(--muted);
+}
+
 .form-extra a {
     color: var(--primary);
     text-decoration: none;
     font-weight: 600;
+}
+
+body.dark .form-extra a,
+html.dark .form-extra a {
+    color: var(--primary);
 }
 
 .form-extra a:hover {
@@ -242,7 +304,7 @@ html.dark .form-input:focus {
     justify-content: center;
     width: 100%;
     padding: 1rem 1.5rem;
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     gap: 0.75rem;
     font-size: 1.05rem;
 }
@@ -273,9 +335,14 @@ html.dark .form-input:focus {
 }
 
 .auth-switch {
-    margin-top: 1.25rem;
-    font-size: 0.95rem;
+    margin-top: 1rem;
+    font-size: 0.9rem;
     text-align: center;
+    color: var(--muted);
+}
+
+body.dark .auth-switch,
+html.dark .auth-switch {
     color: var(--muted);
 }
 
@@ -285,81 +352,150 @@ html.dark .form-input:focus {
     text-decoration: none;
 }
 
+body.dark .auth-switch a,
+html.dark .auth-switch a {
+    color: var(--primary);
+}
+
 .auth-switch a:hover {
     text-decoration: underline;
 }
 
-.auth-side {
-    position: relative;
-    border-radius: 1.75rem;
-    padding: clamp(2.5rem, 4vw, 3.5rem);
-    background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(30, 64, 175, 0.9));
-    color: #f8fafc;
-    overflow: hidden;
-}
-
-.auth-side::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.45), transparent 55%);
-    opacity: 0.9;
-}
-
-.auth-side > * {
-    position: relative;
-    z-index: 1;
-}
-
-.auth-side h2 {
-    font-size: clamp(1.8rem, 3vw, 2.25rem);
-    line-height: 1.25;
+/* Разделитель "или" */
+.auth-divider {
     margin-bottom: 1rem;
+    position: relative;
 }
 
-.auth-side p {
-    font-size: 1rem;
-    color: rgba(226, 232, 240, 0.9);
-    margin-bottom: 2rem;
+.auth-divider-line {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(148, 163, 184, 0.3);
 }
 
-.auth-perks {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+body.dark .auth-divider-line,
+html.dark .auth-divider-line {
+    background: rgba(148, 163, 184, 0.2);
 }
 
-.auth-perks li {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    font-size: 0.98rem;
-    color: rgba(226, 232, 240, 0.95);
+.auth-divider-text {
+    position: relative;
+    background: var(--card);
+    padding: 0 1rem;
+    color: var(--muted);
+    font-size: 0.875rem;
 }
 
-.auth-perks i {
-    color: #34d399;
-    margin-top: 0.2rem;
+body.dark .auth-divider-text,
+html.dark .auth-divider-text {
+    background: var(--card);
+    color: var(--muted);
 }
 
-/* Google OAuth Button */
-.google-login-button:hover {
+/* Google OAuth Button - максимальная специфичность */
+button.google-login-button,
+#google-login-button,
+#google-register-button,
+button#google-login-button,
+button#google-register-button,
+.auth-card button.google-login-button,
+.auth-card #google-login-button,
+.auth-card #google-register-button {
+    border-radius: 0.5rem !important;
+    -webkit-border-radius: 0.5rem !important;
+    -moz-border-radius: 0.5rem !important;
+}
+
+.google-login-button:hover,
+button.google-login-button:hover,
+#google-login-button:hover,
+#google-register-button:hover {
     background: #f9fafb !important;
     border-color: rgba(148, 163, 184, 0.5) !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transform: translateY(-1px);
+    border-radius: 0.5rem !important;
 }
 
-body.dark .google-login-button {
+body.dark .google-login-button,
+body.dark button.google-login-button,
+body.dark #google-login-button,
+body.dark #google-register-button {
     background: rgba(30, 31, 63, 0.85);
     border-color: rgba(76, 106, 158, 0.45);
     color: var(--foreground);
+    border-radius: 0.5rem !important;
 }
 
-body.dark .google-login-button:hover {
+body.dark .google-login-button:hover,
+body.dark button.google-login-button:hover,
+body.dark #google-login-button:hover,
+body.dark #google-register-button:hover {
     background: rgba(30, 31, 63, 0.95) !important;
     border-color: rgba(76, 106, 158, 0.65) !important;
+    border-radius: 0.5rem !important;
+}
+
+/* Mail.ru OAuth Button - максимальная специфичность */
+/* ВРЕМЕННО СКРЫТО: кнопка скрыта, но реализация сохранена для будущего использования */
+.mailru-login-button,
+div.mailru-login-button,
+[data-ui="login_as userpic"],
+[data-ui="login_as"],
+.auth-card .mailru-login-button,
+.auth-card [data-ui="login_as userpic"],
+.auth-card [data-ui="login_as"] {
+    display: none !important;
+    /* Реализация сохранена для будущего использования */
+    /* border-radius: 0 !important;
+    -webkit-border-radius: 0 !important;
+    -moz-border-radius: 0 !important;
+    overflow: hidden !important;
+    clip-path: inset(0 0 0 0) !important;
+    border-radius: 0px !important; */
+}
+
+/* Стили для дочерних элементов (если они не в iframe) */
+.mailru-login-button > *:not(iframe),
+[data-ui="login_as userpic"] > *:not(iframe),
+[data-ui="login_as"] > *:not(iframe) {
+    border-radius: 0 !important;
+    -webkit-border-radius: 0 !important;
+    -moz-border-radius: 0 !important;
+}
+
+/* Iframe внутри - обрезается через overflow: hidden родителя */
+.mailru-login-button iframe,
+[data-ui="login_as userpic"] iframe,
+[data-ui="login_as"] iframe {
+    border-radius: 0 !important;
+    -webkit-border-radius: 0 !important;
+    -moz-border-radius: 0 !important;
+    /* Если iframe имеет скругления, они будут обрезаны родителем */
+}
+
+.mailru-login-button iframe,
+.mailru-login-button > div,
+.mailru-login-button > button,
+[data-ui="login_as userpic"] iframe,
+[data-ui="login_as userpic"] > div,
+[data-ui="login_as userpic"] > button {
+    border-radius: 0 !important;
+    -webkit-border-radius: 0 !important;
+    -moz-border-radius: 0 !important;
+}
+
+/* Принудительное применение стилей для всех дочерних элементов */
+.mailru-login-button *,
+[data-ui="login_as userpic"] *,
+.mailru-login-button * *,
+[data-ui="login_as userpic"] * * {
+    border-radius: 0 !important;
+    -webkit-border-radius: 0 !important;
+    -moz-border-radius: 0 !important;
 }
 
 .auth-footer {
@@ -412,20 +548,15 @@ body.dark .auth-footer {
         padding: 2.5rem 0;
     }
 
-    .auth-card,
-    .auth-side {
+    .auth-card {
         border-radius: 1.5rem;
-        padding: 2rem;
+        padding: 1.25rem;
     }
 
     .auth-content {
         display: flex;
         flex-direction: column;
         gap: 2rem;
-    }
-
-    .auth-side {
-        text-align: left;
     }
 
     .auth-header__content {
@@ -443,14 +574,9 @@ body.dark .auth-footer {
         padding: 2rem 0;
     }
 
-    .auth-card,
-    .auth-side {
-        padding: 1.75rem;
+    .auth-card {
+        padding: 1rem;
         border-radius: 1.35rem;
-    }
-
-    .auth-side {
-        gap: 1.5rem;
     }
 
     .auth-header__content {
@@ -487,10 +613,6 @@ body.dark .auth-footer {
     .auth-note,
     .auth-switch {
         font-size: 0.9rem;
-    }
-
-    .auth-perks li {
-        font-size: 0.94rem;
     }
 }
 

@@ -27,6 +27,7 @@
 
   function setThemePreference(isDark) {
     document.body.classList.toggle('dark', isDark);
+    document.documentElement.classList.toggle('dark', isDark);
     try {
       localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
     } catch {

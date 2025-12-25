@@ -40,6 +40,12 @@
           if (saved === 'dark') {
             document.documentElement.classList.add('dark');
             document.body.classList.add('dark');
+          } else if (saved === 'light') {
+            document.documentElement.classList.remove('dark');
+            document.body.classList.remove('dark');
+          } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
           }
         } catch {}
       })();
@@ -76,6 +82,10 @@
     </script>
     <noscript><div><img src="https://mc.yandex.ru/watch/105743222" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
     <!-- /Yandex.Metrika counter -->
+    
+    <!-- Yandex Autoplacement 18293483 -->
+    <script src="https://yandex.ru/ads/system/context.js" async></script>
+    <script data-page-id="18293483" src="https://yandex.ru/ads/system/ap-loader.js" async></script>
 </head>
 <body class="auth-page login-page">
     <!-- HEADER -->
@@ -161,45 +171,12 @@
     <main class="auth-main">
         <div class="container auth-content">
             <section class="auth-card">
-                <span class="auth-accent">
-                    <i class="fas fa-chess-knight"></i>
-                    ChessMint
-                </span>
                 <h1>Войти в аккаунт</h1>
                 <p class="lead">Продолжайте обучение, следите за своими партиями и управляйте подписками в одном месте.</p>
 
                 <p class="auth-feedback" data-feedback hidden></p>
 
-                <form class="form-stack" data-auth-form="login" novalidate>
-                    <div class="form-group">
-                        <label class="form-label" for="loginInput">
-                            Логин или Email
-                            <span style="font-size: 0.8rem; font-weight: 500; color: rgba(148, 163, 184, 0.8);">введите логин или почту</span>
-                        </label>
-                        <input id="loginInput" name="login" type="text" class="form-input" placeholder="логин или name@email.ru" autocomplete="username" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="loginPassword">Пароль</label>
-                        <input id="loginPassword" name="password" type="password" class="form-input" placeholder="Введите пароль" autocomplete="current-password" required>
-                    </div>
-
-                    <div class="form-extra">
-                        <span></span>
-                        <a href="/reset-password">Забыли пароль?</a>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary form-submit">
-                        <i class="fas fa-sign-in-alt"></i>
-                        <span>Войти</span>
-                    </button>
-                </form>
-
                 <div style="margin: 2rem 0; text-align: center;">
-                    <div style="margin-bottom: 1rem; position: relative;">
-                        <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(148, 163, 184, 0.3);"></div>
-                        <span style="position: relative; background: white; padding: 0 1rem; color: rgba(148, 163, 184, 0.8); font-size: 0.875rem;">или</span>
-                    </div>
                     <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center; max-width: 300px; margin: 0 auto;">
                         <button type="button" id="google-login-button" class="google-login-button" style="width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; gap: 0.75rem; background: white; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 0.5rem; cursor: pointer; font-size: 0.9375rem; font-weight: 500; color: #374151; transition: all 0.2s;">
                             <svg width="20" height="20" viewBox="0 0 24 24">
@@ -210,34 +187,34 @@
                             </svg>
                             <span>Войти через Google</span>
                         </button>
-                        <div class="mailru-login-button" data-ui="login_as userpic" data-type="login" style="width: 100%; height: 48px;"></div>
                     </div>
                 </div>
+
+                <form class="form-stack" data-auth-form="login" novalidate>
+                    <div class="form-group">
+                        <label class="form-label" for="loginInput">Логин или Email</label>
+                        <input id="loginInput" name="login" type="text" class="form-input" placeholder="логин или name@email.ru" autocomplete="username" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="loginPassword" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Пароль</span>
+                            <a href="/reset-password" style="font-size: 0.875rem; font-weight: 500; color: var(--primary); text-decoration: none;">Забыли пароль?</a>
+                        </label>
+                        <input id="loginPassword" name="password" type="password" class="form-input" placeholder="Введите пароль" autocomplete="current-password" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary form-submit">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Войти</span>
+                    </button>
+                </form>
 
                 <p class="auth-switch">
                     Нет аккаунта?
                     <a href="/register">Зарегистрироваться</a>
                 </p>
             </section>
-
-            <aside class="auth-side">
-                <h2>Добро пожаловать в ChessMint</h2>
-                <p>Играйте в шахматы онлайн, решайте задачи и отслеживайте свой прогресс — всё в одной платформе.</p>
-                <ul class="auth-perks">
-                    <li>
-                        <i class="fas fa-puzzle-piece"></i>
-                        Более 1.000.000 шахматных задач с адаптивной сложностью и рейтингом
-                    </li>
-                    <li>
-                        <i class="fas fa-chess-board"></i>
-                        Играйте с живыми соперниками в реальном времени с системой рейтинга ELO
-                    </li>
-                    <li>
-                        <i class="fas fa-chart-line"></i>
-                        Сохраняйте статистику, историю партий и отслеживайте свой прогресс
-                    </li>
-                </ul>
-            </aside>
         </div>
     </main>
 

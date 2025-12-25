@@ -1390,11 +1390,27 @@
     }
 
     const now = Date.now();
-    const isFirstMove = detail.move_count === 1;
+    const isFirstMove = detail.move_count === 0 || detail.move_count === 1;
+    const hasNoMoves = !detail.moves || detail.moves.length === 0;
     let clockAnchorTime;
     
-    if (isFirstMove) {
-      clockAnchorTime = now;
+    // Если игра только что стала активной и еще не было ходов, используем время из сервера или текущее время
+    if (detail.status === 'ACTIVE' && hasNoMoves) {
+      // Если есть время начала игры из сервера, используем его
+      if (detail.started_at) {
+        clockAnchorTime = new Date(detail.started_at).getTime();
+      } else if (detail.updated_at) {
+        // Используем время последнего обновления как приблизительное время начала
+        clockAnchorTime = new Date(detail.updated_at).getTime();
+      } else {
+        // Fallback: используем текущее время только если это новый переход в ACTIVE
+        const wasCreated = previousGame?.status === 'CREATED';
+        clockAnchorTime = wasCreated ? now : (state.clockAnchorTime || now);
+      }
+    } else if (isFirstMove && detail.moves && detail.moves.length > 0) {
+      // Первый ход уже сделан - используем время первого хода
+      const firstMove = detail.moves[0];
+      clockAnchorTime = firstMove.created_at ? new Date(firstMove.created_at).getTime() : now;
     } else if (isRealtimeMove && moveTimestamp !== null) {
       clockAnchorTime = moveTimestamp;
     } else if (detail.moves && detail.moves.length > 0) {
@@ -1884,8 +1900,9 @@
 
   async function resignGame() {
     if (!state.matchId) return;
-    if (!state.currentUser) {
-      showToast('Войдите в аккаунт, чтобы сдаться', 'error');
+    const role = getCurrentUserRole();
+    if (!role) {
+      showToast('Только участники партии могут сдаться', 'error');
       return;
     }
     if (!confirm('Подтвердите сдачу партии')) return;

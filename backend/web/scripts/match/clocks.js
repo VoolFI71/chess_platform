@@ -37,9 +37,12 @@
     const now = Date.now();
     const elapsed = Math.max(0, now - anchor);
 
-    if (next_turn === 'w') {
+    // Если next_turn не установлен (до первого хода), используем значение по умолчанию 'w' (белые начинают)
+    const activeTurn = next_turn || 'w';
+    
+    if (activeTurn === 'w') {
       white = Math.max(0, white - elapsed);
-    } else if (next_turn === 'b') {
+    } else if (activeTurn === 'b') {
       black = Math.max(0, black - elapsed);
     }
     
