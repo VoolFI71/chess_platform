@@ -235,21 +235,32 @@
 
   // Кеш для предгенерированных ходов
   // Ключ: `${fen}|${color}`, значение: { moves, movesByFrom, legalMovesByFrom }
-  const movesCache = new Map();
+  // Используем LRU кэш если доступен, иначе fallback на простой Map
   const MAX_CACHE_SIZE = 100; // Максимальный размер кеша
+  let movesCache;
+  let clearMovesCache;
 
-  /**
-   * Очистка кеша ходов (удаляет самые старые записи)
-   */
-  function clearMovesCache() {
-    if (movesCache.size > MAX_CACHE_SIZE) {
-      // Удаляем 20% самых старых записей
-      const entriesToDelete = Math.floor(MAX_CACHE_SIZE * 0.2);
-      const keys = Array.from(movesCache.keys());
-      for (let i = 0; i < entriesToDelete; i++) {
-        movesCache.delete(keys[i]);
+  if (window.App?.Utils?.LRUCache) {
+    // Используем LRU кэш - автоматически управляет размером
+    movesCache = new window.App.Utils.LRUCache(MAX_CACHE_SIZE);
+    clearMovesCache = () => {}; // LRU кэш сам управляет размером
+  } else {
+    // Fallback: простой Map с ручной очисткой
+    movesCache = new Map();
+    /**
+     * Очистка кеша ходов (удаляет самые старые записи)
+     * Используется только если LRUCache недоступен
+     */
+    clearMovesCache = function() {
+      if (movesCache.size > MAX_CACHE_SIZE) {
+        // Удаляем 20% самых старых записей
+        const entriesToDelete = Math.floor(MAX_CACHE_SIZE * 0.2);
+        const keys = Array.from(movesCache.keys());
+        for (let i = 0; i < entriesToDelete; i++) {
+          movesCache.delete(keys[i]);
+        }
       }
-    }
+    };
   }
 
   function generateMoves(fen, color, useCache = true) {
@@ -662,7 +673,16 @@
     return { file: coords.file, rank: coords.rank };
   }
 
-  window.ChessMoveUtils = {
+  // Создаем неймспейс App.Chess если его еще нет
+  if (!window.App) {
+    window.App = {};
+  }
+  if (!window.App.Chess) {
+    window.App.Chess = {};
+  }
+
+  // Export в новый неймспейс
+  window.App.Chess.Moves = {
     generateMoves,
     generateLegalMoves,
     updateLegalMovesForState,
@@ -675,5 +695,8 @@
     squareToCoords,
     squareToIndices,
   };
+
+  // Для обратной совместимости: сохраняем старый экспорт
+  window.ChessMoveUtils = window.App.Chess.Moves;
 })();
 

@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func, select
@@ -6,8 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
 from ..database import get_db
-from ..models import Puzzle
-from ..schemas import PuzzleCountResponse, PuzzleFilters, PuzzleResponse
+from ..models import DailyPuzzle, DailyPuzzleSolution, Puzzle
+from ..schemas import DailyPuzzleResponse, PuzzleCountResponse, PuzzleFilters, PuzzleResponse
+from ..security import get_current_user_id_optional
+from ..services.daily_puzzle import get_daily_puzzle_service
 from ..services.puzzle_cache import get_puzzle_cache
 
 puzzles_router = APIRouter(prefix="/puzzles", tags=["puzzles"])
@@ -59,6 +62,88 @@ async def get_puzzles_count(
 	count_query = select(func.count()).select_from(Puzzle)
 	total_count = await db.scalar(count_query) or 0
 	return PuzzleCountResponse(count=total_count)
+
+
+@puzzles_router.get("/daily", response_model=DailyPuzzleResponse, response_model_exclude_none=True)
+async def get_daily_puzzle(
+	db: AsyncSession = Depends(get_db),
+	response: Response = Response(),
+	current_user_id: int | None = Depends(get_current_user_id_optional),
+) -> DailyPuzzleResponse:
+	"""
+	Получить задачу дня.
+	
+	Возвращает одну и ту же задачу для всех пользователей в течение текущих календарных суток.
+	Задача выбирается случайным образом из диапазона рейтинга 2700-3000.
+	Каждые 24 часа (по UTC) выбирается новая задача.
+	
+	Метрики: автоматически собираются через prometheus-fastapi-instrumentator.
+	Логирование: события создания/загрузки задачи логируются на уровне INFO.
+	"""
+	import logging
+	logger = logging.getLogger(__name__)
+	
+	# Получаем текущую дату в UTC
+	today = date.today()
+	
+	# Получаем или создаем задачу дня
+	daily_service = get_daily_puzzle_service()
+	puzzle = await daily_service.get_or_create_for_date(today, db)
+	
+	if not puzzle:
+		logger.error("Failed to get or create daily puzzle for date %s", today)
+		raise HTTPException(
+			status_code=404,
+			detail="Задача дня не найдена. Попробуйте позже.",
+		)
+	
+	# Загружаем метаданные DailyPuzzle для получения chosen_at и rating
+	stmt = select(DailyPuzzle).where(DailyPuzzle.date == today)
+	result = await db.execute(stmt)
+	daily_record = result.scalar_one_or_none()
+	
+	if not daily_record:
+		# Это не должно произойти, но на всякий случай
+		logger.error("Daily puzzle created but record not found for date %s", today)
+		raise HTTPException(
+			status_code=500,
+			detail="Ошибка при загрузке метаданных задачи дня.",
+		)
+	
+	# Проверяем, решена ли задача текущим пользователем
+	is_solved = False
+	if current_user_id is not None:
+		solution_stmt = select(DailyPuzzleSolution).where(
+			DailyPuzzleSolution.user_id == current_user_id,
+			DailyPuzzleSolution.date == today,
+		)
+		solution_result = await db.execute(solution_stmt)
+		is_solved = solution_result.scalar_one_or_none() is not None
+	
+	# Подсчитываем количество решений за сегодня
+	count_stmt = select(func.count()).select_from(DailyPuzzleSolution).where(
+		DailyPuzzleSolution.date == today
+	)
+	today_solved_count = await db.scalar(count_stmt) or 0
+	
+	logger.info(
+		"Daily puzzle served for date %s: puzzle_id=%s, rating=%d, solved_count=%d",
+		today,
+		daily_record.puzzle_id,
+		daily_record.rating,
+		today_solved_count,
+	)
+	
+	# Формируем ответ с метаданными
+	puzzle_response = PuzzleResponse.model_validate(puzzle)
+	return DailyPuzzleResponse(
+		**puzzle_response.model_dump(),
+		date=daily_record.date,
+		chosen_at=daily_record.chosen_at,
+		daily_rating=daily_record.rating,
+		is_solved=is_solved,
+		today_solved_count=today_solved_count,
+	)
 
 
 @puzzles_router.get("/{puzzle_id}", response_model=PuzzleResponse)

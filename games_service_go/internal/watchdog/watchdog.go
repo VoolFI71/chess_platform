@@ -16,6 +16,8 @@ const (
 	watchdogIntervalSeconds     = 15
 	abandonedGameTimeoutMinutes = 60
 	recentMovesLimit            = 120
+	// Время ожидания первого хода для активных игр (в минутах)
+	activeGameNoMoveTimeoutMinutes = 5
 )
 
 type Watchdog struct {
@@ -60,8 +62,11 @@ func (w *Watchdog) tick() {
 	// 1. Проверка активных игр на таймаут
 	w.checkTimeouts(ctx)
 
-	// 2. Очистка заброшенных игр
+	// 2. Очистка заброшенных игр (CREATED без игроков)
 	w.cleanupAbandonedGames(ctx)
+
+	// 3. Очистка активных игр без ходов
+	w.cleanupActiveGamesWithoutMoves(ctx)
 }
 
 func (w *Watchdog) checkTimeouts(ctx context.Context) {
@@ -217,6 +222,58 @@ func (w *Watchdog) cleanupAbandonedGames(ctx context.Context) {
 		w.wsManager.Broadcast(game.ID, map[string]interface{}{
 			"type":    "game_cancelled",
 			"game_id": game.ID.String(),
+		})
+	}
+}
+
+// cleanupActiveGamesWithoutMoves удаляет активные игры, где оба игрока присоединились,
+// но никто не сделал первый ход в течение заданного времени
+func (w *Watchdog) cleanupActiveGamesWithoutMoves(ctx context.Context) {
+	cutoffTime := time.Now().UTC().Add(-activeGameNoMoveTimeoutMinutes * time.Minute)
+
+	// Игра должна быть удалена, если:
+	// 1. Статус = ACTIVE
+	// 2. move_count = 0 (нет ходов)
+	// 3. started_at < cutoffTime (прошло достаточно времени с момента старта)
+	// 4. Оба игрока присоединились (проверяем через white_id/black_id или session_id)
+
+	whereClause := `status = ? AND move_count = 0 AND started_at IS NOT NULL AND started_at < ? AND (
+		(white_id IS NOT NULL OR COALESCE(metadata->>'white_session_id', '') != '') AND
+		(black_id IS NOT NULL OR COALESCE(metadata->>'black_session_id', '') != '')
+	)`
+
+	var gamesToDelete []models.Game
+	if err := w.db.WithContext(ctx).
+		Where(whereClause,
+			models.GameStatusActive, cutoffTime).
+		Find(&gamesToDelete).Error; err != nil {
+		log.Printf("[Watchdog] Failed to query active games without moves: %v", err)
+		return
+	}
+
+	if len(gamesToDelete) == 0 {
+		return
+	}
+
+	// Удаляем игры без ходов
+	result := w.db.WithContext(ctx).
+		Where(whereClause,
+			models.GameStatusActive, cutoffTime).
+		Delete(&models.Game{})
+
+	if result.Error != nil {
+		log.Printf("[Watchdog] Failed to delete active games without moves: %v", result.Error)
+		return
+	}
+
+	log.Printf("[Watchdog] Deleted %d active games without moves", result.RowsAffected)
+
+	// Broadcast отмены для каждой удаленной игры
+	for _, game := range gamesToDelete {
+		w.wsManager.Broadcast(game.ID, map[string]interface{}{
+			"type":    "game_cancelled",
+			"game_id": game.ID.String(),
+			"reason":  "no_moves_timeout",
 		})
 	}
 }

@@ -10,6 +10,18 @@
       this.listeners = new Map(); // element -> Set<{type, handler, options}>
     }
 
+    _optionsEqual(a, b) {
+      // options может быть boolean или объект.
+      // Для объектов сравниваем по ссылке (как работает removeEventListener).
+      if (a === b) return true;
+      const aIsBool = typeof a === 'boolean';
+      const bIsBool = typeof b === 'boolean';
+      if (aIsBool || bIsBool) {
+        return !!a === !!b;
+      }
+      return false;
+    }
+
     /**
      * Добавляет event listener с автоматическим отслеживанием
      * @param {HTMLElement|Window|Document} element - Элемент
@@ -32,7 +44,8 @@
 
       // Возвращаем функцию для удаления только этого listener
       return () => {
-        this.remove(element, type, handler, options);
+        // Важно: удаляем именно тот listenerInfo, который добавили (объекты в Set сравниваются по ссылке)
+        this.remove(element, type, handler, options, listenerInfo);
       };
     }
 
@@ -43,19 +56,32 @@
      * @param {Function} handler - Обработчик
      * @param {Object|boolean} [options] - Опции removeEventListener
      */
-    remove(element, type, handler, options = false) {
+    remove(element, type, handler, options = false, _listenerInfoRef = null) {
       if (!element || !this.listeners.has(element)) return;
 
       const elementListeners = this.listeners.get(element);
-      const listenerInfo = { type, handler, options };
 
-      if (elementListeners.has(listenerInfo)) {
-        element.removeEventListener(type, handler, options);
-        elementListeners.delete(listenerInfo);
-
-        if (elementListeners.size === 0) {
-          this.listeners.delete(element);
+      // Быстрый путь: если нам передали ссылку на listenerInfo (из add()), удаляем по ссылке.
+      if (_listenerInfoRef && elementListeners.has(_listenerInfoRef)) {
+        element.removeEventListener(_listenerInfoRef.type, _listenerInfoRef.handler, _listenerInfoRef.options);
+        elementListeners.delete(_listenerInfoRef);
+      } else {
+        // Медленный путь: ищем совпадение по полям (type/handler/options).
+        let found = null;
+        elementListeners.forEach((info) => {
+          if (found) return;
+          if (info.type === type && info.handler === handler && this._optionsEqual(info.options, options)) {
+            found = info;
+          }
+        });
+        if (found) {
+          element.removeEventListener(found.type, found.handler, found.options);
+          elementListeners.delete(found);
         }
+      }
+
+      if (elementListeners.size === 0) {
+        this.listeners.delete(element);
       }
     }
 
@@ -139,8 +165,16 @@
     return new EventListenerManager();
   }
 
-  // Export
-  window.EventListenerUtils = {
+  // Создаем неймспейс App если его еще нет
+  if (!window.App) {
+    window.App = {};
+  }
+  if (!window.App.Events) {
+    window.App.Events = {};
+  }
+
+  // Export в новый неймспейс
+  window.App.Events = {
     createManager,
     // Методы для работы с глобальным менеджером
     add: (element, type, handler, options) => globalManager.add(element, type, handler, options),
@@ -150,4 +184,7 @@
     clear: () => globalManager.clear(),
     size: () => globalManager.size(),
   };
+
+  // Для обратной совместимости: сохраняем старый экспорт
+  window.EventListenerUtils = window.App.Events;
 })();

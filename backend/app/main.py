@@ -191,6 +191,15 @@ def serve_profile_page_with_username(username: str, request: Request):
     return _serve_file(profile_file, request)
 
 
+@app.get("/daily")
+def serve_daily_page(request: Request):
+    """Serve daily puzzle page."""
+    daily_file = WEB_DIR / "daily.html"
+    if not daily_file.is_file():
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    return _serve_file(daily_file, request)
+
+
 @app.get("/favicon.ico")
 def serve_favicon_ico():
     """Serve favicon.ico - для Яндекс Вебмастера должен быть настоящий ICO файл"""

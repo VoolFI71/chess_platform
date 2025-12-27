@@ -216,6 +216,32 @@ html.dark .spaced-header {
     gap: 2rem;
     width: 100%;
     min-width: 0;
+    position: relative;
+}
+
+/* Центрирование навигации независимо от размера левой и правой частей */
+/* Применяется только на десктопе, где навигация видна */
+@media (min-width: 1025px) {
+    .header-content .nav,
+    .spaced-header .header-content .nav {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1;
+    }
+
+    /* Обеспечиваем, что логотип и header-actions не перекрывают навигацию */
+    .header-content .logo,
+    .spaced-header .header-content .logo {
+        position: relative;
+        z-index: 2;
+    }
+
+    .header-content .header-actions,
+    .spaced-header .header-content .header-actions {
+        position: relative;
+        z-index: 2;
+    }
 }
 
 /* Spaced Header Specific Elements */

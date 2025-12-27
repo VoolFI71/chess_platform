@@ -29,6 +29,12 @@
       return;
     }
 
+    // Проверяем наличие WebSocketUtils
+    if (!window.WebSocketUtils || typeof window.WebSocketUtils.createWebSocketUrl !== 'function') {
+      console.warn('WebSocketUtils не загружен, уведомления недоступны');
+      return;
+    }
+
     // Отключаемся от предыдущего подключения, если есть
     if (wsConnection) {
       disconnect();
@@ -40,6 +46,11 @@
     }
 
     const url = window.WebSocketUtils.createWebSocketUrl('/ws/notifications', { token });
+
+    if (!window.WebSocketUtils.createWebSocketConnection) {
+      console.warn('createWebSocketConnection не доступен');
+      return;
+    }
 
     wsConnection = window.WebSocketUtils.createWebSocketConnection({
       url,

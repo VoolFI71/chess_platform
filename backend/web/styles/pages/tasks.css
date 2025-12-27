@@ -159,6 +159,263 @@ body.dark .tasks-subtitle {
     display: none;
 }
 
+/* ===== TASKS MODES INFO SECTION ===== */
+.tasks-modes-info-section {
+    padding: 4rem 0;
+    margin-top: 4rem;
+    background: linear-gradient(180deg, transparent 0%, rgba(124, 58, 237, 0.02) 100%);
+}
+
+.tasks-modes-info-section .section-title {
+    text-align: center;
+    font-size: clamp(1.75rem, 4vw + 0.5rem, 2.5rem);
+    margin-bottom: 1rem;
+    color: var(--foreground);
+}
+
+body.dark .tasks-modes-info-section .section-title {
+    color: #ffffff;
+}
+
+.tasks-modes-info-section .section-description {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 3rem;
+    color: var(--muted-foreground);
+    font-size: 1.125rem;
+    line-height: 1.6;
+}
+
+body.dark .tasks-modes-info-section .section-description {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.tasks-modes-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.task-mode-info-card {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    border: 2px solid rgba(148, 163, 184, 0.2);
+    transition: all 0.3s ease;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+body.dark .task-mode-info-card {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.task-mode-info-card:hover {
+    border-color: rgba(124, 58, 237, 0.3);
+    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.15);
+    transform: translateY(-4px);
+}
+
+.task-mode-info-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(59, 130, 246, 0.1));
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--primary);
+}
+
+.task-mode-info-card h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+body.dark .task-mode-info-card h3 {
+    color: #ffffff;
+}
+
+.task-mode-info-card p {
+    color: var(--muted-foreground);
+    line-height: 1.7;
+    font-size: 1rem;
+    margin: 0;
+}
+
+body.dark .task-mode-info-card p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* ===== TASKS FAQ SECTION ===== */
+.tasks-faq-section {
+    padding: 4rem 0;
+    margin-top: 4rem;
+}
+
+.tasks-faq-section .section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.tasks-faq-section .section-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(59, 130, 246, 0.1));
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.tasks-faq-section .section-title {
+    text-align: center;
+    font-size: clamp(1.75rem, 4vw + 0.5rem, 2.5rem);
+    margin-bottom: 1rem;
+    color: var(--foreground);
+}
+
+body.dark .tasks-faq-section .section-title {
+    color: #ffffff;
+}
+
+.tasks-faq-section .section-description {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto;
+    color: var(--muted-foreground);
+    font-size: 1.125rem;
+    line-height: 1.6;
+}
+
+body.dark .tasks-faq-section .section-description {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.tasks-faq-section .faq-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.tasks-faq-section .faq-item {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    border-radius: 1.25rem;
+    margin-bottom: 1rem;
+    border: 2px solid rgba(124, 58, 237, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+body.dark .tasks-faq-section .faq-item {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.tasks-faq-section .faq-item:hover {
+    border-color: rgba(124, 58, 237, 0.3);
+    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.15);
+}
+
+.tasks-faq-section .faq-question {
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--foreground);
+    transition: all 0.3s ease;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+}
+
+body.dark .tasks-faq-section .faq-question {
+    color: #ffffff;
+}
+
+.tasks-faq-section .faq-question:hover {
+    color: var(--primary);
+}
+
+.tasks-faq-section .faq-question i {
+    font-size: 1.25rem;
+    color: var(--primary);
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+    margin-left: 1rem;
+}
+
+.tasks-faq-section .faq-item.active .faq-question i {
+    transform: rotate(180deg);
+}
+
+.tasks-faq-section .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 2rem;
+}
+
+.tasks-faq-section .faq-item.active .faq-answer {
+    max-height: 500px;
+    padding: 0 2rem 1.5rem;
+}
+
+.tasks-faq-section .faq-answer p {
+    color: var(--muted-foreground);
+    line-height: 1.7;
+    margin: 0;
+}
+
+body.dark .tasks-faq-section .faq-answer p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 768px) {
+    .tasks-modes-info-section,
+    .tasks-faq-section {
+        padding: 3rem 0;
+        margin-top: 3rem;
+    }
+    
+    .tasks-modes-info-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .task-mode-info-card {
+        padding: 2rem;
+    }
+    
+    .tasks-faq-section .faq-item {
+        padding: 0;
+    }
+    
+    .tasks-faq-section .faq-question {
+        padding: 1.25rem 1.5rem;
+        font-size: 1rem;
+    }
+}
+
 .mode-card {
     position: relative;
     text-align: left;
@@ -428,7 +685,7 @@ body.dark .mode-card.active .mode-icon {
     color: var(--foreground);
 }
 
-body.dark .mode-card:not(.active) .mode-name {
+body.dark .mode-card:not(.active):not([data-mode="survival"]) .mode-name {
     color: var(--foreground);
 }
 

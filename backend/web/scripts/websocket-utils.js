@@ -180,9 +180,20 @@
     return url;
   }
 
-  // Export
-  window.WebSocketUtils = {
+  // Создаем неймспейс App если его еще нет
+  if (!window.App) {
+    window.App = {};
+  }
+  if (!window.App.WS) {
+    window.App.WS = {};
+  }
+
+  // Export в новый неймспейс
+  window.App.WS = {
     createWebSocketConnection,
     createWebSocketUrl,
   };
+
+  // Для обратной совместимости: сохраняем старый экспорт
+  window.WebSocketUtils = window.App.WS;
 })();

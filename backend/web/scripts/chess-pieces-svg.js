@@ -144,6 +144,21 @@ function getPieceSVG(piece) {
 
 // Экспорт для использования в других скриптах
 if (typeof window !== 'undefined') {
+  // Создаем неймспейс App.Chess если его еще нет
+  if (!window.App) {
+    window.App = {};
+  }
+  if (!window.App.Chess) {
+    window.App.Chess = {};
+  }
+
+  // Export в новый неймспейс
+  window.App.Chess.Pieces = {
+    ChessPiecesSVG,
+    getPieceSVG,
+  };
+
+  // Для обратной совместимости: сохраняем старые экспорты
   window.ChessPiecesSVG = ChessPiecesSVG;
   window.getPieceSVG = getPieceSVG;
 }

@@ -73,38 +73,18 @@
     return true;
   };
 
+  // Используем единую apiFetch из auth.js с кастомным buildUrl
   async function authedFetch(path, options = {}) {
     if (window.apiFetch && typeof window.apiFetch === 'function') {
-      return window.apiFetch(buildUrl(path), options);
+      return window.apiFetch(path, { ...options, buildUrl });
     }
-    
+    // Fallback если apiFetch не загружен (не должен происходить в нормальных условиях)
+    console.warn('apiFetch not available, using direct fetch');
     const headers = new Headers(options.headers || {});
     const token = getAccessToken();
     if (token) headers.set('Authorization', `Bearer ${token}`);
     if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-    let response = await fetch(buildUrl(path), { ...options, headers });
-    if (response.status !== 401 && response.status !== 403) return response;
-
-    const rt = getRefreshToken();
-    if (!rt) return response;
-    try {
-      const refreshRes = await fetch(buildUrl('/api/auth/refresh'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: rt }),
-      });
-      if (!refreshRes.ok) return response;
-      const data = await refreshRes.json();
-      setTokens(data.access_token, data.refresh_token);
-      const retryHeaders = new Headers(options.headers || {});
-      const newToken = getAccessToken();
-      if (newToken) retryHeaders.set('Authorization', `Bearer ${newToken}`);
-      if (options.body && !retryHeaders.has('Content-Type')) retryHeaders.set('Content-Type', 'application/json');
-      response = await fetch(buildUrl(path), { ...options, headers: retryHeaders });
-    } catch {
-      return response;
-    }
-    return response;
+    return fetch(buildUrl(path), { ...options, headers });
   }
 
   const getSelectedGameType = () => {

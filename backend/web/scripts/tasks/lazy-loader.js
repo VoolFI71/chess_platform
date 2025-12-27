@@ -55,6 +55,7 @@
    */
   window.loadBoardModules = async function() {
     const modules = [
+      '/scripts/lru-cache.js', // LRU кэш для оптимизации генерации ходов
       '/scripts/chess-move-utils.js',
       '/scripts/chess-board-core.js',
       '/scripts/chess-pieces-svg.js',

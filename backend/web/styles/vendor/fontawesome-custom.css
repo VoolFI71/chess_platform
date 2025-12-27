@@ -63,6 +63,7 @@
 .fa-check-double::before { content: "\f560"; }
 .fa-chess::before { content: "\f439"; }
 .fa-chess-board::before { content: "\f43c"; }
+.fa-chess-clock::before { content: "\f43d"; }
 .fa-chess-king::before { content: "\f43f"; }
 .fa-chess-knight::before { content: "\f441"; }
 .fa-chess-pawn::before { content: "\f443"; }
@@ -89,6 +90,7 @@
 .fa-gamepad::before { content: "\f11b"; }
 .fa-gem::before { content: "\f3a5"; }
 .fa-graduation-cap::before { content: "\f19d"; }
+.fa-user-graduate::before { content: "\f501"; }
 .fa-handshake::before { content: "\f2b5"; }
 .fa-headset::before { content: "\f590"; }
 .fa-heartbeat::before { content: "\f21e"; }

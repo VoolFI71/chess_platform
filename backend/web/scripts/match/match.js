@@ -1586,7 +1586,12 @@
 
   function stopGamePolling() {
     if (state.gamePollingInterval) {
-      clearInterval(state.gamePollingInterval);
+      // Используем PageLifecycle если доступен
+      if (window.App?.Utils?.PageLifecycle) {
+        window.App.Utils.PageLifecycle.clearInterval(state.gamePollingInterval);
+      } else {
+        clearInterval(state.gamePollingInterval);
+      }
       setState({ gamePollingInterval: null }, 'stopGamePolling');
     }
   }
@@ -1642,13 +1647,17 @@
   function startGamePolling() {
     stopGamePolling();
     // Poll каждые 2 секунды, если игра еще в статусе CREATED и оба игрока не присоединились
-    const interval = setInterval(() => {
+    const callback = () => {
       if (!state.game || state.game.status !== 'CREATED' || state.game.status === 'ACTIVE' || haveBothPlayersJoined()) {
         stopGamePolling();
         return;
       }
       pollGameState();
-    }, 2000);
+    };
+    // Используем PageLifecycle если доступен для автоматической очистки
+    const interval = window.App?.Utils?.PageLifecycle
+      ? window.App.Utils.PageLifecycle.setInterval(callback, 2000)
+      : setInterval(callback, 2000);
     setState({ gamePollingInterval: interval }, 'startGamePolling');
   }
 
@@ -1665,60 +1674,98 @@
       setState({ wsRetryCount: 0 }, 'connectWebSocket:initial');
     }
     clearWsReconnectTimer();
-    if (state.ws) {
-      state.ws.onopen = null;
-      state.ws.onclose = null;
-      state.ws.onmessage = null;
-      state.ws.close();
-      setState({ ws: null }, 'connectWebSocket:cleanup');
+    
+    // Отключаем предыдущее подключение если есть
+    if (state.wsConnection) {
+      state.wsConnection.disconnect();
+      setState({ wsConnection: null, ws: null }, 'connectWebSocket:cleanup');
     }
+    
     updateWsIndicator('connecting');
     const token = getAccessToken();
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     
-    // Формируем URL с токеном или session_id
-    let url = `${protocol}://${window.location.host}/ws/games/${gameId}`;
-    const params = new URLSearchParams();
-    
+    // Формируем параметры для WebSocket URL
+    const params = {};
     if (token) {
-      params.append('token', token);
+      params.token = token;
     } else if (typeof window.getSessionId === 'function') {
       const sessionId = window.getSessionId();
       if (sessionId) {
-        params.append('session_id', sessionId);
+        params.session_id = sessionId;
       }
     }
     
-    if (params.toString()) {
-      url += '?' + params.toString();
+    // Используем WebSocketUtils для создания подключения
+    if (!window.WebSocketUtils || !window.WebSocketUtils.createWebSocketConnection) {
+      console.error('WebSocketUtils not available, falling back to manual WebSocket');
+      // Fallback на старую реализацию если WebSocketUtils не загружен
+      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      let url = `${protocol}://${window.location.host}/ws/games/${gameId}`;
+      const urlParams = new URLSearchParams();
+      if (token) urlParams.append('token', token);
+      else if (typeof window.getSessionId === 'function') {
+        const sessionId = window.getSessionId();
+        if (sessionId) urlParams.append('session_id', sessionId);
+      }
+      if (urlParams.toString()) url += '?' + urlParams.toString();
+      try {
+        const ws = new WebSocket(url);
+        setState({ ws }, 'connectWebSocket:init');
+        ws.onopen = () => {
+          updateWsIndicator('online');
+          resetWsRetryState();
+        };
+        ws.onclose = (event) => {
+          updateWsIndicator('offline');
+          handleWsClose(event);
+        };
+        ws.onerror = () => {
+          updateWsIndicator('offline');
+        };
+        ws.onmessage = (event) => {
+          try {
+            const payload = JSON.parse(event.data);
+            handleWsPayload(payload);
+          } catch (err) {
+            // Ignore parse errors
+          }
+        };
+      } catch (err) {
+        updateWsIndicator('offline');
+      }
+      return;
     }
-    try {
-      const ws = new WebSocket(url);
-      setState({ ws }, 'connectWebSocket:init');
-      ws.onopen = () => {
+    
+    // Используем WebSocketUtils для создания подключения
+    // Отключаем автоматическое переподключение, так как у нас есть своя логика с refresh токена
+    const wsUrl = window.WebSocketUtils.createWebSocketUrl(`/ws/games/${gameId}`, params);
+    
+    const wsConnection = window.WebSocketUtils.createWebSocketConnection({
+      url: wsUrl,
+      onMessage: (message) => {
+        handleWsPayload(message);
+      },
+      onConnect: (ws) => {
         updateWsIndicator('online');
         resetWsRetryState();
-      };
-      ws.onclose = (event) => {
+        setState({ ws, wsConnection }, 'connectWebSocket:connected');
+      },
+      onDisconnect: (event) => {
         updateWsIndicator('offline');
         handleWsClose(event);
-      };
-      ws.onerror = (error) => {
-        wsLog('error', 'WebSocket error', { error, gameId });
-        updateWsIndicator('offline');
-      };
-      ws.onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data);
-          handleWsPayload(payload);
-        } catch (err) {
-          wsLog('error', 'WebSocket parse error', { error: err, rawData: event.data });
+      },
+      onError: (error, type) => {
+        if (type === 'connection') {
+          updateWsIndicator('offline');
         }
-      };
-    } catch (err) {
-      wsLog('error', 'WebSocket connection error', { error: err, gameId, url });
-      updateWsIndicator('offline');
-    }
+      },
+      // Отключаем автоматическое переподключение - используем свою логику через scheduleWsReconnect
+      maxReconnectAttempts: 0,
+      baseDelay: 1000,
+      maxDelay: 30000,
+    });
+    
+    setState({ wsConnection }, 'connectWebSocket:init');
   }
 
   function handleWsPayload(payload) {
@@ -1963,7 +2010,12 @@
   }
 
   function attemptMove(baseUci, promotion) {
-    if (!state.game || !state.ws || state.ws.readyState !== WebSocket.OPEN) {
+    // Проверяем подключение через WebSocketUtils или прямой WebSocket
+    const isConnected = state.wsConnection 
+      ? state.wsConnection.isConnected()
+      : (state.ws && state.ws.readyState === WebSocket.OPEN);
+    
+    if (!state.game || !isConnected) {
       showToast('Вебсокет не подключен', 'error');
       return false;
     }
@@ -2016,7 +2068,21 @@
       client_move_id: `web-${Date.now()}`,
     };
     
-    state.ws.send(JSON.stringify(payload));
+    // Отправляем через WebSocketUtils или прямой WebSocket
+    if (state.wsConnection) {
+      try {
+        state.wsConnection.send(payload);
+      } catch (err) {
+        showToast('Не удалось отправить ход', 'error');
+        return false;
+      }
+    } else if (state.ws) {
+      state.ws.send(JSON.stringify(payload));
+    } else {
+      showToast('Вебсокет не подключен', 'error');
+      return false;
+    }
+    
     setState({ pendingMove: true }, 'attemptMove:pending');
     resetSelection();
     renderBoard();

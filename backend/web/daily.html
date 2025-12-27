@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="120x120" href="/favicon.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/favicon.png">
+    <title>Задача дня - Ежедневная шахматная задача | ChessMint</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Ежедневная шахматная задача на ChessMint. Одна сложная задача каждый день для всех пользователей. Рейтинг задач: 2700-3000. Решайте задачу дня и улучшайте свои навыки!">
+    <meta name="keywords" content="задача дня, ежедневная задача, шахматная задача дня, daily puzzle, шахматы задача дня">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://chessmint.ru/daily">
+    
+    <!-- Hreflang -->
+    <link rel="alternate" hreflang="ru" href="https://chessmint.ru/daily">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chessmint.ru/daily">
+    <meta property="og:title" content="Задача дня - Ежедневная шахматная задача | ChessMint">
+    <meta property="og:description" content="Ежедневная шахматная задача на ChessMint. Одна сложная задача каждый день для всех пользователей. Рейтинг задач: 2700-3000.">
+    <meta property="og:image" content="https://chessmint.ru/favicon.svg">
+    <meta property="og:image:width" content="120">
+    <meta property="og:image:height" content="120">
+    <meta property="og:image:alt" content="ChessMint - Ежедневная шахматная задача">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:site_name" content="ChessMint">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://chessmint.ru/daily">
+    <meta name="twitter:title" content="Задача дня - Ежедневная шахматная задача | ChessMint">
+    <meta name="twitter:description" content="Ежедневная шахматная задача на ChessMint. Одна сложная задача каждый день для всех пользователей.">
+    <meta name="twitter:image" content="https://chessmint.ru/favicon.svg">
+    <meta name="twitter:image:alt" content="ChessMint - Ежедневная шахматная задача">
+    <meta name="twitter:site" content="@chessmint">
+    
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Задача дня ChessMint",
+      "description": "Ежедневная шахматная задача для тренировки тактики. Одна сложная задача каждый день для всех пользователей.",
+      "url": "https://chessmint.ru/daily",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "RUB"
+      }
+    }
+    </script>
+    
+    <!-- Structured Data - BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Главная",
+          "item": "https://chessmint.ru/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Задача дня",
+          "item": "https://chessmint.ru/daily"
+        }
+      ]
+    }
+    </script>
+    
+    <!-- Structured Data - Game (Ежедневная задача) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Game",
+      "name": "Ежедневная шахматная задача",
+      "description": "Одна сложная шахматная задача каждый день для всех пользователей. Рейтинг задач: 2700-3000.",
+      "url": "https://chessmint.ru/daily",
+      "applicationCategory": "EducationalGame",
+      "gameItem": {
+        "@type": "Thing",
+        "name": "Ежедневная задача",
+        "description": "Сложная тактическая задача с рейтингом 2700-3000, обновляемая каждый день"
+      }
+    }
+    </script>
+    
+    <!-- Загрузка темы до отрисовки страницы -->
+    <script>
+      (function() {
+        try {
+          const saved = localStorage.getItem('theme');
+          if (saved === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.body.classList.add('dark');
+          }
+        } catch {}
+      })();
+    </script>
+    
+    <!-- Fonts -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"></noscript>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
+    
+    <!-- Common Styles -->
+    <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
+    <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/notifications.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/chess-board.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/mini-footer.css?v=2.0">
+    <link rel="stylesheet" href="/styles/pages/daily.css?v=2.0">
+</head>
+<body>
+    <div class="chess-pattern-bg"></div>
+
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo" aria-label="ChessMint - Главная страница">
+                    <div>
+                        <div class="gradient-text">ChessMint</div>
+                    </div>
+                </a>
+                <nav class="nav">
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                </nav>
+                <div class="header-actions">
+                    <div id="userActions">
+                        <div id="gamesUserInfo">
+                            <span></span>
+                        </div>
+                    </div>
+                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()" aria-label="Переключить тему">
+                        <i class="fas fa-sun" id="themeIcon" aria-hidden="true"></i>
+                    </button>
+                    <div id="authButtons">
+                        <a href="/login" class="auth-icon-btn" id="gamesAuthBtn" title="Войти / Регистрация" aria-label="Войти или зарегистрироваться">
+                            <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Открыть меню" aria-expanded="false">
+                        <i class="fas fa-bars" id="menuIcon" aria-hidden="true"></i>
+                    </button>
+                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти" aria-label="Выйти из аккаунта">
+                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu" id="mobileMenu">
+                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div>
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+                        <i class="fas fa-chess"></i>
+                        <span>Играть</span>
+                    </button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+                        <i class="fas fa-puzzle-piece"></i>
+                        <span>Задачи</span>
+                    </button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+                        <i class="fas fa-trophy"></i>
+                        <span>Рейтинг</span>
+                    </button>
+                    <hr>
+                    <div id="mobileAuthButtons">
+                        <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Войти / Регистрация</span>
+                        </a>
+                    </div>
+                    <div id="mobileUserActions">
+                        <a href="/profile" class="mobile-user-link" onclick="closeMobileMenu();">
+                            <i class="fas fa-user"></i>
+                            <span>Профиль</span>
+                        </a>
+                        <button class="mobile-logout-link" id="gamesLogoutBtnMobile" onclick="closeMobileMenu();">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Выйти</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="daily-container">
+        <div class="container">
+            <div class="daily-content">
+                <header class="daily-header">
+                    <h1 class="daily-title">
+                        <i class="fas fa-calendar-day" aria-hidden="true"></i>
+                        Задача дня
+                    </h1>
+                    <p class="daily-description">
+                        Одна сложная задача каждый день для всех пользователей. Рейтинг задач: 2700-3000.
+                    </p>
+                </header>
+
+                <section class="daily-puzzle-section" id="dailyPuzzleSection" aria-label="Ежедневная шахматная задача">
+                    <div class="puzzle-loading" id="puzzleLoading">
+                        <div class="loading-spinner"></div>
+                        <p>Загрузка задачи дня...</p>
+                    </div>
+                    
+                    <div class="puzzle-content hidden" id="puzzleContent">
+                        <aside class="daily-stats" id="dailyStats" aria-label="Статистика решений задачи дня">
+                            <div class="stats-item">
+                                <span class="stats-label">Решено сегодня:</span>
+                                <span class="stats-value" id="todaySolvedCount">0</span>
+                            </div>
+                        </aside>
+                        <div class="board-wrapper" role="img" aria-label="Шахматная доска с текущей позицией задачи дня">
+                            <div id="dailyBoard" class="chess-board" aria-label="Интерактивная шахматная доска"></div>
+                        </div>
+                        <aside class="daily-info" id="dailyInfo" aria-label="Информация о задаче дня">
+                            <div class="info-item">
+                                <span class="info-label">Дата:</span>
+                                <span class="info-value" id="dailyDate" aria-live="polite">Загрузка...</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Рейтинг:</span>
+                                <span class="info-value" id="dailyRating" aria-live="polite">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">До следующей задачи:</span>
+                                <span class="info-value" id="nextPuzzleCountdown" aria-live="polite">-</span>
+                            </div>
+                        </aside>
+                        <section class="solution-section hidden" id="solutionSection" aria-label="Решение задачи">
+                            <h2>Решение:</h2>
+                            <div class="solution-moves" id="solutionMoves" role="text" aria-label="Последовательность ходов решения"></div>
+                        </section>
+                    </div>
+                    
+                    <div class="puzzle-error hidden" id="puzzleError" role="alert" aria-live="assertive">
+                        <p>Не удалось загрузить задачу дня. Попробуйте обновить страницу.</p>
+                        <button class="btn btn-primary" onclick="loadDailyPuzzle()" aria-label="Обновить задачу дня">Обновить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mini-footer">
+        <div class="container">
+            <div class="mini-footer-content">
+                <ul class="mini-footer-links">
+                    <li><a href="/privacy">Политика конфиденциальности</a></li>
+                    <li><a href="/terms">Пользовательское соглашение</a></li>
+                </ul>
+                <p class="mini-footer-copyright">&copy; <span data-current-year>2025</span> ChessMint. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+    <script>
+        // Обновление года в футере
+        document.addEventListener('DOMContentLoaded', function() {
+            const yearSpan = document.querySelector('.mini-footer [data-current-year]');
+            if (yearSpan) {
+                yearSpan.textContent = new Date().getFullYear();
+            }
+        });
+    </script>
+
+    <!-- Common Auth Script (must load first) -->
+    <script src="/scripts/page-lifecycle.js"></script>
+    <script src="/scripts/auth.js" defer></script>
+    <script src="/scripts/mobile-menu.js"></script>
+    <script src="/scripts/websocket-utils.js" defer></script>
+    <script src="/scripts/notifications.js" defer></script>
+    <!-- Chess Pieces SVG -->
+    <script src="/scripts/chess-pieces-svg.js" defer></script>
+    <!-- Chess Move Utils -->
+    <script src="/scripts/lru-cache.js"></script>
+    <script src="/scripts/chess-move-utils.js" defer></script>
+    <!-- Chess Board Core -->
+    <script src="/scripts/chess-board-core.js" defer></script>
+    <!-- Daily Puzzle Script -->
+    <script src="/scripts/daily.js" defer></script>
+    <!-- Header Mobile Control -->
+    <script src="/scripts/header-mobile-control.js"></script>
+</body>
+</html>
+

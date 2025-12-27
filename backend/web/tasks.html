@@ -324,26 +324,9 @@
                 <p class="tasks-subtitle">Решайте шахматные задачи онлайн бесплатно без регистрации. Более 1.000.000 тактических задач. Режимы выживания, рейтинга и марафона. Шахматные задачи для все.</p>
             </div>
             
-            <!-- SEO: Статические описания режимов для поисковых роботов -->
-            <div class="modes-seo-content sr-only" aria-hidden="true">
-                <article>
-                    <h2>Марафон - Решать шахматные задачи онлайн бесплатно</h2>
-                    <p>Решайте шахматные задачи онлайн бесплатно без регистрации в режиме марафон. Задачи начинаются с рейтинга ~1000 и быстро усложняются по мере решения. Мат в 1 ход, мат в 2 хода, мат в 3 хода, тактические комбинации. Идеально для начинающих.</p>
-                </article>
-                <article>
-                    <h2>Выживание - Шахматные задачи различной сложности</h2>
-                    <p>Решайте шахматные задачи онлайн бесплатно в режиме выживания. Случайные задачи различной сложности: мат в 1 ход, мат в 2 хода, мат в 3 хода, тактические комбинации. Идеально для свободной практики и улучшения тактики.</p>
-                </article>
-                <article>
-                    <h2>На рейтинг - Шахматные задачи по вашему уровню</h2>
-                    <p>Решайте шахматные задачи онлайн бесплатно на рейтинг. Подбор задач по вашему уровню: мат в 1 ход, мат в 2 хода, мат в 3 хода, тактические комбинации. Решайте с сохранением рейтинга и статистики. Система автоматически подбирает задачи вашего уровня.</p>
-                </article>
-            </div>
-            
             <div class="mode-grid" id="modeGrid" role="group" aria-label="Режимы решения задач"></div>
 
             <section class="puzzle-section hidden" id="puzzleSection" aria-labelledby="puzzle-section-heading">
-                <h2 id="puzzle-section-heading" class="sr-only">Решение шахматной задачи</h2>
                 <div class="puzzle-layout">
                     <!-- Левая панель с информацией о задаче -->
                     <aside class="puzzle-left-sidebar" id="puzzleLeftSidebar" aria-label="Информация о задаче">
@@ -490,37 +473,130 @@
                     </aside>
                 </div>
             </section>
-            <!-- FAQ Section - скрыто для пользователей, видно для SEO -->
-            <section class="tasks-faq-section sr-only" aria-labelledby="tasks-faq-heading" aria-hidden="true">
+
+            <!-- Информация о режимах решения задач -->
+            <section class="tasks-modes-info-section" aria-labelledby="tasks-modes-info-heading">
                 <div class="container">
-                    <h2 id="tasks-faq-heading" class="section-title">
-                        Часто задаваемые вопросы о решении шахматных задач онлайн
+                    <h2 id="tasks-modes-info-heading" class="section-title">
+                        <i class="fas fa-info-circle"></i>
+                        Режимы решения шахматных задач
                     </h2>
-                    <div class="faq-container">
-                        <article class="faq-item">
-                            <h3>Можно ли решать шахматные задачи онлайн бесплатно без регистрации?</h3>
-                            <p>Да! На ChessMint вы можете решать шахматные задачи онлайн бесплатно без регистрации в режиме марафон. Более 1.000.000 задач доступны бесплатно. Для сохранения прогресса и доступа к режимам выживания и рейтинга потребуется регистрация.</p>
+                    <p class="section-description">
+                        Выберите подходящий режим для тренировки тактики и улучшения навыков
+                    </p>
+                    <div class="tasks-modes-info-grid">
+                        <article class="task-mode-info-card">
+                            <div class="task-mode-info-icon">
+                                <i class="fas fa-running"></i>
+                            </div>
+                            <h3>Марафон - Решать шахматные задачи онлайн бесплатно</h3>
+                            <p>Решайте шахматные задачи онлайн бесплатно без регистрации в режиме марафон. Задачи начинаются с рейтинга ~1000 и быстро усложняются по мере решения. Мат в 1 ход, мат в 2 хода, мат в 3 хода, тактические комбинации. Идеально для начинающих.</p>
                         </article>
-                        <article class="faq-item">
-                            <h3>Какие типы шахматных задач доступны?</h3>
-                            <p>Доступны все типы тактических задач: мат в 1 ход, мат в 2 хода, мат в 3 хода, тактические комбинации, дебютные задачи. Система автоматически подбирает задачи под ваш уровень. Решайте задачи по шахматам онлайн бесплатно.</p>
+                        <article class="task-mode-info-card">
+                            <div class="task-mode-info-icon">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <h3>Выживание - Шахматные задачи различной сложности</h3>
+                            <p>Решайте шахматные задачи онлайн бесплатно в режиме выживания. Случайные задачи различной сложности: мат в 1 ход, мат в 2 хода, мат в 3 хода, тактические комбинации. Идеально для свободной практики и улучшения тактики.</p>
                         </article>
-                        <article class="faq-item">
-                            <h3>Как работают режимы решения задач?</h3>
-                            <p>Доступны три режима: Марафон (бесплатно без регистрации, задачи усложняются), Выживание (серия правильных решений), На рейтинг (рейтинговая система ELO). Каждый режим подбирает задачи вашего уровня. Решайте шахматные задачи онлайн бесплатно.</p>
+                        <article class="task-mode-info-card">
+                            <div class="task-mode-info-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h3>На рейтинг - Шахматные задачи по вашему уровню</h3>
+                            <p>Решайте шахматные задачи онлайн бесплатно на рейтинг. Подбор задач по вашему уровню: мат в 1 ход, мат в 2 хода, мат в 3 хода, тактические комбинации. Решайте с сохранением рейтинга и статистики. Система автоматически подбирает задачи вашего уровня.</p>
                         </article>
-                        <article class="faq-item">
-                            <h3>Подходят ли задачи для начинающих?</h3>
-                            <p>Да! Система автоматически подбирает задачи под ваш уровень. Начните с простых задач на мат в 1 ход, затем переходите к более сложным. Шахматные задачи для начинающих доступны бесплатно без регистрации в режиме марафон.</p>
-                        </article>
-                        <article class="faq-item">
-                            <h3>Как улучшить навыки решения задач?</h3>
-                            <p>Регулярно решайте шахматные задачи онлайн бесплатно. Начните с простых задач (мат в 1 ход), затем переходите к более сложным (мат в 2-3 хода, тактические комбинации). Система отслеживает ваш прогресс и подбирает задачи вашего уровня.</p>
-                        </article>
-                        <article class="faq-item">
-                            <h3>Сколько задач доступно?</h3>
-                            <p>Более 1.000.000 шахматных задач из реальных партий. Задачи включают мат в 1 ход, мат в 2 хода, мат в 3 хода, тактические комбинации, дебютные задачи. Все задачи доступны бесплатно. Решайте задачи по шахматам онлайн без ограничений.</p>
-                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ Section -->
+            <section class="tasks-faq-section" aria-labelledby="tasks-faq-heading">
+                <div class="container">
+                    <div class="section-header">
+                        <div class="section-badge">
+                            <i class="fas fa-question-circle" aria-hidden="true"></i> FAQ
+                        </div>
+                        <h2 id="tasks-faq-heading" class="section-title">
+                            Часто задаваемые вопросы о решении шахматных задач онлайн
+                        </h2>
+                        <p class="section-description">
+                            Ответы на популярные вопросы о платформе для решения шахматных задач
+                        </p>
+                    </div>
+                    <div class="faq-container" role="list">
+                        <div class="faq-item" role="listitem">
+                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                    aria-expanded="false" 
+                                    aria-controls="faq-tasks-1"
+                                    type="button">
+                                <span>Можно ли решать шахматные задачи онлайн бесплатно без регистрации?</span>
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            </button>
+                            <div class="faq-answer" id="faq-tasks-1" role="region">
+                                <p>Да! На ChessMint вы можете решать шахматные задачи онлайн бесплатно без регистрации в режиме марафон. Более 1.000.000 задач доступны бесплатно. Для сохранения прогресса и доступа к режимам выживания и рейтинга потребуется регистрация.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item" role="listitem">
+                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                    aria-expanded="false" 
+                                    aria-controls="faq-tasks-2"
+                                    type="button">
+                                <span>Какие типы шахматных задач доступны?</span>
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            </button>
+                            <div class="faq-answer" id="faq-tasks-2" role="region">
+                                <p>Доступны все типы тактических задач: мат в 1 ход, мат в 2 хода, мат в 3 хода, тактические комбинации, дебютные задачи. Система автоматически подбирает задачи под ваш уровень. Решайте задачи по шахматам онлайн бесплатно.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item" role="listitem">
+                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                    aria-expanded="false" 
+                                    aria-controls="faq-tasks-3"
+                                    type="button">
+                                <span>Как работают режимы решения задач?</span>
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            </button>
+                            <div class="faq-answer" id="faq-tasks-3" role="region">
+                                <p>Доступны три режима: Марафон (бесплатно без регистрации, задачи усложняются), Выживание (серия правильных решений), На рейтинг (рейтинговая система ELO). Каждый режим подбирает задачи вашего уровня. Решайте шахматные задачи онлайн бесплатно.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item" role="listitem">
+                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                    aria-expanded="false" 
+                                    aria-controls="faq-tasks-4"
+                                    type="button">
+                                <span>Подходят ли задачи для начинающих?</span>
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            </button>
+                            <div class="faq-answer" id="faq-tasks-4" role="region">
+                                <p>Да! Система автоматически подбирает задачи под ваш уровень. Начните с простых задач на мат в 1 ход, затем переходите к более сложным. Шахматные задачи для начинающих доступны бесплатно без регистрации в режиме марафон.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item" role="listitem">
+                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                    aria-expanded="false" 
+                                    aria-controls="faq-tasks-5"
+                                    type="button">
+                                <span>Как улучшить навыки решения задач?</span>
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            </button>
+                            <div class="faq-answer" id="faq-tasks-5" role="region">
+                                <p>Регулярно решайте шахматные задачи онлайн бесплатно. Начните с простых задач (мат в 1 ход), затем переходите к более сложным (мат в 2-3 хода, тактические комбинации). Система отслеживает ваш прогресс и подбирает задачи вашего уровня.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item" role="listitem">
+                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
+                                    aria-expanded="false" 
+                                    aria-controls="faq-tasks-6"
+                                    type="button">
+                                <span>Сколько задач доступно?</span>
+                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            </button>
+                            <div class="faq-answer" id="faq-tasks-6" role="region">
+                                <p>Более 1.000.000 шахматных задач из реальных партий. Задачи включают мат в 1 ход, мат в 2 хода, мат в 3 хода, тактические комбинации, дебютные задачи. Все задачи доступны бесплатно. Решайте задачи по шахматам онлайн без ограничений.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

@@ -14,7 +14,7 @@ from common import configure_observability, setup_logging
 
 from .config import get_settings
 from .database import get_db, sync_engine
-from .routers import attempts_router, importer_router, puzzles_router, stats_router
+from .routers import attempts_router, daily_solutions_router, importer_router, puzzles_router, stats_router
 
 setup_logging()
 settings = get_settings()
@@ -90,4 +90,5 @@ app.include_router(puzzles_router)
 app.include_router(attempts_router)
 app.include_router(stats_router)
 app.include_router(importer_router)
+app.include_router(daily_solutions_router)
 

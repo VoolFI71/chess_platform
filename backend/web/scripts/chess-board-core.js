@@ -9,6 +9,19 @@
   // Кеш DOM-элементов клеток (общий для всех модулей)
   const squareElementsCaches = new WeakMap(); // state -> Map<squareName, DOMElement>
 
+  // Кеш корневого DOM-элемента доски для состояния (чтобы не искать board через document.querySelector)
+  const boardElementsByState = new WeakMap(); // state -> HTMLElement
+
+  function setBoardElement(state, boardEl) {
+    if (!state || !boardEl) return;
+    boardElementsByState.set(state, boardEl);
+  }
+
+  function getBoardElement(state) {
+    if (!state) return null;
+    return boardElementsByState.get(state) || null;
+  }
+
   /**
    * Получить или создать кеш DOM-элементов для состояния
    */
@@ -55,6 +68,7 @@
    */
   function updateAvailableTargetsHighlight(state, targets, fen, utils) {
     const cache = getSquareElementsCache(state);
+    const stateBoardEl = getBoardElement(state);
     
     // Получаем текущие активные целевые квадраты из состояния
     const oldTargets = state.availableTargets || 
@@ -74,7 +88,7 @@
         } else {
           // Если элемент не найден в кеше, пытаемся найти через DOM
           // Это может произойти, если кеш был очищен, но DOM еще не обновлен
-          const boardEl = document.querySelector('[data-square="' + oldTarget + '"]')?.closest('.chess-board, .board-grid, #tasksBoard, #computerGameBoard, #boardGrid');
+          const boardEl = stateBoardEl;
           if (boardEl) {
             const squareEl = boardEl.querySelector(`[data-square="${oldTarget}"]`);
             if (squareEl) {
@@ -115,7 +129,7 @@
         
         // Если элемент не найден в кеше, пытаемся найти через DOM
         if (!targetEl) {
-          const boardEl = document.querySelector('[data-square="' + targetSquare + '"]')?.closest('.chess-board, .board-grid, #tasksBoard, #computerGameBoard, #boardGrid');
+          const boardEl = stateBoardEl;
           if (boardEl) {
             targetEl = boardEl.querySelector(`[data-square="${targetSquare}"]`);
             if (targetEl) {
@@ -284,7 +298,8 @@
     
     // Также удаляем подсветки через DOM (на случай, если что-то не в кеше)
     // Ищем доску по разным возможным ID и классам для всех модулей
-    const boardEl = document.getElementById('computerGameBoard') || 
+    const boardEl = getBoardElement(state) ||
+                   document.getElementById('computerGameBoard') || 
                    document.getElementById('boardGrid') ||
                    document.getElementById('tasksBoard') ||
                    document.querySelector('.chess-board') || 
@@ -693,8 +708,9 @@
     // Очищаем доску
     boardEl.innerHTML = '';
     
-    // Очищаем кеш
+    // Запоминаем корневой элемент доски для этого состояния (важно для инкрементальной подсветки)
     if (state) {
+      setBoardElement(state, boardEl);
       clearSquareElementsCache(state);
     }
 
@@ -834,8 +850,16 @@
     return matrix;
   }
 
-  // Экспорт
-  window.ChessBoardCore = {
+  // Создаем неймспейс App.Chess если его еще нет
+  if (!window.App) {
+    window.App = {};
+  }
+  if (!window.App.Chess) {
+    window.App.Chess = {};
+  }
+
+  // Export в новый неймспейс
+  window.App.Chess.Board = {
     getOrientedMatrix,
     fenToMatrix,
     resetSelectionIncremental,
@@ -851,4 +875,7 @@
     createSquareElement,
     renderBoardBase,
   };
+
+  // Для обратной совместимости: сохраняем старый экспорт
+  window.ChessBoardCore = window.App.Chess.Board;
 })();

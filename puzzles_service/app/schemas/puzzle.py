@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import Sequence
 
 from pydantic import BaseModel, Field
@@ -21,6 +22,15 @@ class PuzzleResponse(BaseModel):
 
 	class Config:
 		from_attributes = True
+
+
+class DailyPuzzleResponse(PuzzleResponse):
+	"""Ответ для задачи дня с дополнительными метаданными."""
+	date: date
+	chosen_at: datetime
+	daily_rating: int  # Рейтинг задачи дня (может отличаться от текущего рейтинга пазла)
+	is_solved: bool = False  # Решена ли задача текущим пользователем
+	today_solved_count: int = 0  # Сколько раз решена задача сегодня (все пользователи)
 
 
 class PuzzleFilters(BaseModel):

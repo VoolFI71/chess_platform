@@ -26,32 +26,34 @@
     return `${API_BASE}${path}`;
   }
 
-  // Авторизованный fetch
+  // Используем единую apiFetch из auth.js
   async function authedFetch(url, options = {}) {
+    if (window.apiFetch && typeof window.apiFetch === 'function') {
+      const response = await window.apiFetch(url, options);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+      return response.json();
+    }
+    // Fallback если apiFetch не загружен
+    console.warn('apiFetch not available, using direct fetch');
     const token = getAccessToken();
     const sessionID = getSessionID();
-
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
-
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     } else if (sessionID) {
       headers['X-Session-ID'] = sessionID;
     }
-
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
+    const response = await fetch(url, { ...options, headers });
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
       throw new Error(error.error || `HTTP ${response.status}`);
     }
-
     return response.json();
   }
 
@@ -94,6 +96,22 @@
     buildUrl,
     getAccessToken,
     getSessionID,
+    // Используем единую apiFetch из auth.js
+    authedFetch: (url, options = {}) => {
+      if (window.apiFetch && typeof window.apiFetch === 'function') {
+        return window.apiFetch(url, options).then(response => {
+          if (!response.ok) {
+            return response.json().then(error => {
+              throw new Error(error.error || `HTTP ${response.status}`);
+            }).catch(() => {
+              throw new Error(`HTTP ${response.status}`);
+            });
+          }
+          return response.json();
+        });
+      }
+      return authedFetch(url, options);
+    },
   };
 })();
 

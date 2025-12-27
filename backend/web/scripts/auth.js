@@ -53,23 +53,55 @@
     localStorage.removeItem(REFRESH_KEY);
   }
 
-  // Create headers with authorization token
+  // Build URL helper - поддерживает относительные и абсолютные пути
+  function buildUrl(path) {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    // Относительные пути работают через gateway на том же порту
+    return path;
+  }
+
+  // Create headers with authorization token and optional session ID
   function createHeaders(options = {}) {
     const headers = new Headers(options.headers || {});
     if (!headers.has('Content-Type') && options.body) {
       headers.set('Content-Type', 'application/json');
     }
+    
+    // Добавляем токен авторизации, если доступен
     const token = getAccessToken();
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      // Если нет токена, пробуем добавить session ID для анонимных запросов
+      // Проверяем наличие функции getSessionId из session.js
+      if (typeof window.getSessionId === 'function') {
+        const sessionId = window.getSessionId();
+        if (sessionId) {
+          headers.set('X-Session-ID', sessionId);
+        }
+      }
     }
+    
     return headers;
   }
 
+  /**
+   * Унифицированная функция для авторизованных запросов с автоматическим refresh токена
+   * @param {string} path - Путь запроса (может быть относительным или абсолютным)
+   * @param {Object} options - Опции fetch (headers, body, method, etc.)
+   * @param {Function} [options.buildUrl] - Опциональная функция для построения URL (если нужна кастомная логика)
+   * @returns {Promise<Response>}
+   */
   async function apiFetch(path, options = {}) {
+    // Используем кастомный buildUrl если передан, иначе стандартный
+    const urlBuilder = options.buildUrl || buildUrl;
+    const finalPath = urlBuilder(path);
+    
     const headers = createHeaders(options);
-    // Используем относительный путь (работает через gateway на том же порту)
-    const res = await fetch(path, { ...options, headers });
+    const res = await fetch(finalPath, { ...options, headers });
+    
+    // Если не 401/403, возвращаем ответ как есть
     if (res.status !== 401 && res.status !== 403) return res;
 
     // Try refresh once
@@ -78,7 +110,7 @@
 
     // Create new headers with refreshed token
     const headers2 = createHeaders(options);
-    return fetch(path, { ...options, headers: headers2 });
+    return fetch(finalPath, { ...options, headers: headers2 });
   }
 
   async function tryRefresh() {
@@ -137,6 +169,11 @@
     const res = await apiFetch(API_ENDPOINTS.ME);
     if (!res.ok) return null;
     return res.json();
+  }
+
+  function isAuthenticated() {
+    const token = getAccessToken();
+    return !!token && token.trim().length > 0;
   }
 
   async function safeError(res) {
@@ -597,8 +634,39 @@
     }
   }
 
-  // Expose fetch and helpers globally for page scripts
+  // Создаем неймспейсы App если их еще нет
+  if (!window.App) {
+    window.App = {};
+  }
+  if (!window.App.Http) {
+    window.App.Http = {};
+  }
+  if (!window.App.Auth) {
+    window.App.Auth = {};
+  }
+
+  // Export в новые неймспейсы
+  window.App.Http = {
+    apiFetch,
+    authedFetch: apiFetch, // Для обратной совместимости
+  };
+
+  window.App.Auth = {
+    me,
+    getAccessToken,
+    getRefreshToken,
+    setTokens,
+    clearTokens,
+    isAuthenticated,
+    login,
+    register,
+  };
+
+  // Expose fetch and helpers globally for page scripts (обратная совместимость)
+  // Экспортируем apiFetch как основную функцию для авторизованных запросов
   window.apiFetch = apiFetch;
+  // Для обратной совместимости: authedFetch = apiFetch
+  window.authedFetch = apiFetch;
   window.authMe = me;
   if (typeof window.getAccessToken !== 'function') {
     window.getAccessToken = getAccessToken;
@@ -611,6 +679,9 @@
   }
   if (typeof window.clearTokens !== 'function') {
     window.clearTokens = clearTokens;
+  }
+  if (typeof window.isAuthenticated !== 'function') {
+    window.isAuthenticated = isAuthenticated;
   }
 
   // Global theme initializer used by multiple pages

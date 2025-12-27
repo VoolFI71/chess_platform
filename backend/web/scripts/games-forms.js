@@ -56,11 +56,11 @@ document.querySelectorAll('.mode-card[data-time]').forEach(card => {
 
           try {
             // Create game with selected type (rated/casual from selector)
-            // Для быстрой игры используем 'random' цвет
+            // Для быстрой игры всегда используем товарищескую (нерейтинговую) игру
             const game = await window.createGame({
               minutes,
               increment,
-              isRated: window.getSelectedGameType ? window.getSelectedGameType() : false,
+              isRated: false, // Быстрые игры всегда товарищеские
               creatorColor: 'random',
               onSuccess: (game) => {
                 if (game && game.id) {

@@ -14,33 +14,18 @@ function setTokens(access, refresh) {
   } catch {}
 }
 
+// Используем единую apiFetch из auth.js (если доступна)
 async function authedFetch(path, options = {}) {
+  if (window.apiFetch && typeof window.apiFetch === 'function') {
+    return window.apiFetch(path, options);
+  }
+  // Fallback если apiFetch не загружен (не должен происходить в нормальных условиях)
+  console.warn('apiFetch not available, using direct fetch');
   const headers = new Headers(options.headers || {});
   const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  let res = await fetch(path, { ...options, headers });
-  if (res.status !== 401 && res.status !== 403) return res;
-  const rt = getRefreshToken();
-  if (!rt) return res;
-  try {
-    const rf = await fetch('/api/auth/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: rt }),
-    });
-    if (!rf.ok) return res;
-    const data = await rf.json();
-    setTokens(data.access_token, data.refresh_token);
-    const headers2 = new Headers(options.headers || {});
-    const token2 = getAccessToken();
-    if (token2) headers2.set('Authorization', `Bearer ${token2}`);
-    if (options.body && !headers2.has('Content-Type')) headers2.set('Content-Type', 'application/json');
-    res = await fetch(path, { ...options, headers: headers2 });
-    return res;
-  } catch {
-    return res;
-  }
+  return fetch(path, { ...options, headers });
 }
 
 // Mobile menu functions теперь в mobile-menu.js
