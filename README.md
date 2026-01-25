@@ -9,6 +9,109 @@
 - **Мониторинг**: Prometheus, Grafana, Loki
 - **Контейнеризация**: Docker, Docker Compose
 
+### Схема архитектуры
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Browser[🌐 Браузер]
+    end
+    
+    subgraph "Gateway Layer"
+        Nginx[🔀 Nginx Gateway<br/>:8080]
+    end
+    
+    subgraph "API Gateway"
+        Backend[📦 Backend Service<br/>FastAPI + Static Files]
+    end
+    
+    subgraph "Python Services"
+        Auth[🔐 Auth Service<br/>JWT, OAuth]
+        Users[👥 Users Service<br/>Профили, рейтинги]
+        Courses[📚 Courses Service]
+        Lessons[📖 Lessons Service]
+        Enrollments[📝 Enrollments Service]
+        Payments[💳 Payments Service<br/>YooKassa]
+        Puzzles[🧩 Puzzles Service<br/>3k RPS, p99<50ms]
+        Notifications[🔔 Notifications Service<br/>WebSocket]
+    end
+    
+    subgraph "Go Services"
+        Games[🎮 Games Service<br/>Онлайн игры]
+        ComputerGames[🤖 Computer Games<br/>Stockfish AI]
+        Email[📧 Email Service<br/>SMTP]
+    end
+    
+    subgraph "Data Layer"
+        PostgreSQL[(🗄️ PostgreSQL<br/>Основная БД)]
+    end
+    
+    subgraph "Monitoring"
+        Prometheus[📊 Prometheus<br/>Метрики]
+        Grafana[📈 Grafana<br/>Дашборды]
+        Loki[📋 Loki<br/>Логи]
+    end
+    
+    Browser -->|HTTP/WebSocket| Nginx
+    Nginx -->|Routing| Backend
+    Nginx -->|/api/auth/*| Auth
+    Nginx -->|/api/users/*| Users
+    Nginx -->|/api/courses/*| Courses
+    Nginx -->|/api/lessons/*| Lessons
+    Nginx -->|/api/enrollments/*| Enrollments
+    Nginx -->|/api/payments/*| Payments
+    Nginx -->|/api/puzzles/*| Puzzles
+    Nginx -->|/api/games/*| Games
+    Nginx -->|/api/computer-games/*| ComputerGames
+    Nginx -->|/ws/notifications| Notifications
+    Nginx -->|/ws/games/*| Games
+    Nginx -->|/ws/computer-games/*| ComputerGames
+    
+    Auth -->|Internal Token| Users
+    Auth -->|Internal Token| Email
+    Enrollments -->|Internal Token| Courses
+    Enrollments -->|Internal Token| Lessons
+    Payments -->|Internal Token| Enrollments
+    
+    Auth --> PostgreSQL
+    Users --> PostgreSQL
+    Courses --> PostgreSQL
+    Lessons --> PostgreSQL
+    Enrollments --> PostgreSQL
+    Payments --> PostgreSQL
+    Puzzles --> PostgreSQL
+    Games --> PostgreSQL
+    ComputerGames --> PostgreSQL
+    
+    Auth -.->|Metrics| Prometheus
+    Users -.->|Metrics| Prometheus
+    Puzzles -.->|Metrics| Prometheus
+    Games -.->|Metrics| Prometheus
+    ComputerGames -.->|Metrics| Prometheus
+    
+    Prometheus --> Grafana
+    Loki --> Grafana
+    
+    style Browser fill:#e1f5ff
+    style Nginx fill:#fff4e1
+    style Backend fill:#e8f5e9
+    style Auth fill:#f3e5f5
+    style Users fill:#f3e5f5
+    style Courses fill:#f3e5f5
+    style Lessons fill:#f3e5f5
+    style Enrollments fill:#f3e5f5
+    style Payments fill:#f3e5f5
+    style Puzzles fill:#fff9c4
+    style Notifications fill:#f3e5f5
+    style Games fill:#e3f2fd
+    style ComputerGames fill:#e3f2fd
+    style Email fill:#e3f2fd
+    style PostgreSQL fill:#ffebee
+    style Prometheus fill:#fce4ec
+    style Grafana fill:#fce4ec
+    style Loki fill:#fce4ec
+```
+
 ## 📦 Сервисы
 
 ### Python сервисы:
