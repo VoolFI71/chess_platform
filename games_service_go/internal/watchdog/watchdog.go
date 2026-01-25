@@ -198,7 +198,7 @@ func (w *Watchdog) cleanupAbandonedGames(ctx context.Context) {
 		Where(whereClause,
 			models.GameStatusCreated, cutoffTime).
 		Find(&abandonedGames).Error; err != nil {
-		// Failed to query abandoned games
+		log.Printf("[Watchdog] Failed to query abandoned games: %v", err)
 		return
 	}
 
@@ -213,7 +213,9 @@ func (w *Watchdog) cleanupAbandonedGames(ctx context.Context) {
 		Delete(&models.Game{})
 
 	if result.Error != nil {
-		// Failed to delete abandoned games
+		log.Printf("[Watchdog] Failed to delete abandoned games: %v", result.Error)
+		// Return early - can't broadcast if deletion failed
+		// This is acceptable as watchdog will retry on next tick
 		return
 	}
 

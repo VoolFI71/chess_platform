@@ -9,6 +9,7 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/notnil/chess v1.9.0
 	github.com/prometheus/client_golang v1.18.0
+	github.com/stretchr/testify v1.9.0
 	gorm.io/datatypes v1.2.7
 	gorm.io/driver/postgres v1.5.4
 	gorm.io/gorm v1.30.0
