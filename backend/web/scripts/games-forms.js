@@ -53,7 +53,7 @@ document.querySelectorAll('.mode-card[data-time]').forEach(card => {
           // Show loading state
           card.style.opacity = '0.6';
           card.style.pointerEvents = 'none';
-
+        
           try {
             // Create game with selected type (rated/casual from selector)
             // Для быстрой игры всегда используем товарищескую (нерейтинговую) игру
