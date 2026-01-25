@@ -174,7 +174,10 @@ func (s *ComputerGameService) CreateComputerGame(ctx context.Context, creatorID 
 		go func() {
 			// Небольшая задержка для инициализации игры
 			time.Sleep(500 * time.Millisecond)
-			if err := s.MakeComputerMove(context.Background(), gameID); err != nil {
+			// Используем контекст с таймаутом для фоновой задачи
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := s.MakeComputerMove(ctx, gameID); err != nil {
 				log.Printf("[ComputerGameService] Failed to make initial AI move: %v", err)
 			}
 		}()
@@ -282,7 +285,10 @@ func (s *ComputerGameService) MakePlayerMove(ctx context.Context, gameID uuid.UU
 		go func() {
 			// Небольшая задержка для лучшего UX
 			time.Sleep(500 * time.Millisecond)
-			if err := s.MakeComputerMove(context.Background(), gameID); err != nil {
+			// Используем контекст с таймаутом для фоновой задачи
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := s.MakeComputerMove(ctx, gameID); err != nil {
 				log.Printf("[ComputerGameService] Failed to make AI move after player move: %v", err)
 			}
 		}()

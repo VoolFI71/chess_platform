@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-
+	"time"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -46,6 +46,10 @@ func handleWebSocket(cfg *config.Config, service *services.ComputerGameService, 
 
 		log.Printf("[WebSocket] Client connected to game %s", gameID)
 
+		// Создаем контекст для WebSocket соединения с таймаутом для операций БД
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+		defer cancel()
+
 		// Обработка сообщений
 		for {
 			_, message, err := conn.ReadMessage()
@@ -75,8 +79,8 @@ func handleWebSocket(cfg *config.Config, service *services.ComputerGameService, 
 				// TODO: Получить из WebSocket соединения или из query параметров
 				// Пока используем nil (для анонимных игр)
 
-				// Применяем ход игрока
-				if err := service.MakePlayerMove(context.Background(), gameID, uciMove, playerID, playerSessionID); err != nil {
+				// Применяем ход игрока с контекстом запроса
+				if err := service.MakePlayerMove(ctx, gameID, uciMove, playerID, playerSessionID); err != nil {
 					log.Printf("[WebSocket] Failed to make player move: %v", err)
 					// Отправляем ошибку клиенту
 					errorMsg := map[string]interface{}{
@@ -89,8 +93,8 @@ func handleWebSocket(cfg *config.Config, service *services.ComputerGameService, 
 					continue
 				}
 
-				// Получаем обновленную игру
-				updatedGame, err := service.GetGame(context.Background(), gameID)
+				// Получаем обновленную игру с контекстом запроса
+				updatedGame, err := service.GetGame(ctx, gameID)
 				if err != nil {
 					log.Printf("[WebSocket] Failed to get updated game: %v", err)
 					continue
