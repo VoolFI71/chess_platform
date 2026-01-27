@@ -6,33 +6,36 @@
 
 ```
 computer_games_service/
-├── cmd/
-│   └── server/
-│       └── main.go              # Точка входа
 ├── internal/
 │   ├── config/
-│   │   └── config.go            # Конфигурация из env
+│   │   └── config.go
 │   ├── database/
-│   │   └── db.go                # Подключение к PostgreSQL
+│   │   └── db.go
 │   ├── ai/
-│   │   ├── engine.go            # Интерфейс для AI движков
-│   │   └── stockfish.go         # Реализация Stockfish через UCI
+│   │   ├── engine.go
+│   │   ├── stockfish.go
+│   │   └── stockfish_pool.go
 │   ├── models/
-│   │   └── computer_game.go     # Модели Game и Move
+│   │   └── computer_game.go
 │   ├── handlers/
-│   │   ├── router.go            # Настройка роутера
-│   │   ├── games.go             # HTTP handlers
-│   │   ├── middleware.go        # Middleware для аутентификации
-│   │   └── websocket.go         # WebSocket handler
+│   │   ├── router.go
+│   │   ├── games.go
+│   │   ├── games_test.go
+│   │   ├── middleware.go
+│   │   ├── metrics_middleware.go
+│   │   └── websocket.go
 │   ├── services/
-│   │   ├── computer_game_service.go  # Бизнес-логика игр
-│   │   └── ai_service.go        # Обертка над AI движком
+│   │   ├── computer_game_service.go
+│   │   └── ai_service.go
 │   └── realtime/
-│       └── manager.go           # WebSocket менеджер
+│       └── manager.go
 ├── Dockerfile
 ├── go.mod
+├── go.sum
 └── README.md
 ```
+
+Точка входа в репозитории отсутствует. Dockerfile собирает бинарник из пакета `./cmd/server` — для успешной сборки нужен каталог `cmd/server` с `main.go`.
 
 ## Технологии
 
@@ -110,18 +113,18 @@ AI_DEFAULT_TIME_LIMIT_MS=2000
 
 ## Запуск
 
-### Локально:
+Точка входа (`cmd/server/main.go`) в репозитории пока не добавлена. После её появления:
 
+**Локально:**
 ```bash
 export DATABASE_URL="postgresql://user:pass@localhost:5432/chess"
 export JWT_SECRET="your-secret"
 export STOCKFISH_PATH="/usr/bin/stockfish"
 
-go run cmd/server/main.go
+go run ./cmd/server
 ```
 
-### Docker:
-
+**Docker** (сборка идёт из `./cmd/server`):
 ```bash
 docker build -t computer-games-service .
 docker run -p 8000:8000 \
@@ -129,14 +132,4 @@ docker run -p 8000:8000 \
   -e JWT_SECRET="your-secret" \
   computer-games-service
 ```
-
-## Статус разработки
-
-- ✅ Базовая структура микросервиса
-- ✅ AI модуль (Stockfish)
-- ✅ HTTP handlers
-- ✅ WebSocket поддержка
-- ⏳ Логика применения ходов (в разработке)
-- ⏳ Интеграция в docker-compose
-- ⏳ Nginx routing
 
