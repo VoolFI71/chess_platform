@@ -1,55 +1,50 @@
-Шахматная платформа с микросервисной архитектурой.
+Шахматная платформа на микросервисах.
 
-## 🏗️ Архитектура
+## Архитектура
 
-Проект построен на микросервисной архитектуре с использованием:
-- **Backend**: Python (FastAPI) и Go (Gin)
-- **Frontend**: Vanilla JavaScript, HTML, CSS
-- **База данных**: PostgreSQL
-- **Мониторинг**: Prometheus, Grafana, Loki
-- **Контейнеризация**: Docker, Docker Compose
+Стек: Python (FastAPI) и Go (Gin) в бэкенде, Vanilla JS/HTML/CSS во фронте, PostgreSQL, мониторинг — Prometheus/Grafana/Loki, всё в Docker.
 
 ### Схема архитектуры
 
 ```mermaid
 graph TB
     subgraph "Client Layer"
-        Browser[🌐 Браузер]
+        Browser[Браузер]
     end
     
     subgraph "Gateway Layer"
-        Nginx[🔀 Nginx Gateway<br/>:8080]
+        Nginx[Nginx Gateway<br/>:8080]
     end
     
     subgraph "API Gateway"
-        Backend[📦 Backend Service<br/>FastAPI + Static Files]
+        Backend[Backend Service<br/>FastAPI + Static Files]
     end
     
     subgraph "Python Services"
-        Auth[🔐 Auth Service<br/>JWT, OAuth]
-        Users[👥 Users Service<br/>Профили, рейтинги]
-        Courses[📚 Courses Service]
-        Lessons[📖 Lessons Service]
-        Enrollments[📝 Enrollments Service]
-        Payments[💳 Payments Service<br/>YooKassa]
-        Puzzles[🧩 Puzzles Service<br/>3k RPS, p99<50ms]
-        Notifications[🔔 Notifications Service<br/>WebSocket]
+        Auth[Auth Service<br/>JWT, OAuth]
+        Users[Users Service<br/>Профили, рейтинги]
+        Courses[Courses Service]
+        Lessons[Lessons Service]
+        Enrollments[Enrollments Service]
+        Payments[Payments Service<br/>YooKassa]
+        Puzzles[Puzzles Service<br/>3k RPS, p99<50ms]
+        Notifications[Notifications Service<br/>WebSocket]
     end
     
     subgraph "Go Services"
-        Games[🎮 Games Service<br/>Онлайн игры]
-        ComputerGames[🤖 Computer Games<br/>Stockfish AI]
-        Email[📧 Email Service<br/>SMTP]
+        Games[Games Service<br/>Онлайн игры]
+        ComputerGames[Computer Games<br/>Stockfish AI]
+        Email[Email Service<br/>SMTP]
     end
     
     subgraph "Data Layer"
-        PostgreSQL[(🗄️ PostgreSQL<br/>Основная БД)]
+        PostgreSQL[(PostgreSQL<br/>Основная БД)]
     end
     
     subgraph "Monitoring"
-        Prometheus[📊 Prometheus<br/>Метрики]
-        Grafana[📈 Grafana<br/>Дашборды]
-        Loki[📋 Loki<br/>Логи]
+        Prometheus[Prometheus<br/>Метрики]
+        Grafana[Grafana<br/>Дашборды]
+        Loki[Loki<br/>Логи]
     end
     
     Browser -->|HTTP/WebSocket| Nginx
@@ -112,57 +107,26 @@ graph TB
     style Loki fill:#fce4ec
 ```
 
-## 📦 Сервисы
+## Сервисы
 
-### Python сервисы:
-- **auth_service** - Аутентификация и авторизация (JWT)
-- **users_service** - Управление пользователями, рейтингами, друзьями
-- **courses_service** - Управление курсами
-- **lessons_service** - Управление уроками и PGN файлами
-- **enrollments_service** - Записи на курсы
-- **payments_service** - Интеграция с YooKassa для платежей
-- **puzzles_service** - Шахматные задачи и ежедневные пазлы
-- **notifications_service** - WebSocket уведомления
-- **backend** - API Gateway и статический фронтенд
+**Python:** auth (JWT), users (профили, рейтинги, друзья), courses, lessons (PGN), enrollments, payments (YooKassa), puzzles (задачи и дневные пазлы), notifications (WebSocket), backend — шлюз и раздача статики.
 
-### Go сервисы:
-- **games_service_go** - Онлайн игры между пользователями
-- **computer_games_service** - Игры против AI (Stockfish)
-- **email_service_go** - Отправка email уведомлений
+**Go:** games_service_go (игры человек на человек), computer_games_service (игра против Stockfish), email_service_go (рассылка писем).
 
-### Общие модули:
-- **common** - Общие утилиты (конфигурация, БД, безопасность, логирование)
+**Общее:** модуль `common` — конфиг, БД, безопасность, логирование.
 
-## 🚀 Быстрый старт
+## Быстрый старт
 
-### Требования
-- Docker и Docker Compose
-- Python 3.12+ (для локальной разработки)
-- Go 1.21+ (для локальной разработки Go сервисов)
+Нужны Docker, Docker Compose; для локальной разработки — Python 3.12+ и Go 1.21+.
 
-### Запуск через Docker Compose
+1. Копируем `.env.example` в `.env`, подставляем свои значения.
+2. Поднимаем сервисы: `docker-compose up -d`
+3. Гоняем миграции: `docker-compose up migrations`
+4. Открываем http://localhost:8080
 
-1. Скопируйте `.env.example` в `.env` и настройте переменные окружения
-2. Запустите все сервисы:
-```bash
-docker-compose up -d
-```
+Локально тот же сценарий через `docker-compose -f docker-compose.local.yml up`.
 
-3. Примените миграции:
-```bash
-docker-compose up migrations
-```
-
-4. Откройте в браузере: http://localhost:8080
-
-### Локальная разработка
-
-Для локальной разработки используйте `docker-compose.local.yml`:
-```bash
-docker-compose -f docker-compose.local.yml up
-```
-
-## 📁 Структура проекта
+## Структура проекта
 
 ```
 .
@@ -186,80 +150,29 @@ docker-compose -f docker-compose.local.yml up
 └── docker-compose.yml   # Production конфигурация
 ```
 
-## 📊 Мониторинг
+## Мониторинг
 
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/admin для локальной разработки)
-- **Loki**: Логи через Grafana
+Prometheus — :9090, Grafana — :3000 (логин/пароль admin/admin), логи — в Loki, смотрятся из Grafana.
 
-## 🔒 Безопасность
+## Безопасность
 
-- JWT токены для аутентификации
-- Внутренние токены для межсервисной коммуникации
-- Переменные окружения для секретов (не хранятся в коде)
-- Валидация входных данных через Pydantic схемы
+Аутентификация по JWT, между сервисами — внутренние токены. Секреты только в переменных окружения, вход проверяется через Pydantic.
 
-## 🚀 Technical Challenges & Solutions
+## Что делали по производительности
 
-### Производительность и оптимизации
+**Случайные задачи (puzzles).** На миллионе строк `ORDER BY random()` тормозило 1–5 секунд. Перешли на `TABLESAMPLE SYSTEM`: сначала берём случайные страницы, при необходимости — смещение по ID, и только в крайнем случае — старый способ. В итоге ~4–10 ms вместо секунд. Код: [`puzzle_cache.py`](puzzles_service/app/services/puzzle_cache.py#L182-L197).
 
-#### 1. Оптимизация выборки случайных задач через TABLESAMPLE
-**Проблема**: При ~1 млн задач в БД `ORDER BY random()` выполнялся 1-5 секунд.
+**Кеш без просадок.** Пока кеш обновлялся, запросы ждали. Сделали stale-while-revalidate: отдаём старые данные, новый кеш подгружаем в фоне (asyncio.create_task). TTL 30 минут, ответ из кеша — доли миллисекунды. [`puzzle_cache.py`](puzzles_service/app/services/puzzle_cache.py#L53-L149).
 
-**Решение**: Использование PostgreSQL `TABLESAMPLE SYSTEM` для выборки случайных страниц без полного сканирования таблицы.
+**Рейтинг в ключе кеша.** Рейтинг менялся часто — ключи кеша множились. Округляем до 50 (`Math.round(rating / 50) * 50`), ключей стало в разы меньше. [`puzzle_cache.py`](puzzles_service/app/services/puzzle_cache.py#L30-L50).
 
-**Реализация**: [`puzzles_service/app/services/puzzle_cache.py`](puzzles_service/app/services/puzzle_cache.py#L182-L197)
-- Трехуровневая стратегия: TABLESAMPLE → случайное смещение по ID → fallback на ORDER BY random()
-- Улучшение производительности: **100x быстрее** (с 1-5 сек до 4-10ms)
+**Статика и кеш в backend.** ETag, 304 Not Modified, разные настройки кеша для dev и prod. [`backend/app/main.py`](backend/app/main.py#L85-L127).
 
-
-#### 2. Stale-while-revalidate паттерн для кеширования
-**Проблема**: Обновление кеша блокировало запросы, создавая задержки.
-
-**Решение**: Реализация stale-while-revalidate - возвращаем старый кеш, пока обновляется новый в фоне.
-
-**Реализация**: [`puzzles_service/app/services/puzzle_cache.py`](puzzles_service/app/services/puzzle_cache.py#L53-L149)
-- Кеш в памяти с TTL 30 минут
-- Фоновое обновление через asyncio.create_task
-- Гарантированная доступность данных (<1ms из кеша)
-
-#### 3. Округление рейтинга для стабильности кеша
-**Проблема**: Каждое изменение рейтинга создавало новый ключ кеша, снижая эффективность.
-
-**Решение**: Округление рейтинга до кратного 50 для переиспользования кеша.
-
-**Реализация**: [`puzzles_service/app/services/puzzle_cache.py`](puzzles_service/app/services/puzzle_cache.py#L30-L50)
-- Формула: `Math.round(rating / 50) * 50`
-- Снижение количества уникальных ключей кеша в 50 раз
-
-
-#### 4. Оптимизация HTTP заголовков и кеширования
-**Реализация**: [`backend/app/main.py`](backend/app/main.py#L85-L127)
-- ETag для статических файлов
-- Условные запросы (304 Not Modified)
-- Разделение стратегий кеширования для dev/prod
-
-## 🧪 Тестирование
-
-### Unit тесты
+## Тесты
 
 ```bash
-# Python сервисы
-cd puzzles_service
-pytest tests/
-
-# Go сервисы
-cd games_service_go
-go test ./...
+cd puzzles_service && pytest tests/
+cd games_service_go && go test ./...
 ```
 
-**Покрытие тестами**:
-- **Puzzles service**: 
-  - Unit тесты для daily puzzle логики (`tests/test_daily_puzzle.py`)
-  - API endpoint тесты (`tests/test_puzzles_api.py`) - 8 тестов
-  - Cache service тесты (`tests/test_puzzle_cache.py`) - 7 тестов
-- **Games service (Go)**: 
-  - Handler тесты (`internal/handlers/games_test.go`) - 6 тестов
-  - Computer games handler тесты (`internal/handlers/games_test.go`) - 4 теста
-
-**Всего**: 25+ тестов покрывающих основные эндпоинты и бизнес-логику
+Есть тесты на daily puzzle, пазлы по API, кеш (puzzles_service), хендлеры и computer games (Go) — в сумме больше 25 тестов.
