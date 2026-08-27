@@ -178,6 +178,16 @@
       state.setMoves(game.moves || []);
       state.setGameStatus('active');
 
+      // Для анонимных игр сохраняем session_id из metadata (нужен для resign и др.)
+      if (!api.getAccessToken() && game.metadata) {
+        const sid = game.metadata.white_session_id || game.metadata.black_session_id;
+        if (sid) {
+          try {
+            localStorage.setItem('session_id', sid);
+          } catch (_) {}
+        }
+      }
+
       // Подключаемся к WebSocket
       ws.connect(game.id);
 
@@ -344,12 +354,24 @@
   }
 
   // Сдача
-  function handleResign() {
+  async function handleResign() {
     if (!confirm('Вы уверены, что хотите сдаться?')) {
       return;
     }
-    // TODO: Реализовать сдачу через API
-    showToast('Функция сдачи будет реализована позже', 'info');
+    const game = state.getGame();
+    if (!game || !game.id) {
+      showToast('Игра не найдена', 'error');
+      return;
+    }
+    try {
+      const updatedGame = await api.resign(game.id);
+      state.setGame(updatedGame);
+      state.setGameStatus('finished');
+      updateGameInfo();
+      showGameResult(updatedGame);
+    } catch (error) {
+      showToast(error.message || 'Не удалось сдаться', 'error');
+    }
   }
 
   // Новая игра

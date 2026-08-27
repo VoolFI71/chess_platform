@@ -199,14 +199,6 @@
                     <i class="fas fa-puzzle-piece"></i>
                     <span>Прогресс по задачам</span>
                 </div>
-                <div class="sidebar-item" data-section="friends">
-                    <i class="fas fa-user-friends"></i>
-                    <span>Друзья</span>
-                </div>
-                <div class="sidebar-item" data-section="courses">
-                    <i class="fas fa-graduation-cap"></i>
-                    <span>Мои курсы</span>
-                </div>
                 <div class="sidebar-item" data-section="games">
                     <i class="fas fa-history"></i>
                     <span>История партий</span>
@@ -227,12 +219,6 @@
                         <i class="fas fa-chart-line"></i>
                         Аналитическая панель
                     </h1>
-                    <!-- Кнопка добавления в друзья (только для чужого профиля) -->
-                    <div id="friendshipButtonContainer" style="display: none;">
-                        <button id="friendshipButton" class="btn btn-primary">
-                            <span id="friendshipButtonText">Добавить в друзья</span>
-                        </button>
-                    </div>
                 </div>
 
                 <div class="stats-grid">
@@ -456,125 +442,6 @@
                 </div>
             </section>
 
-            <!-- FRIEND REQUESTS -->
-            <section class="content-section" id="friendRequests">
-                <div class="section-header">
-                    <h1 class="section-title">
-                        <i class="fas fa-user-clock"></i>
-                        Заявки в друзья
-                    </h1>
-                </div>
-
-                <div class="friends-grid" id="friendRequestsList">
-                    <!-- Список заявок будет загружен динамически -->
-                </div>
-            </section>
-
-            <!-- FRIENDS -->
-            <section class="content-section" id="friends">
-                <div class="strengths-card">
-                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
-                        <div>
-                            <h2 class="section-title" style="margin-bottom: 0.5rem;">
-                                <i class="fas fa-user-friends"></i>
-                                Друзья
-                            </h2>
-                            <p id="friendsCount" style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">
-                                Загрузка...
-                            </p>
-                        </div>
-                        <button class="btn btn-primary" id="addFriendBtn" onclick="showAddFriendModal()">
-                            <i class="fas fa-user-plus"></i>
-                            Добавить друга
-                        </button>
-                    </div>
-
-                    <!-- Панель фильтров и поиска -->
-                    <div class="friends-controls">
-                        <!-- Поиск -->
-                        <div class="friends-search-container">
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input 
-                                    type="text" 
-                                    id="friendsSearchInput" 
-                                    placeholder="Поиск по имени пользователя..."
-                                    autocomplete="off"
-                                />
-                                <button class="search-clear" id="friendsSearchClear" style="display: none;">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Фильтры и сортировка -->
-                        <div class="friends-filters">
-                            <div class="filter-group">
-                                <label class="filter-label">Статус:</label>
-                                <div class="filter-buttons">
-                                    <button class="filter-btn active" data-filter="all">
-                                        <i class="fas fa-users"></i> Все
-                                    </button>
-                                    <button class="filter-btn" data-filter="online">
-                                        <i class="fas fa-circle" style="color: var(--success); font-size: 0.7rem;"></i> Онлайн
-                                    </button>
-                                    <button class="filter-btn" data-filter="playing">
-                                        <i class="fas fa-chess"></i> Играют
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="filter-group">
-                                <label class="filter-label">Сортировка:</label>
-                                <select id="friendsSortSelect" class="filter-select">
-                                    <option value="name">По имени</option>
-                                    <option value="rating">По рейтингу</option>
-                                    <option value="recent">Последняя активность</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Группы друзей -->
-                    <div id="friendsListContainer">
-                        <!-- Онлайн друзья -->
-                        <div id="friendsOnlineGroup" class="friends-group" style="display: none;">
-                            <div class="friends-group-header">
-                                <i class="fas fa-circle" style="color: var(--success); font-size: 0.7rem;"></i>
-                                <span class="friends-group-title">Онлайн (<span id="onlineCount">0</span>)</span>
-                            </div>
-                            <div class="friends-list" id="friendsOnlineList"></div>
-                        </div>
-
-                        <!-- Играют сейчас -->
-                        <div id="friendsPlayingGroup" class="friends-group" style="display: none;">
-                            <div class="friends-group-header">
-                                <i class="fas fa-chess" style="color: var(--primary);"></i>
-                                <span class="friends-group-title">Играют сейчас (<span id="playingCount">0</span>)</span>
-                            </div>
-                            <div class="friends-list" id="friendsPlayingList"></div>
-                        </div>
-
-                        <!-- Остальные друзья -->
-                        <div id="friendsOtherGroup" class="friends-group" style="display: none;">
-                            <div class="friends-group-header">
-                                <i class="fas fa-users"></i>
-                                <span class="friends-group-title">Все остальные (<span id="otherCount">0</span>)</span>
-                            </div>
-                            <div class="friends-list" id="friendsOtherList"></div>
-                        </div>
-
-                        <!-- Основной список (для обратной совместимости) -->
-                        <div class="friends-list" id="friendsList">
-                            <!-- Список друзей будет загружен динамически -->
-                            <div class="friends-loading">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <span>Загрузка друзей...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             <!-- RATING HISTORY -->
             <section class="content-section" id="ratingHistory">
                 <div class="section-header">
@@ -612,154 +479,6 @@
                     <div style="text-align: center; padding: 2rem; color: var(--muted-foreground);">
                         <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
                         <div>Загрузка истории рейтингов...</div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- COURSES -->
-            <section class="content-section" id="courses">
-                <div class="section-header">
-                    <h1 class="section-title">
-                        <i class="fas fa-graduation-cap"></i>
-                        Мои курсы
-                    </h1>
-                </div>
-
-                <div class="courses-grid">
-                    <div class="course-card">
-                        <div class="course-header">
-                            <h3 class="course-title">Эндшпиль: Мастер-класс</h3>
-                            <span class="course-badge">Продвинутый</span>
-                        </div>
-                        <div class="course-progress">
-                            <div class="progress-label">
-                                <span>Прогресс</span>
-                                <span>12 из 20 уроков</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 60%"></div>
-                            </div>
-                        </div>
-                        <div class="course-content">
-                            <div class="content-item">
-                                <i class="fas fa-file-alt"></i>
-                                <span>15 PGN файлов</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-video"></i>
-                                <span>8 видео уроков</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-redo"></i>
-                                <span>Система повторения</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-calendar"></i>
-                                <span>2 вебинара</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="course-card">
-                        <div class="course-header">
-                            <h3 class="course-title">Тактические приёмы</h3>
-                            <span class="course-badge">Средний</span>
-                        </div>
-                        <div class="course-progress">
-                            <div class="progress-label">
-                                <span>Прогресс</span>
-                                <span>18 из 24 уроков</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 75%"></div>
-                            </div>
-                        </div>
-                        <div class="course-content">
-                            <div class="content-item">
-                                <i class="fas fa-file-alt"></i>
-                                <span>24 PGN файлов</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-video"></i>
-                                <span>12 видео уроков</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-redo"></i>
-                                <span>Система повторения</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-calendar"></i>
-                                <span>1 вебинар</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="course-card">
-                        <div class="course-header">
-                            <h3 class="course-title">Дебютная подготовка</h3>
-                            <span class="course-badge">Начальный</span>
-                        </div>
-                        <div class="course-progress">
-                            <div class="progress-label">
-                                <span>Прогресс</span>
-                                <span>30 из 30 уроков</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 100%"></div>
-                            </div>
-                        </div>
-                        <div class="course-content">
-                            <div class="content-item">
-                                <i class="fas fa-file-alt"></i>
-                                <span>30 PGN файлов</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-video"></i>
-                                <span>15 видео уроков</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-redo"></i>
-                                <span>Система повторения</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-check-circle"></i>
-                                <span>Завершено</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="course-card">
-                        <div class="course-header">
-                            <h3 class="course-title">Позиционная игра</h3>
-                            <span class="course-badge">Продвинутый</span>
-                        </div>
-                        <div class="course-progress">
-                            <div class="progress-label">
-                                <span>Прогресс</span>
-                                <span>5 из 18 уроков</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 28%"></div>
-                            </div>
-                        </div>
-                        <div class="course-content">
-                            <div class="content-item">
-                                <i class="fas fa-file-alt"></i>
-                                <span>18 PGN файлов</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-video"></i>
-                                <span>10 видео уроков</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-redo"></i>
-                                <span>Система повторения</span>
-                            </div>
-                            <div class="content-item">
-                                <i class="fas fa-calendar"></i>
-                                <span>3 вебинара</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -1269,20 +988,6 @@
                 window.ensureMatchHistoryLoaded(false, profileUsername);
             }
             
-            // Загружаем заявки при переключении на вкладку "Заявки в друзья"
-            if (targetSection === 'friendRequests' && typeof window.loadFriendRequests === 'function') {
-                window.loadFriendRequests();
-            }
-            
-            // Загружаем друзей при переключении на вкладку "Друзья"
-            if (targetSection === 'friends' && typeof window.loadFriendsList === 'function') {
-                window.loadFriendsList().then(() => {
-                    if (typeof initFriendsSearch === 'function') {
-                        initFriendsSearch();
-                    }
-                });
-            }
-
             // Загружаем прогресс по задачам при переключении на вкладку "Прогресс по задачам"
             if (targetSection === 'puzzles' && typeof window.loadPuzzlesProgress === 'function') {
                 // Используем сохраненный profileUserId, если он есть (для чужого профиля)
@@ -1325,12 +1030,6 @@
             const targetSection = document.getElementById(hash);
             const sidebarItem = document.querySelector(`[data-section="${hash}"]`);
             
-            // Инициализация поиска друзей при переключении на вкладку друзей
-            if (hash === 'friends' && typeof initFriendsSearch === 'function') {
-                setTimeout(() => {
-                    initFriendsSearch();
-                }, 100);
-            }
             if (targetSection && sidebarItem) {
                 // Убираем активность со всех элементов
                 sidebarItems.forEach(i => i.classList.remove('active'));
@@ -1341,11 +1040,7 @@
                 targetSection.classList.add('active');
                 
                 // Загружаем данные для вкладки
-                if (hash === 'friendRequests' && typeof window.loadFriendRequests === 'function') {
-                    window.loadFriendRequests();
-                } else if (hash === 'friends' && typeof window.loadFriendsList === 'function') {
-                    window.loadFriendsList();
-                } else if (hash === 'games' && typeof window.ensureMatchHistoryLoaded === 'function') {
+                if (hash === 'games' && typeof window.ensureMatchHistoryLoaded === 'function') {
                     const pathMatch = window.location.pathname.match(/^\/profile\/(.+)$/);
                     const profileUsername = pathMatch ? decodeURIComponent(pathMatch[1]) : null;
                     window.ensureMatchHistoryLoaded(false, profileUsername);

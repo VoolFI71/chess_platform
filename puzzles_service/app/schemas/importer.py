@@ -48,3 +48,8 @@ class PuzzleUpsertRequest(BaseModel):
 			return []
 		return [str(item).strip() for item in value if str(item).strip()]
 
+
+class PuzzleBatchUpsertRequest(BaseModel):
+	"""Пакетная вставка/обновление задач (удобно для клиента, читающего CSV локально)."""
+	puzzles: list[PuzzleUpsertRequest] = Field(..., min_length=1, max_length=2000)
+

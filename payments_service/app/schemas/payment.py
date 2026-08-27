@@ -19,8 +19,3 @@ class WebhookResponse(BaseModel):
 	"""Ответ на webhook от платежного провайдера"""
 	status: str
 
-
-class SimulateResponse(BaseModel):
-	"""Ответ на симуляцию успешной оплаты"""
-	status: str
-

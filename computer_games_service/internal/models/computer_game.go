@@ -1,138 +1,50 @@
 package models
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"fmt"
-	"time"
-
-	"github.com/google/uuid"
-	"gorm.io/datatypes"
+	shared "github.com/yourorg/go_shared/models"
 )
 
-// Используем те же модели что и games_service
-// GameStatus, SideToMove, GameResult, TerminationReason, TimeControl, Metadata
-// копируем из games_service_go/internal/models/game.go
-
-type GameStatus string
+// Type aliases — transparent re-exports
+type GameStatus = shared.GameStatus
 
 const (
-	GameStatusCreated  GameStatus = "CREATED"
-	GameStatusActive   GameStatus = "ACTIVE"
-	GameStatusPaused   GameStatus = "PAUSED"
-	GameStatusFinished GameStatus = "FINISHED"
+	GameStatusCreated  = shared.GameStatusCreated
+	GameStatusActive   = shared.GameStatusActive
+	GameStatusPaused   = shared.GameStatusPaused
+	GameStatusFinished = shared.GameStatusFinished
 )
 
-type SideToMove string
+type SideToMove = shared.SideToMove
 
 const (
-	SideWhite SideToMove = "w"
-	SideBlack SideToMove = "b"
+	SideWhite = shared.SideWhite
+	SideBlack = shared.SideBlack
 )
 
-type GameResult string
+type GameResult = shared.GameResult
 
 const (
-	ResultWhiteWin GameResult = "1-0"
-	ResultBlackWin GameResult = "0-1"
-	ResultDraw     GameResult = "1/2-1/2"
+	ResultWhiteWin = shared.ResultWhiteWin
+	ResultBlackWin = shared.ResultBlackWin
+	ResultDraw     = shared.ResultDraw
 )
 
-type TerminationReason string
+type TerminationReason = shared.TerminationReason
 
 const (
-	TerminationCheckmate   TerminationReason = "CHECKMATE"
-	TerminationResignation TerminationReason = "RESIGNATION"
-	TerminationTimeout     TerminationReason = "TIMEOUT"
-	TerminationStalemate   TerminationReason = "STALEMATE"
-	TerminationDraw        TerminationReason = "DRAW"
+	TerminationCheckmate   = shared.TerminationCheckmate
+	TerminationResignation = shared.TerminationResignation
+	TerminationTimeout     = shared.TerminationTimeout
+	TerminationStalemate   = shared.TerminationStalemate
+	TerminationDraw        = shared.TerminationDraw
+	TerminationAbandoned   = shared.TerminationAbandoned
 )
 
-type TimeControl struct {
-	InitialMs     int64  `json:"initial_ms"`
-	IncrementMs   int64  `json:"increment_ms"`
-	Type          string `json:"type"`
-	WhiteFinishMs int64  `json:"white_finish_ms"`
-	BlackFinishMs int64  `json:"black_finish_ms"`
-}
+type TimeControl = shared.TimeControl
+type Metadata = shared.Metadata
+type Game = shared.Game
+type Move = shared.Move
 
-func (tc *TimeControl) Scan(value interface{}) error {
-	if value == nil {
-		return nil
-	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return fmt.Errorf("failed to unmarshal TimeControl value: %v", value)
-	}
-	return json.Unmarshal(bytes, tc)
-}
-
-func (tc TimeControl) Value() (driver.Value, error) {
-	return json.Marshal(tc)
-}
-
-type Metadata map[string]interface{}
-
-func (m *Metadata) Scan(value interface{}) error {
-	if value == nil {
-		return nil
-	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return fmt.Errorf("failed to unmarshal Metadata value: %v", value)
-	}
-	return json.Unmarshal(bytes, m)
-}
-
-func (m Metadata) Value() (driver.Value, error) {
-	return json.Marshal(m)
-}
-
-// Game представляет шахматную партию (используем ту же таблицу что и games_service)
-type Game struct {
-	ID                uuid.UUID          `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	WhiteID           *int               `gorm:"index" json:"white_id"`
-	BlackID           *int               `gorm:"index" json:"black_id"`
-	InitialPos        string             `gorm:"type:text;not null" json:"initial_pos"`
-	CurrentPos        string             `gorm:"type:text;not null" json:"current_pos"`
-	NextTurn          SideToMove         `gorm:"type:varchar(1);not null;default:'w'" json:"next_turn"`
-	TimeControl       datatypes.JSON     `gorm:"type:jsonb" json:"time_control"`
-	MoveCount         int                `gorm:"not null;default:0" json:"move_count"`
-	Status            GameStatus         `gorm:"type:varchar(20);not null;default:'CREATED';index" json:"status"`
-	WhiteClockMs      int64              `gorm:"not null;default:0;check:white_clock_ms >= 0" json:"white_clock_ms"`
-	BlackClockMs      int64              `gorm:"not null;default:0;check:black_clock_ms >= 0" json:"black_clock_ms"`
-	Result            *GameResult        `gorm:"type:varchar(10)" json:"result"`
-	TerminationReason *TerminationReason `gorm:"type:varchar(50)" json:"termination_reason"`
-	EndedBy           *int               `json:"ended_by"`
-	PGN               *string            `gorm:"type:text" json:"pgn"`
-	// Metadata для компьютерных игр содержит:
-	// - game_type: "computer"
-	// - ai_level: 0-20 (skill level)
-	// - ai_color: "white" или "black"
-	// - white_session_id / black_session_id для анонимных игроков
-	Metadata   datatypes.JSON `gorm:"type:jsonb" json:"metadata"`
-	CreatedAt  time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	StartedAt  *time.Time     `json:"started_at"`
-	FinishedAt *time.Time     `json:"finished_at"`
-}
-
-// Move представляет ход в партии
-// Move представляет ход в партии
-type Move struct {
-	ID          int       `gorm:"primaryKey;autoIncrement" json:"id"`
-	GameID      uuid.UUID `gorm:"type:uuid;not null;index" json:"game_id"`
-	MoveIndex   int       `gorm:"not null" json:"move_index"`
-	UCI         string    `gorm:"type:varchar(10);not null" json:"uci"`
-	SAN         *string   `gorm:"type:varchar(20)" json:"san"`
-	FenAfter    string    `gorm:"type:text;not null" json:"fen_after"`
-	PlayerID    *int      `gorm:"index" json:"player_id"`
-	ClocksAfter []byte    `gorm:"type:jsonb" json:"clocks_after"`
-	IsCapture   bool      `gorm:"not null;default:false" json:"is_capture"`
-	Promotion   *string   `gorm:"type:varchar(1)" json:"promotion"`
-	CreatedAt   time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-}
-
-// GameDetail расширенная модель игры с ходами
 type GameDetail struct {
 	Game
 	Moves         []Move `json:"moves"`

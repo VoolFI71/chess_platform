@@ -48,38 +48,11 @@ scrape_configs:
       - source_labels: [job]
         target_label: app_name
 
-  # Courses сервис
-  - job_name: 'courses'
-    metrics_path: /metrics
-    static_configs:
-      - targets: ['courses:8000']
-    metric_relabel_configs:
-      - source_labels: [job]
-        target_label: app_name
-
-  # Lessons сервис
-  - job_name: 'lessons'
-    metrics_path: /metrics
-    static_configs:
-      - targets: ['lessons:8000']
-    metric_relabel_configs:
-      - source_labels: [job]
-        target_label: app_name
-
   # Payments сервис
   - job_name: 'payments'
     metrics_path: /metrics
     static_configs:
       - targets: ['payments:8000']
-    metric_relabel_configs:
-      - source_labels: [job]
-        target_label: app_name
-
-  # Enrollments сервис
-  - job_name: 'enrollments'
-    metrics_path: /metrics
-    static_configs:
-      - targets: ['enrollments:8000']
     metric_relabel_configs:
       - source_labels: [job]
         target_label: app_name

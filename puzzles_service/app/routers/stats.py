@@ -67,6 +67,15 @@ async def get_my_stats(
 	return await _get_stats_by_user_id(current_user_id, db)
 
 
+@stats_router.get("/me/themes", response_model=PuzzleThemeStatsResponse)
+async def get_my_theme_stats(
+	db: AsyncSession = Depends(get_db),
+	current_user_id: int = Depends(get_current_user_id),
+) -> PuzzleThemeStatsResponse:
+	"""Получить статистику текущего пользователя по темам"""
+	return await get_user_theme_stats(current_user_id, db)
+
+
 @stats_router.get("/aggregate")
 async def get_aggregate_stats(
 	db: AsyncSession = Depends(get_db),
@@ -233,13 +242,4 @@ async def get_user_theme_stats(
 		user_id=user_id,
 		themes=themes_list
 	)
-
-
-@stats_router.get("/me/themes", response_model=PuzzleThemeStatsResponse)
-async def get_my_theme_stats(
-	db: AsyncSession = Depends(get_db),
-	current_user_id: int = Depends(get_current_user_id),
-) -> PuzzleThemeStatsResponse:
-	"""Получить статистику текущего пользователя по темам"""
-	return await get_user_theme_stats(current_user_id, db)
 

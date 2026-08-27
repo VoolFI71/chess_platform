@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/notnil/chess"
+	"github.com/VoolFI71/go-arena"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -18,11 +19,16 @@ import (
 )
 
 type GameService struct {
-	db *database.DB
+	db        *database.DB
+	arenaPool *arena.ArenaPool
 }
 
 func NewGameService(db *database.DB) *GameService {
-	return &GameService{db: db}
+	return &GameService{
+		db: db,
+		// Инициализируем пул арены: чанк 16КБ, без лимита на удержание (0)
+		arenaPool: arena.NewArenaPool(16*1024, 0),
+	}
 }
 
 type CreateGameRequest struct {
@@ -1020,6 +1026,10 @@ func boardFromFEN(fen string) (*chess.Game, error) {
 }
 
 func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *int, playerSessionID *string, payload *MakeMovePayload) (*models.Game, *models.Move, error) {
+	// Получаем арену из пула для работы в рамках этого запроса
+	mem := s.arenaPool.Get()
+	defer s.arenaPool.Put(mem)
+
 	var game models.Game
 	var dbMove *models.Move
 
@@ -1041,11 +1051,12 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 			return fmt.Errorf("game already finished")
 		}
 
-		// Парсим metadata для проверки анонимных игроков
+		// Парсим metadata для проверки анонимных игроков в арене
 		var metadata map[string]interface{}
 		if len(game.Metadata) > 0 {
+			// Используем арену для временного маппинга если нужно (хотя json.Unmarshal аллоцирует сам, 
+			// мы можем оптимизировать последующую работу если бы у нас был арена-совместимый парсер)
 			if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
-				// Failed to unmarshal metadata
 				metadata = make(map[string]interface{})
 			}
 		} else {
@@ -1206,24 +1217,24 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 			return fmt.Errorf("failed to marshal clocks_after: %w", err)
 		}
 
-		move := models.Move{
-			GameID:      gameID,
-			MoveIndex:   moveIndex,
-			UCI:         payload.UCI,
-			SAN:         &san,
-			FenAfter:    newFEN,
-			PlayerID:    playerID,
-			ClocksAfter: clocksAfterJSON,
-			IsCapture:   isCapture,
-			Promotion:   payload.Promotion,
-			CreatedAt:   moveCreatedAt,
-		}
+		// Создаем запись хода в арене
+		move := arena.New[models.Move](mem)
+		move.GameID = gameID
+		move.MoveIndex = moveIndex
+		move.UCI = payload.UCI
+		move.SAN = &san
+		move.FenAfter = newFEN
+		move.PlayerID = playerID
+		move.ClocksAfter = clocksAfterJSON
+		move.IsCapture = isCapture
+		move.Promotion = payload.Promotion
+		move.CreatedAt = moveCreatedAt
 
-		if err := tx.Create(&move).Error; err != nil {
+		if err := tx.Create(move).Error; err != nil {
 			return fmt.Errorf("failed to insert move: %w", err)
 		}
 
-		dbMove = &move
+		dbMove = move
 
 		// Обновляем игру
 		newNextTurn := models.SideBlack

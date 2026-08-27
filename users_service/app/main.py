@@ -12,7 +12,7 @@ from common import configure_observability, setup_logging
 
 from .config import get_settings
 from .database import get_db, sync_engine
-from .routers import friendships_router, internal_users_router, ratings_router, users_router
+from .routers import internal_users_router, ratings_router, schools_router, users_router
 from .routers.users import close_games_client
 
 
@@ -124,8 +124,8 @@ configure_observability(
 )
 
 app.include_router(users_router)
-app.include_router(friendships_router)
 app.include_router(internal_users_router)
 app.include_router(ratings_router)
+app.include_router(schools_router)
 
 

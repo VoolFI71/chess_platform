@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/yourorg/computer_games_service/internal/realtime"
 	"github.com/yourorg/computer_games_service/internal/services"
 )
 
@@ -108,5 +109,52 @@ func getMoves(service *services.ComputerGameService) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, moves)
+	}
+}
+
+// resignComputerGame сдаётся в партии с компьютером
+func resignComputerGame(service *services.ComputerGameService, wsManager *realtime.Manager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		gameIDStr := c.Param("game_id")
+		gameID, err := uuid.Parse(gameIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game_id"})
+			return
+		}
+
+		var playerID *int
+		var playerSessionID *string
+
+		if userID, ok := c.Get("user_id"); ok {
+			if id, ok := userID.(int); ok {
+				playerID = &id
+			}
+		}
+		if sessionID, ok := c.Get("session_id"); ok {
+			if sid, ok := sessionID.(string); ok {
+				playerSessionID = &sid
+			}
+		}
+
+		if playerID == nil && playerSessionID == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication or session_id required"})
+			return
+		}
+
+		game, err := service.Resign(c.Request.Context(), gameID, playerID, playerSessionID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Broadcast через WebSocket для обновления у всех подключённых клиентов
+		if wsManager != nil {
+			wsManager.Broadcast(gameID.String(), map[string]interface{}{
+				"type": "game_update",
+				"game": game,
+			})
+		}
+
+		c.JSON(http.StatusOK, game)
 	}
 }

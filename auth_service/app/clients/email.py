@@ -28,7 +28,7 @@ async def get_email_client() -> httpx.AsyncClient:
 				base_url = settings.email_service_url.rstrip("/")
 				timeout = httpx.Timeout(connect=2.0, read=10.0, write=10.0, pool=10.0)
 				limits = httpx.Limits(max_connections=20, max_keepalive_connections=5)
-				headers: dict[str, Any] = {"Authorization": f"Bearer {settings.email_internal_token}"}
+				headers: dict[str, Any] = {"X-Internal-Token": settings.email_internal_token}
 
 				_email_client = httpx.AsyncClient(
 					base_url=base_url,

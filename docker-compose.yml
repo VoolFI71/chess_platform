@@ -77,8 +77,6 @@ services:
         condition: service_completed_successfully
       auth:
         condition: service_started
-      courses:
-        condition: service_started
     env_file:
       - .env
     environment:
@@ -87,74 +85,18 @@ services:
       - "8000"
     restart: unless-stopped
 
-  enrollments:
-    build:
-      context: .
-      dockerfile: enrollments_service/Dockerfile
-    depends_on:
-      db:
-        condition: service_started
-      migrations:
-        condition: service_completed_successfully
-      auth:
-        condition: service_started
-      courses:
-        condition: service_started
-    env_file:
-      - .env
-    environment:
-      METRICS_ENABLED: "true"
-      ENROLLMENTS_INTERNAL_TOKEN: ${ENROLLMENTS_INTERNAL_TOKEN}
+  redis:
+    image: redis:7-alpine
     expose:
-      - "8000"
-    restart: unless-stopped
-
-  courses:
-    build:
-      context: .
-      dockerfile: courses_service/Dockerfile
-    depends_on:
-      db:
-        condition: service_started
-      migrations:
-        condition: service_completed_successfully
-    env_file:
-      - .env
-    environment:
-      METRICS_ENABLED: "true"
-      ENROLLMENTS_SERVICE_URL: http://enrollments:8000
-      ENROLLMENTS_INTERNAL_TOKEN: ${ENROLLMENTS_INTERNAL_TOKEN}
-    expose:
-      - "8000"
-    restart: unless-stopped
-
-  lessons:
-    build:
-      context: .
-      dockerfile: lessons_service/Dockerfile
-    depends_on:
-      db:
-        condition: service_started
-      migrations:
-        condition: service_completed_successfully
-      courses:
-        condition: service_started
-      enrollments:
-        condition: service_started
-    env_file:
-      - .env
-    environment:
-      METRICS_ENABLED: "true"
-      ENROLLMENTS_SERVICE_URL: http://enrollments:8000
-      ENROLLMENTS_INTERNAL_TOKEN: ${ENROLLMENTS_INTERNAL_TOKEN}
-    expose:
-      - "8000"
+      - "6379"
+    volumes:
+      - redis-data:/data
     restart: unless-stopped
 
   games:
     build:
-      context: ./games_service_go
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: games_service_go/Dockerfile
     depends_on:
       db:
         condition: service_started
@@ -162,12 +104,15 @@ services:
         condition: service_completed_successfully
       users:
         condition: service_started
+      redis:
+        condition: service_started
     env_file:
       - .env
     environment:
       DATABASE_URL: postgresql://chess:chess@db:5432/chess?sslmode=disable
       PORT: 8000
       JWT_SECRET: ${JWT_SECRET}
+      REDIS_URL: redis://redis:6379/0
       METRICS_ENABLED: "true"
     expose:
       - "8000"
@@ -175,8 +120,8 @@ services:
 
   computer_games:
     build:
-      context: ./computer_games_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: computer_games_service/Dockerfile
     depends_on:
       db:
         condition: service_started
@@ -200,8 +145,8 @@ services:
 
   email:
     build:
-      context: ./email_service_go
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: email_service_go/Dockerfile
     depends_on:
       db:
         condition: service_started
@@ -270,12 +215,6 @@ services:
         condition: service_started
       auth:
         condition: service_started
-      enrollments:
-        condition: service_started
-      courses:
-        condition: service_started
-      lessons:
-        condition: service_started
       payments:
         condition: service_started
       games:
@@ -306,12 +245,6 @@ services:
       auth:
         condition: service_started
       users:
-        condition: service_started
-      courses:
-        condition: service_started
-      enrollments:
-        condition: service_started
-      lessons:
         condition: service_started
       payments:
         condition: service_started
@@ -466,6 +399,7 @@ services:
 
 volumes:
   pgdata:
+  redis-data:
   loki-data:
   grafana-data:
   prometheus-data:

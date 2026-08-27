@@ -21,7 +21,6 @@ class Order(Base):
 
 	id: Mapped[int] = mapped_column(Integer, primary_key=True)
 	user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
-	course_id: Mapped[int | None] = mapped_column(ForeignKey("courses.id", ondelete="SET NULL"), nullable=True, index=True)
 	amount_cents: Mapped[int] = mapped_column(Integer, nullable=False)
 	currency: Mapped[str] = mapped_column(String(3), nullable=False, default="RUB")
 	provider: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")

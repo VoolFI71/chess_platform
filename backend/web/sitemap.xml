@@ -38,13 +38,6 @@
         <changefreq>daily</changefreq>
         <priority>0.7</priority>
     </url>
-    <!-- Курсы -->
-    <url>
-        <loc>https://chessmint.ru/course</loc>
-        <lastmod>2025-01-21</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
     <!-- Тренеры -->
     <url>
         <loc>https://chessmint.ru/coach</loc>

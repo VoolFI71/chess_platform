@@ -424,6 +424,10 @@
                                 </button>
                             </div>
                             <div class="custom-game-container">
+                                <button type="button" class="btn btn-primary btn-find-opponent" id="findOpponentBtn" style="display:none;">
+                                    <i class="fas fa-search" aria-hidden="true"></i>
+                                    Найти соперника
+                                </button>
                                 <a href="/games/computer" class="btn btn-primary" id="playComputerBtn">
                                     <i class="fas fa-robot" aria-hidden="true"></i>
                                     Играть с компьютером
@@ -800,6 +804,23 @@
         </div>
     </div>
 
+    <!-- Matchmaking Overlay -->
+    <div class="matchmaking-overlay" id="matchmakingOverlay">
+        <div class="matchmaking-modal">
+            <div class="matchmaking-spinner">
+                <i class="fas fa-circle-notch fa-spin"></i>
+            </div>
+            <div class="matchmaking-info">
+                <span id="matchmakingTimeLabel" class="matchmaking-time-label"></span>
+                <span id="matchmakingStatusText" class="matchmaking-status">Ищем соперника...</span>
+                <span id="matchmakingTimer" class="matchmaking-timer">0:00</span>
+            </div>
+            <button type="button" class="btn btn-outline matchmaking-cancel" id="matchmakingCancelBtn">
+                <i class="fas fa-times"></i> Отменить
+            </button>
+        </div>
+    </div>
+
     <!-- Common Auth Script (must load first) -->
     <script src="/scripts/auth.js" defer></script>
     <script src="/scripts/mobile-menu.js" defer></script>
@@ -816,6 +837,7 @@
     <script src="/scripts/games/games-auth-ui.js" defer></script>
     <script src="/scripts/games/games-tabs.js" defer></script>
     <script src="/scripts/games/games-lobby.js" defer></script>
+    <script src="/scripts/games/matchmaking.js" defer></script>
     <script src="/scripts/games/games-init.js" defer></script>
     <script src="/scripts/form-utils.js" defer></script>
     <script src="/scripts/games-forms.js" defer></script>

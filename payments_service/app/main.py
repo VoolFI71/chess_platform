@@ -42,7 +42,7 @@ def _wait_for_tables(tables: tuple[str, ...], timeout: float = 60.0) -> None:
 
 def apply_migrations() -> None:
 	logger.info("Waiting for dependent tables before applying migrations...")
-	_wait_for_tables(("users", "courses"))
+	_wait_for_tables(("users",))
 	logger.info("Applying database migrations...")
 	alembic_cfg = AlembicConfig(str(ALEMBIC_INI_PATH))
 	alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)

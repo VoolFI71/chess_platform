@@ -96,7 +96,7 @@ GET /health
 ### Отправка приветственного письма
 ```http
 POST /api/emails/send-welcome
-Authorization: Bearer <INTERNAL_TOKEN>
+X-Internal-Token: <INTERNAL_TOKEN>
 Content-Type: application/json
 
 {
@@ -109,7 +109,7 @@ Content-Type: application/json
 ### Отправка письма восстановления пароля
 ```http
 POST /api/emails/send-password-reset
-Authorization: Bearer <INTERNAL_TOKEN>
+X-Internal-Token: <INTERNAL_TOKEN>
 Content-Type: application/json
 
 {
@@ -123,7 +123,7 @@ Content-Type: application/json
 ### Отправка письма с кодом верификации (6-значный код)
 ```http
 POST /api/emails/send-verification-code
-Authorization: Bearer <INTERNAL_TOKEN>
+X-Internal-Token: <INTERNAL_TOKEN>
 Content-Type: application/json
 
 {
@@ -163,7 +163,7 @@ async def register(user_in: UserCreate) -> UserOut:
                 "email": email,
                 "username": username,
             },
-            headers={"Authorization": f"Bearer {INTERNAL_TOKEN}"},
+            headers={"X-Internal-Token": INTERNAL_TOKEN},
             timeout=5.0
         )
     except Exception as e:
@@ -205,7 +205,7 @@ docker-compose -f docker-compose.local.yml up email
 
 ```bash
 curl -X POST http://localhost:8080/api/emails/send-welcome \
-  -H "Authorization: Bearer YOUR_INTERNAL_TOKEN" \
+  -H "X-Internal-Token: YOUR_INTERNAL_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -218,7 +218,7 @@ curl -X POST http://localhost:8080/api/emails/send-welcome \
 
 ```bash
 curl -X POST http://localhost:8080/api/emails/send-password-reset \
-  -H "Authorization: Bearer YOUR_INTERNAL_TOKEN" \
+  -H "X-Internal-Token: YOUR_INTERNAL_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",

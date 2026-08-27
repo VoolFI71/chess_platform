@@ -59,6 +59,8 @@ async def create_user(data: InternalUserCreate, db: AsyncSession = Depends(get_d
 		email=email,
 		username=username,
 		hashed_password=data.hashed_password,
+		school_id=data.school_id if data.school_id is not None else 1,
+		role="student",
 	)
 	db.add(user)
 	await db.commit()

@@ -74,18 +74,33 @@
 
   async function resignGame() {
     if (!state.selectedGameId) return;
-    if (!state.currentUser) {
-      if (window.showToast) window.showToast('Сначала войдите в аккаунт', 'error');
+    const role = window.getCurrentUserRole ? window.getCurrentUserRole() : null;
+    if (!role) {
+      if (window.showToast) window.showToast('Вы не участник этой партии', 'error');
       return;
     }
     if (!confirm('Точно сдаться?')) return;
     try {
-      const res = await window.authedFetch(`/api/games/${state.selectedGameId}/resign`, { method: 'POST' });
+      const isAuth =
+        typeof window.isAuthenticated === 'function'
+          ? window.isAuthenticated()
+          : window.getAccessToken && window.getAccessToken();
+      let res;
+      if (isAuth) {
+        res = await window.authedFetch(`/api/games/${state.selectedGameId}/resign`, { method: 'POST' });
+      } else {
+        const headers =
+          typeof window.getAnonymousHeaders === 'function' ? window.getAnonymousHeaders() : {};
+        res = await fetch(`/api/games/${state.selectedGameId}/resign`, { method: 'POST', headers });
+      }
       if (!res.ok) throw new Error(await res.text());
       const detail = await res.json();
       state.selectedGame = detail;
+      state.moves = detail.moves || [];
       state.lastStateTimestamp = Date.now();
+      if (window.ensureUsernamesForGames) await window.ensureUsernamesForGames([detail]);
       if (window.renderGameDetail) window.renderGameDetail();
+      if (window.loadGames) window.loadGames(false);
       if (window.showToast) window.showToast('Вы сдались.');
     } catch (err) {
       if (window.showToast) window.showToast('Не удалось сдаться: ' + (err.message || ''), 'error');

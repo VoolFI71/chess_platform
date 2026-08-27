@@ -12,7 +12,14 @@
 
     updateWsIndicator('offline');
     const token = window.getAccessToken ? window.getAccessToken() : '';
-    const url = window.WebSocketUtils.createWebSocketUrl(`/ws/games/${gameId}`, token ? { token } : {});
+    const params = {};
+    if (token) {
+      params.token = token;
+    } else if (typeof window.getSessionId === 'function') {
+      const sid = window.getSessionId();
+      if (sid) params.session_id = sid;
+    }
+    const url = window.WebSocketUtils.createWebSocketUrl(`/ws/games/${gameId}`, params);
 
     wsConnection = window.WebSocketUtils.createWebSocketConnection({
       url,

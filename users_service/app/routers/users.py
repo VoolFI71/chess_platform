@@ -35,6 +35,57 @@ async def get_current_user_profile(
 	return build_user_public(user)
 
 
+@router.get("/me/stats", response_model=UserGameStats)
+async def get_my_stats(
+	current_user_id: Annotated[int, Depends(get_current_user_id)],
+	db: AsyncSession = Depends(get_db),
+) -> UserGameStats:
+	"""Получить статистику текущего пользователя"""
+	return await _get_user_stats_by_id(current_user_id, db)
+
+
+@router.get("/search", response_model=UserSearchResponse)
+async def search_users(
+	q: Annotated[str, Query(min_length=2, max_length=50, description="Поисковый запрос (username)")],
+	limit: Annotated[int, Query(ge=1, le=50)] = 20,
+	offset: Annotated[int, Query(ge=0)] = 0,
+	db: AsyncSession = Depends(get_db),
+) -> UserSearchResponse:
+	"""Поиск пользователей по username (case-insensitive, частичное совпадение)"""
+	search_term = q.strip().lower()
+	if len(search_term) < 2:
+		return UserSearchResponse(users=[], total=0)
+	stmt = (
+		select(User, func.count(User.id).over().label("total"))
+		.where(
+			func.lower(User.username).contains(search_term),
+			User.is_active == True
+		)
+		.order_by(User.username)
+		.limit(limit)
+		.offset(offset)
+	)
+	result = await db.execute(stmt)
+	rows = result.all()
+	if not rows:
+		return UserSearchResponse(users=[], total=0)
+	total = rows[0].total if rows else 0
+	users = [build_user_public(row.User) for row in rows]
+	return UserSearchResponse(users=users, total=total)
+
+
+@router.get("/stats/aggregate")
+async def get_aggregate_stats(
+	db: AsyncSession = Depends(get_db),
+) -> dict:
+	"""Получить общую статистику по всем пользователям (публичный endpoint)"""
+	total_users_result = await db.execute(
+		select(func.count(User.id)).where(User.is_active == True)
+	)
+	total_users = total_users_result.scalar() or 0
+	return {"total_users": int(total_users)}
+
+
 @router.get("/{identifier}", response_model=UserPublic)
 async def get_user(
 	identifier: str,
@@ -131,15 +182,6 @@ async def _get_user_stats_by_id(user_id: int, db: AsyncSession) -> UserGameStats
 		)
 
 
-@router.get("/me/stats", response_model=UserGameStats)
-async def get_my_stats(
-	current_user_id: Annotated[int, Depends(get_current_user_id)],
-	db: AsyncSession = Depends(get_db),
-) -> UserGameStats:
-	"""Получить статистику текущего пользователя"""
-	return await _get_user_stats_by_id(current_user_id, db)
-
-
 @router.get("/{identifier}/stats", response_model=UserGameStats)
 async def get_user_stats(
 	identifier: str,
@@ -162,55 +204,3 @@ async def get_user_stats(
 		user_id = user_row[0]
 	
 	return await _get_user_stats_by_id(user_id, db)
-
-
-@router.get("/search", response_model=UserSearchResponse)
-async def search_users(
-	q: Annotated[str, Query(min_length=2, max_length=50, description="Поисковый запрос (username)")],
-	limit: Annotated[int, Query(ge=1, le=50)] = 20,
-	offset: Annotated[int, Query(ge=0)] = 0,
-	db: AsyncSession = Depends(get_db),
-) -> UserSearchResponse:
-	"""Поиск пользователей по username (case-insensitive, частичное совпадение)"""
-	search_term = q.strip().lower()
-	if len(search_term) < 2:
-		return UserSearchResponse(users=[], total=0)
-	
-	# Поиск по username (case-insensitive, частичное совпадение)
-	stmt = (
-		select(User, func.count(User.id).over().label("total"))
-		.where(
-			func.lower(User.username).contains(search_term),
-			User.is_active == True
-		)
-		.order_by(User.username)
-		.limit(limit)
-		.offset(offset)
-	)
-	
-	result = await db.execute(stmt)
-	rows = result.all()
-	
-	if not rows:
-		return UserSearchResponse(users=[], total=0)
-	
-	total = rows[0].total if rows else 0
-	users = [build_user_public(row.User) for row in rows]
-	
-	return UserSearchResponse(users=users, total=total)
-
-
-@router.get("/stats/aggregate")
-async def get_aggregate_stats(
-	db: AsyncSession = Depends(get_db),
-) -> dict:
-	"""Получить общую статистику по всем пользователям (публичный endpoint)"""
-	# Общее количество активных пользователей
-	total_users_result = await db.execute(
-		select(func.count(User.id)).where(User.is_active == True)
-	)
-	total_users = total_users_result.scalar() or 0
-	
-	return {
-		"total_users": int(total_users),
-	}

@@ -2,28 +2,28 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
 	"github.com/yourorg/games_service_go/internal/config"
-	"github.com/yourorg/games_service_go/internal/database"
 	"github.com/yourorg/games_service_go/internal/models"
 	"github.com/yourorg/games_service_go/internal/realtime"
 	"github.com/yourorg/games_service_go/internal/services"
+	"github.com/yourorg/go_shared/middleware"
 )
 
 // createUpgrader создает WebSocket upgrader с валидацией origin
 func createUpgrader(allowedOrigins []string) websocket.Upgrader {
 	allowedSet := make(map[string]bool)
 	for _, origin := range allowedOrigins {
-		allowedSet[origin] = true
+		origin = strings.TrimRight(strings.TrimSpace(origin), "/")
+		if origin != "" {
+			allowedSet[origin] = true
+		}
 	}
 
 	return websocket.Upgrader{
@@ -31,13 +31,9 @@ func createUpgrader(allowedOrigins []string) websocket.Upgrader {
 		WriteBufferSize: 1024,
 		// ReadLimit устанавливается отдельно на каждое соединение
 		CheckOrigin: func(r *http.Request) bool {
-			origin := r.Header.Get("Origin")
+			origin := strings.TrimRight(strings.TrimSpace(r.Header.Get("Origin")), "/")
 			if origin == "" {
 				// Разрешаем запросы без Origin заголовка (например, из браузера с тем же origin)
-				return true
-			}
-			// Если список разрешенных origins пуст, разрешаем все (для разработки)
-			if len(allowedSet) == 0 {
 				return true
 			}
 			return allowedSet[origin]
@@ -45,78 +41,8 @@ func createUpgrader(allowedOrigins []string) websocket.Upgrader {
 	}
 }
 
-// validateJWT валидирует JWT токен и возвращает user ID
-func validateJWT(tokenString, secret string) (int, error) {
-	// Убираем "Bearer " префикс если есть
-	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
-	tokenString = strings.TrimSpace(tokenString)
-
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return []byte(secret), nil
-	})
-
-	if err != nil {
-		return 0, err
-	}
-
-	if !token.Valid {
-		return 0, jwt.ErrSignatureInvalid
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return 0, jwt.ErrInvalidKey
-	}
-
-	// Извлекаем user_id из claims
-	// В Python версии sub хранится как строка, поэтому пробуем сначала string
-	var userID int
-	var found bool
-
-	// Пробуем sub как строку (стандартный формат в Python версии)
-	if subStr, okStr := claims["sub"].(string); okStr {
-		if parsed, err := strconv.Atoi(subStr); err == nil {
-			userID = parsed
-			found = true
-		}
-	} else if subFloat, okFloat := claims["sub"].(float64); okFloat {
-		// Если sub - число (float64)
-		userID = int(subFloat)
-		found = true
-	} else if subInt, okInt := claims["sub"].(int); okInt {
-		// Если sub - int
-		userID = subInt
-		found = true
-	}
-
-	// Если sub не сработал, пробуем user_id
-	if !found {
-		if uidStr, okStr := claims["user_id"].(string); okStr {
-			if parsed, err := strconv.Atoi(uidStr); err == nil {
-				userID = parsed
-				found = true
-			}
-		} else if uidFloat, okFloat := claims["user_id"].(float64); okFloat {
-			userID = int(uidFloat)
-			found = true
-		} else if uidInt, okInt := claims["user_id"].(int); okInt {
-			userID = uidInt
-			found = true
-		}
-	}
-
-	if !found {
-		return 0, fmt.Errorf("user_id not found in token claims (sub or user_id)")
-	}
-
-	return userID, nil
-}
-
 // handleWebSocketWithUpgrader обрабатывает WebSocket соединения с кастомным upgrader
-func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.ConnectionManager, cfg *config.Config, wsUpgrader websocket.Upgrader) gin.HandlerFunc {
+func handleWebSocketWithUpgrader(gameService *services.GameService, wsManager *realtime.ConnectionManager, cfg *config.Config, wsUpgrader websocket.Upgrader) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		gameIDStr := c.Param("game_id")
 		gameID, err := uuid.Parse(gameIDStr)
@@ -132,7 +58,7 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 
 		// Валидация JWT токена
 		if token != "" {
-			uid, err := validateJWT(token, cfg.JWTSecret)
+			uid, err := middleware.ValidateJWT(token, cfg.JWTSecret, cfg.JWTAlgorithm)
 			if err == nil {
 				userID = &uid
 			} else {
@@ -161,11 +87,10 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 		// Устанавливаем лимит чтения для защиты от больших сообщений (512KB)
 		ws.SetReadLimit(512 * 1024)
 
-		service := services.NewGameService(db)
 		ctx := c.Request.Context()
 
 		// Загружаем игру
-		gameDetail, err := service.GetGame(ctx, gameID)
+		gameDetail, err := gameService.GetGame(ctx, gameID)
 		if err != nil {
 			// Failed to get game
 			ws.WriteJSON(map[string]interface{}{
@@ -244,8 +169,8 @@ func handleWebSocketWithUpgrader(db *database.DB, wsManager *realtime.Connection
 				continue
 			}
 
-			// Обработка хода через service.MakeMove()
-			updatedGame, move, err := service.MakeMove(ctx, gameID, userID, playerSessionID, &payload)
+			// Обработка хода через gameService.MakeMove()
+			updatedGame, move, err := gameService.MakeMove(ctx, gameID, userID, playerSessionID, &payload)
 			if err != nil {
 				// Move rejected
 				wsManager.SendPersonal(ws, map[string]interface{}{

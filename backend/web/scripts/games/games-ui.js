@@ -283,9 +283,19 @@
   };
 
   const getCurrentUserRole = () => {
-    if (!state.currentUser || !state.selectedGame) return null;
-    if (state.currentUser.id === state.selectedGame.white_id) return 'white';
-    if (state.currentUser.id === state.selectedGame.black_id) return 'black';
+    if (!state.selectedGame) return null;
+    if (state.currentUser) {
+      if (state.currentUser.id === state.selectedGame.white_id) return 'white';
+      if (state.currentUser.id === state.selectedGame.black_id) return 'black';
+      return null;
+    }
+    // Анонимный участник по session_id в metadata (как в join)
+    if (typeof window.getSessionId !== 'function') return null;
+    const sid = window.getSessionId();
+    if (!sid) return null;
+    const meta = state.selectedGame.metadata || {};
+    if (meta.white_session_id === sid) return 'white';
+    if (meta.black_session_id === sid) return 'black';
     return null;
   };
 

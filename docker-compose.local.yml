@@ -5,8 +5,11 @@ services:
       POSTGRES_DB: chess
       POSTGRES_USER: chess
       POSTGRES_PASSWORD: chess
-    ports:
-      - "5432:5432"
+    # Порт на хост НЕ пробрасываем: на Windows 5432/5433 часто в excludedportrange → ошибка bind.
+    # Подключение с хоста: docker compose -f docker-compose.local.yml exec db psql -U chess -d chess
+    # Или раскомментируйте проброс на высокий порт, если нужен DBeaver:
+    # ports:
+    #   - "15432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -29,12 +32,6 @@ services:
       minio:
         condition: service_started
       auth:
-        condition: service_started
-      courses:
-        condition: service_started
-      enrollments:
-        condition: service_started
-      lessons:
         condition: service_started
       games:
         condition: service_started
@@ -93,64 +90,18 @@ services:
       USERS_SERVICE_URL: http://users:8000
     restart: unless-stopped
 
-  enrollments:
-    build:
-      context: .
-      dockerfile: enrollments_service/Dockerfile
-    depends_on:
-      db:
-        condition: service_started
-      migrations:
-        condition: service_completed_successfully
-    env_file:
-      - .env
-    environment:
-      METRICS_ENABLED: "true"
-      ENROLLMENTS_INTERNAL_TOKEN: enrollments-secret
-    restart: unless-stopped
-
-  courses:
-    build:
-      context: .
-      dockerfile: courses_service/Dockerfile
-    depends_on:
-      db:
-        condition: service_started
-      migrations:
-        condition: service_completed_successfully
-      enrollments:
-        condition: service_started
-    env_file:
-      - .env
-    environment:
-      METRICS_ENABLED: "true"
-      ENROLLMENTS_SERVICE_URL: http://enrollments:8000
-      ENROLLMENTS_INTERNAL_TOKEN: enrollments-secret
-    restart: unless-stopped
-
-  lessons:
-    build:
-      context: .
-      dockerfile: lessons_service/Dockerfile
-    depends_on:
-      db:
-        condition: service_started
-      migrations:
-        condition: service_completed_successfully
-      enrollments:
-        condition: service_started
-    env_file:
-      - .env
-    environment:
-      METRICS_ENABLED: "true"
-      ENROLLMENTS_SERVICE_URL: http://enrollments:8000
-      ENROLLMENTS_INTERNAL_TOKEN: enrollments-secret
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
     restart: unless-stopped
 
   games:
     build:
-      context: ./games_service_go
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: games_service_go/Dockerfile
     depends_on:
       db:
         condition: service_started
@@ -158,12 +109,15 @@ services:
         condition: service_completed_successfully
       users:
         condition: service_started
+      redis:
+        condition: service_started
     env_file:
       - .env
     environment:
       DATABASE_URL: postgresql://chess:chess@db:5432/chess?sslmode=disable
       PORT: 8000
-      JWT_SECRET: ${JWT_SECRET:-default-secret-key-change-in-production}
+      JWT_SECRET: ${JWT_SECRET}
+      REDIS_URL: redis://redis:6379/0
       METRICS_ENABLED: "true"
     expose:
       - "8000"
@@ -171,8 +125,8 @@ services:
 
   computer_games:
     build:
-      context: ./computer_games_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: computer_games_service/Dockerfile
     depends_on:
       db:
         condition: service_started
@@ -183,7 +137,7 @@ services:
     environment:
       DATABASE_URL: postgresql://chess:chess@db:5432/chess?sslmode=disable
       PORT: 8000
-      JWT_SECRET: ${JWT_SECRET:-default-secret-key-change-in-production}
+      JWT_SECRET: ${JWT_SECRET}
       COMPUTER_GAMES_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
       STOCKFISH_PATH: /usr/bin/stockfish
       AI_DEFAULT_SKILL_LEVEL: 5
@@ -195,8 +149,8 @@ services:
 
   email:
     build:
-      context: ./email_service_go
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: email_service_go/Dockerfile
     depends_on:
       db:
         condition: service_started
@@ -256,10 +210,7 @@ services:
       - api
       - auth
       - users
-      - courses
-      - enrollments
       - payments
-      - lessons
       - games
       - computer_games
       - email
@@ -386,9 +337,9 @@ services:
 
 volumes:
   pgdata:
+  redis-data:
   minio-data:
   kafka-data:
   grafana-data:
   loki-data:
-
 

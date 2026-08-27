@@ -4,13 +4,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yourorg/email_service_go/internal/config"
+	"github.com/yourorg/go_shared/middleware"
 )
 
 func NewRouter(cfg *config.Config) *gin.Engine {
 	router := gin.Default()
 
-	// Добавляем middleware для метрик
-	router.Use(MetricsMiddleware())
+	router.Use(middleware.MetricsMiddleware())
 
 	// Health check
 	router.GET("/health", handleHealth)

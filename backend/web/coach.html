@@ -523,23 +523,6 @@
 
     <script src="/scripts/modal-utils.js"></script>
     <script>
-        // Load courses count from API
-        async function loadCoursesCount() {
-            try {
-                const response = await fetch('/api/courses/');
-                if (response.ok) {
-                    const courses = await response.json();
-                    const activeCourses = courses.filter(course => course.is_active);
-                    const coursesCountElement = document.getElementById('coursesCount');
-                    if (coursesCountElement) {
-                        coursesCountElement.textContent = activeCourses.length;
-                    }
-                }
-            } catch (error) {
-                console.error('Ошибка при загрузке количества курсов:', error);
-            }
-        }
-
         // Theme
         let isDark = false;
         function toggleTheme() {
@@ -605,7 +588,6 @@
 
         // Include common auth functions
         document.addEventListener('DOMContentLoaded', function() {
-            loadCoursesCount();
             loadTheme();
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function(e) {

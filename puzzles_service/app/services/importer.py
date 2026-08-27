@@ -17,6 +17,27 @@ from ..schemas import PuzzleImportResult
 logger = logging.getLogger(__name__)
 
 
+def row_from_upsert_dict(data: dict[str, Any]) -> dict[str, Any]:
+	"""Строка БД из тела PuzzleUpsertRequest (model_dump)."""
+	row: dict[str, Any] = {
+		"puzzle_id": data["puzzle_id"],
+		"fen": data["fen"],
+		"moves": data["moves"],
+		"move_count": len(data["moves"]),
+		"rating": data["rating"],
+		"rating_deviation": data["rating_deviation"],
+		"popularity": data["popularity"],
+		"nb_plays": data["nb_plays"],
+		"themes": data["themes"],
+		"opening_tags": data["opening_tags"],
+		"game_url": data["game_url"],
+		"source": data["source"],
+	}
+	if data.get("solved_count") is not None:
+		row["solved_count"] = data["solved_count"]
+	return row
+
+
 async def upsert_puzzles(session: AsyncSession, rows: list[dict[str, Any]]) -> dict[str, int]:
 	if not rows:
 		return {"imported": 0, "updated": 0, "skipped": 0, "total": 0}

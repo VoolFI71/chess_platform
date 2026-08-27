@@ -1793,3 +1793,77 @@ body.dark .mode-info-card {
     margin-top: 1rem;
 }
 
+/* ===== MATCHMAKING OVERLAY ===== */
+.matchmaking-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.matchmaking-overlay.active {
+    display: flex;
+}
+
+.matchmaking-modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    max-width: 360px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.matchmaking-spinner {
+    margin-bottom: 1.5rem;
+}
+
+.matchmaking-spinner i {
+    font-size: 3rem;
+    color: var(--primary);
+}
+
+.matchmaking-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.matchmaking-time-label {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.matchmaking-status {
+    font-size: 1rem;
+    color: var(--muted-foreground);
+}
+
+.matchmaking-timer {
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+.matchmaking-cancel {
+    width: 100%;
+}
+
+.btn-find-opponent {
+    background: var(--primary);
+    color: white;
+    border: none;
+    gap: 0.5rem;
+}
+

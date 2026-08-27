@@ -5,20 +5,20 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/yourorg/games_service_go/internal/config"
 	"github.com/yourorg/games_service_go/internal/database"
 	"github.com/yourorg/games_service_go/internal/realtime"
 	"github.com/yourorg/games_service_go/internal/services"
+	"github.com/yourorg/go_shared/middleware"
 )
 
-func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, statsManager *realtime.StatsConnectionManager, cfg *config.Config) *gin.Engine {
+func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, statsManager *realtime.StatsConnectionManager, cfg *config.Config, matchmakingSvc *services.MatchmakingService, mmConnManager *realtime.MatchmakingConnectionManager) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-	router.Use(MetricsMiddleware()) // Добавляем метрики для всех запросов
+	router.Use(middleware.MetricsMiddleware())
 
 	// Отключаем автоматические редиректы для trailing slash (как в FastAPI)
 	router.RedirectTrailingSlash = false
@@ -40,17 +40,29 @@ func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, statsMana
 	// API endpoints
 	// Nginx проксирует /api/games/ на http://games:8000, передавая путь как /api/games/
 	// Поэтому обрабатываем маршруты с префиксом /api/games/
+	authCfg := &middleware.AuthConfig{JWTSecret: cfg.JWTSecret, JWTAlgorithm: cfg.JWTAlgorithm}
+
 	api := router.Group("/api/games")
 	{
-		api.POST("", optionalAuthMiddleware(cfg), createGame(gameService))
-		api.POST("/", optionalAuthMiddleware(cfg), createGame(gameService))
+		api.POST("", middleware.OptionalAuthMiddleware(authCfg), createGame(gameService))
+		api.POST("/", middleware.OptionalAuthMiddleware(authCfg), createGame(gameService))
 		api.GET("", listGames(gameService))
 		api.GET("/", listGames(gameService))
 		api.GET("/:game_id", getGame(gameService))
-		api.POST("/:game_id/join", optionalAuthMiddleware(cfg), joinGame(gameService))
-		api.POST("/:game_id/resign", optionalAuthMiddleware(cfg), resignGame(gameService, wsManager))
-		api.POST("/:game_id/timeout", authMiddleware(cfg), timeoutGame(gameService))
+		api.POST("/:game_id/join", middleware.OptionalAuthMiddleware(authCfg), joinGame(gameService))
+		api.POST("/:game_id/resign", middleware.OptionalAuthMiddleware(authCfg), resignGame(gameService, wsManager))
+		api.POST("/:game_id/timeout", middleware.AuthMiddleware(authCfg), timeoutGame(gameService))
 		api.GET("/:game_id/moves", getMoves(gameService))
+	}
+
+	if matchmakingSvc != nil {
+		mm := router.Group("/api/matchmaking")
+		mm.Use(middleware.AuthMiddleware(authCfg))
+		{
+			mm.POST("/join", matchmakingJoin(matchmakingSvc))
+			mm.POST("/leave", matchmakingLeave(matchmakingSvc))
+			mm.GET("/status", matchmakingStatus(matchmakingSvc))
+		}
 	}
 
 	// Internal endpoints
@@ -70,76 +82,17 @@ func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, statsMana
 		}
 	}
 	wsUpgrader := createUpgrader(allowedOrigins)
-	router.GET("/ws/games/:game_id", handleWebSocketWithUpgrader(db, wsManager, cfg, wsUpgrader))
+	router.GET("/ws/games/:game_id", handleWebSocketWithUpgrader(gameService, wsManager, cfg, wsUpgrader))
 
 	// WebSocket endpoint для статистики онлайн
 	router.GET("/ws/stats", handleStatsWebSocket(statsManager, wsManager, wsUpgrader))
 
+	// WebSocket endpoint для matchmaking
+	if matchmakingSvc != nil && mmConnManager != nil {
+		router.GET("/ws/matchmaking", handleMatchmakingWebSocket(matchmakingSvc, mmConnManager, cfg, wsUpgrader))
+	}
+
 	return router
-}
-
-func authMiddleware(cfg *config.Config) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// JWT аутентификация
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			tokenString = c.Query("token")
-		}
-
-		if tokenString == "" {
-			// No token provided
-			c.JSON(401, gin.H{"error": "unauthorized"})
-			c.Abort()
-			return
-		}
-
-		// Валидация JWT токена
-		userID, err := validateJWT(tokenString, cfg.JWTSecret)
-		if err != nil {
-			// Token validation failed
-			c.JSON(401, gin.H{"error": "invalid token"})
-			c.Abort()
-			return
-		}
-
-		c.Set("user_id", userID)
-		c.Next()
-	}
-}
-
-// optionalAuthMiddleware - опциональный middleware, который позволяет анонимных пользователей через X-Session-ID
-func optionalAuthMiddleware(cfg *config.Config) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Проверяем JWT токен
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			tokenString = c.Query("token")
-		}
-
-		if tokenString != "" {
-			// Валидация JWT токена
-			userID, err := validateJWT(tokenString, cfg.JWTSecret)
-			if err == nil {
-				c.Set("user_id", userID)
-				c.Next()
-				return
-			}
-		}
-
-		// Если нет токена, проверяем session_id для анонимных пользователей
-		sessionID := c.GetHeader("X-Session-ID")
-		if sessionID != "" {
-			// Валидируем формат UUID
-			if _, err := uuid.Parse(sessionID); err == nil {
-				c.Set("session_id", sessionID)
-				c.Next()
-				return
-			}
-		}
-
-		// Если нет ни токена, ни session_id - продолжаем без аутентификации (для просмотра)
-		c.Next()
-	}
 }
 
 func internalAuthMiddleware(cfg *config.Config) gin.HandlerFunc {

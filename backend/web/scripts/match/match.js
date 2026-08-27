@@ -1954,7 +1954,18 @@
     }
     if (!confirm('Подтвердите сдачу партии')) return;
     try {
-      const res = await authedFetch(`/api/games/${state.matchId}/resign`, { method: 'POST' });
+      const isAuth =
+        typeof window.isAuthenticated === 'function'
+          ? window.isAuthenticated()
+          : window.getAccessToken && window.getAccessToken();
+      let res;
+      if (isAuth) {
+        res = await authedFetch(`/api/games/${state.matchId}/resign`, { method: 'POST' });
+      } else {
+        const headers =
+          typeof window.getAnonymousHeaders === 'function' ? window.getAnonymousHeaders() : {};
+        res = await fetch(`/api/games/${state.matchId}/resign`, { method: 'POST', headers });
+      }
       if (!res.ok) throw new Error(await res.text());
       const detail = await res.json();
       applyGameDetail(detail);

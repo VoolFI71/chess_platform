@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	sharedcfg "github.com/yourorg/go_shared/config"
 )
 
 type Config struct {
@@ -44,16 +46,9 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	// Port
-	port := 8000
-	if portStr := os.Getenv("PORT"); portStr != "" {
-		if p, err := strconv.Atoi(portStr); err == nil {
-			port = p
-		}
-	}
+	port := sharedcfg.ParsePort(8000)
 
-	// SMTP Configuration
-	smtpHost := getEnvOrDefault("SMTP_HOST", "smtp.gmail.com")
+	smtpHost := sharedcfg.GetEnvOrDefault("SMTP_HOST", "smtp.gmail.com")
 	smtpPort := 587
 	if portStr := os.Getenv("SMTP_PORT"); portStr != "" {
 		if p, err := strconv.Atoi(portStr); err == nil {
@@ -63,15 +58,13 @@ func Load() (*Config, error) {
 
 	smtpUser := os.Getenv("SMTP_USER")
 	smtpPassword := os.Getenv("SMTP_PASSWORD")
-	smtpFromEmail := getEnvOrDefault("SMTP_FROM_EMAIL", "noreply@chessmint.ru")
-	smtpFromName := getEnvOrDefault("SMTP_FROM_NAME", "ChessMint")
+	smtpFromEmail := sharedcfg.GetEnvOrDefault("SMTP_FROM_EMAIL", "noreply@chessmint.ru")
+	smtpFromName := sharedcfg.GetEnvOrDefault("SMTP_FROM_NAME", "ChessMint")
 
-	// Email Provider
-	emailProvider := getEnvOrDefault("EMAIL_PROVIDER", "smtp")
+	emailProvider := sharedcfg.GetEnvOrDefault("EMAIL_PROVIDER", "smtp")
 
-	// Frontend URLs
-	frontendURL := getEnvOrDefault("FRONTEND_URL", "http://localhost:8080")
-	frontendResetPasswordPath := getEnvOrDefault("FRONTEND_RESET_PASSWORD_PATH", "/reset-password")
+	frontendURL := sharedcfg.GetEnvOrDefault("FRONTEND_URL", "http://localhost:8080")
+	frontendResetPasswordPath := sharedcfg.GetEnvOrDefault("FRONTEND_RESET_PASSWORD_PATH", "/reset-password")
 
 	// Internal Token
 	internalToken := os.Getenv("INTERNAL_TOKEN")
@@ -96,7 +89,7 @@ func Load() (*Config, error) {
 		AWSRegion:                 os.Getenv("AWS_REGION"),
 		AWSAccessKeyID:            os.Getenv("AWS_ACCESS_KEY_ID"),
 		AWSSecretAccessKey:        os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		MetricsEnabled:            getEnvOrDefault("METRICS_ENABLED", "false") == "true",
+		MetricsEnabled:            sharedcfg.GetEnvOrDefault("METRICS_ENABLED", "false") == "true",
 	}
 
 	// Валидация обязательных полей для SMTP
@@ -110,11 +103,4 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

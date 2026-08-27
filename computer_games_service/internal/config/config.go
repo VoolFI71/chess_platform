@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	sharedcfg "github.com/yourorg/go_shared/config"
 )
 
 type Config struct {
@@ -19,12 +21,7 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	port := 8000
-	if portStr := os.Getenv("PORT"); portStr != "" {
-		if p, err := strconv.Atoi(portStr); err == nil {
-			port = p
-		}
-	}
+	port := sharedcfg.ParsePort(8000)
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -36,8 +33,7 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("JWT_SECRET is required")
 	}
 
-	// Stockfish path (по умолчанию /usr/bin/stockfish)
-	stockfishPath := getEnvOrDefault("STOCKFISH_PATH", "/usr/bin/stockfish")
+	stockfishPath := sharedcfg.GetEnvOrDefault("STOCKFISH_PATH", "/usr/bin/stockfish")
 
 	// Размер пула Stockfish (по умолчанию 4 процесса)
 	// Рекомендуется: количество ядер CPU или немного больше (для 3 ядер = 3-4 процесса)
@@ -67,7 +63,7 @@ func Load() (*Config, error) {
 		Port:                 port,
 		DatabaseURL:          dbURL,
 		JWTSecret:            jwtSecret,
-		JWTAlgorithm:         getEnvOrDefault("JWT_ALGORITHM", "HS256"),
+		JWTAlgorithm:         sharedcfg.GetEnvOrDefault("JWT_ALGORITHM", "HS256"),
 		InternalToken:        os.Getenv("COMPUTER_GAMES_INTERNAL_TOKEN"),
 		StockfishPath:        stockfishPath,
 		StockfishPoolSize:    stockfishPoolSize,
@@ -76,11 +72,4 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

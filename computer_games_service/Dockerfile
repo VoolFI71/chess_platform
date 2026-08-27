@@ -1,25 +1,18 @@
 # Multi-stage build для оптимизации размера
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Копируем go.mod и go.sum
-COPY go.mod go.sum ./
+# go_shared подключается через replace в go.mod
+COPY go_shared ./go_shared
+COPY computer_games_service ./computer_games_service
 
-# Загружаем зависимости
+WORKDIR /app/computer_games_service
 RUN go mod download
-
-# Копируем исходники
-COPY . .
-
-# Собираем бинарник
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/server ./cmd/server
 
-# Финальный образ
 FROM alpine:latest
 
-# Устанавливаем необходимые зависимости для компиляции Stockfish
-# Оставляем libstdc++ и libgcc для runtime (нужны для выполнения бинарника Stockfish)
 RUN apk --no-cache add \
     ca-certificates \
     libstdc++ \
@@ -37,15 +30,11 @@ RUN apk --no-cache add \
     && chmod +x /usr/bin/stockfish \
     && cd / \
     && rm -rf /tmp/Stockfish-master /tmp/stockfish.zip \
-    && apk del .build-deps \
-    && stockfish --help > /dev/null 2>&1 || true
+    && apk del .build-deps
 
 WORKDIR /root/
-
-# Копируем бинарник из builder
 COPY --from=builder /app/server .
 
 EXPOSE 8000
 
 CMD ["./server"]
-

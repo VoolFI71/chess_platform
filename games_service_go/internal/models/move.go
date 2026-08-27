@@ -4,9 +4,6 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
-	"time"
-
-	"github.com/google/uuid"
 )
 
 type ClocksAfter struct {
@@ -29,32 +26,4 @@ func (ca *ClocksAfter) Scan(value interface{}) error {
 
 func (ca ClocksAfter) Value() (driver.Value, error) {
 	return json.Marshal(ca)
-}
-
-type Move struct {
-	ID          int       `gorm:"primaryKey;autoIncrement" json:"id"`
-	GameID      uuid.UUID `gorm:"type:uuid;not null;index" json:"game_id"`
-	MoveIndex   int       `gorm:"not null" json:"move_index"`
-	UCI         string    `gorm:"type:varchar(10);not null" json:"uci"`
-	SAN         *string   `gorm:"type:varchar(20)" json:"san"`
-	FenAfter    string    `gorm:"type:text;not null" json:"fen_after"`
-	PlayerID    *int      `gorm:"index" json:"player_id"`
-	ClocksAfter []byte    `gorm:"type:jsonb" json:"clocks_after"`
-	IsCapture   bool      `gorm:"not null;default:false" json:"is_capture"`
-	Promotion   *string   `gorm:"type:varchar(1)" json:"promotion"`
-	CreatedAt   time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-
-	// Связи
-	Game Game `gorm:"foreignKey:GameID" json:"game,omitempty"`
-}
-
-type GameSnapshot struct {
-	ID                int       `gorm:"primaryKey;autoIncrement" json:"id"`
-	GameID            uuid.UUID `gorm:"type:uuid;not null;index;uniqueIndex:uq_game_snapshots_game_move_index" json:"game_id"`
-	SnapshotMoveIndex int       `gorm:"not null;uniqueIndex:uq_game_snapshots_game_move_index" json:"snapshot_move_index"`
-	Fen               string    `gorm:"type:text;not null" json:"fen"`
-	CreatedAt         time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-
-	// Связи
-	Game Game `gorm:"foreignKey:GameID" json:"game,omitempty"`
 }

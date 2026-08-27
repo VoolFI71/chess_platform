@@ -398,6 +398,222 @@ body.dark .feature-card:hover {
     }
 }
 
+/* ===== B2B2C Schools Section ===== */
+.schools-architecture-section {
+    padding: 6.5rem 0;
+    position: relative;
+}
+
+.schools-header .schools-kicker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #a78bfa;
+    border: 1px solid rgba(167, 139, 250, 0.45);
+    background: rgba(124, 58, 237, 0.12);
+}
+
+.schools-architecture-board {
+    background: linear-gradient(145deg, #0f172a, #1e1b4b 52%, #312e81);
+    border: 1px solid rgba(129, 140, 248, 0.35);
+    border-radius: 1.75rem;
+    padding: 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.35);
+}
+
+.school-layer-card {
+    border-radius: 1.1rem;
+    padding: 1.25rem 1.25rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.school-layer-head {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.8rem;
+}
+
+.school-layer-head i {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.16);
+    color: #e2e8f0;
+}
+
+.school-layer-head h3 {
+    color: #f8fafc;
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.school-layer-card ul {
+    margin: 0;
+    padding-left: 1rem;
+    color: #dbeafe;
+    line-height: 1.55;
+}
+
+.school-layer-card li {
+    margin-bottom: 0.35rem;
+}
+
+.schools-actions {
+    margin-top: 1.4rem;
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+/* ===== Student Hub Section ===== */
+.student-hub-section {
+    padding: 5.5rem 0 6.5rem;
+}
+
+.student-hub-shell {
+    border-radius: 1.75rem;
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82));
+    padding: 2rem;
+}
+
+body.dark .student-hub-shell {
+    border-color: rgba(96, 165, 250, 0.22);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+}
+
+.student-hub-intro {
+    margin-bottom: 1.5rem;
+}
+
+.student-chip {
+    display: inline-flex;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #1d4ed8;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.35rem 0.8rem;
+    margin-bottom: 0.9rem;
+}
+
+body.dark .student-chip {
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(96, 165, 250, 0.35);
+}
+
+.student-hub-progress {
+    margin-top: 1rem;
+    display: inline-flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.student-hub-progress span {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+    border: 1px dashed rgba(99, 102, 241, 0.35);
+    border-radius: 0.75rem;
+    padding: 0.25rem 0.55rem;
+}
+
+.student-tools-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.student-tool-card {
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(255, 255, 255, 0.75);
+    padding: 1.15rem;
+}
+
+body.dark .student-tool-card {
+    background: rgba(2, 6, 23, 0.55);
+    border-color: rgba(100, 116, 139, 0.45);
+}
+
+.student-tool-top {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.55rem;
+}
+
+.student-tool-top i {
+    color: #3b82f6;
+}
+
+.student-tool-top h3 {
+    margin: 0;
+    font-size: 1.03rem;
+}
+
+.student-tool-card p {
+    margin: 0 0 0.7rem;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.student-tool-card a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+@media (min-width: 900px) {
+    .schools-architecture-board {
+        grid-template-columns: repeat(3, 1fr);
+        padding: 1.4rem;
+        gap: 1.1rem;
+    }
+
+    .student-hub-shell {
+        padding: 2.2rem;
+    }
+
+    .student-tools-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .schools-architecture-section {
+        padding: 4.2rem 0;
+    }
+
+    .student-hub-section {
+        padding: 3.7rem 0 4.2rem;
+    }
+
+    .student-hub-shell {
+        padding: 1.2rem;
+    }
+}
+
 /* Why ChessMint Section Styles */
 .why-chessmint-section {
     padding: 6rem 0;

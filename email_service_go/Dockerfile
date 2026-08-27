@@ -1,13 +1,13 @@
 # Multi-stage build для оптимизации размера
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Копируем go.mod
-COPY go.mod ./
+# Копируем shared модуль и сервис
+COPY go_shared ./go_shared
+COPY email_service_go ./email_service_go
 
-# Копируем исходники (нужно для go mod tidy)
-COPY . .
+WORKDIR /app/email_service_go
 
 # Обновляем go.sum и загружаем зависимости
 RUN go mod tidy && go mod download
@@ -26,9 +26,8 @@ WORKDIR /root/
 COPY --from=builder /app/server .
 
 # Копируем шаблоны писем
-COPY --from=builder /app/internal/templates ./templates
+COPY --from=builder /app/email_service_go/internal/templates ./templates
 
 EXPOSE 8000
 
 CMD ["./server"]
-

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Панель тренера — ChessMint</title>
+    <script>
+      try {
+        if (localStorage.getItem('theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.body.classList.add('dark');
+        }
+      } catch {}
+    </script>
+    <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
+    <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
+    <link rel="stylesheet" href="/styles/base/common.css?v=2.0">
+    <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
+    <link rel="stylesheet" href="/styles/pages/cabinet.css?v=2.0">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <script src="/scripts/auth.js"></script>
+    <script src="/scripts/mobile-menu.js"></script>
+    <script src="/scripts/header-mobile-control.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div><div class="gradient-text">ChessMint</div></div>
+                </a>
+                <nav class="nav">
+                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
+                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                </nav>
+                <div class="header-actions">
+                    <div id="userActions"></div>
+                    <button class="theme-toggle" title="Переключить тему" id="themeToggleBtn">
+                        <i class="fas fa-sun" id="themeIcon"></i>
+                    </button>
+                    <div id="authButtons">
+                        <a href="/login" class="auth-icon-btn" title="Войти"><i class="fas fa-sign-in-alt"></i></a>
+                    </div>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu();">
+                        <i class="fas fa-bars" id="menuIcon"></i>
+                    </button>
+                    <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" style="padding: 2rem 0; min-height: 60vh;">
+        <div id="coachPanelContent">
+            <div id="loadingState" style="text-align: center; padding: 3rem;">
+                <p><i class="fas fa-spinner fa-spin"></i> Загрузка...</p>
+            </div>
+            <div id="errorState" style="display: none; text-align: center; padding: 3rem;">
+                <p class="error-message" id="errorMessage"></p>
+                <a href="/profile" class="btn btn-primary" style="margin-top: 1rem;">В профиль</a>
+            </div>
+            <div id="studentsSection" style="display: none;">
+                <h1 style="margin-bottom: 1.5rem;">Панель тренера</h1>
+                <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">Ученики вашей школы</p>
+                <div id="studentsList" class="card-grid"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+(function() {
+  const ACCESS_KEY = 'access_token';
+  function getAccessToken() {
+    return localStorage.getItem(ACCESS_KEY) || '';
+  }
+  function getHeaders() {
+    const h = new Headers();
+    const token = getAccessToken();
+    if (token) h.set('Authorization', 'Bearer ' + token);
+    return h;
+  }
+  function showError(msg) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('studentsSection').style.display = 'none';
+    document.getElementById('errorState').style.display = 'block';
+    document.getElementById('errorMessage').textContent = msg;
+  }
+  function showStudents(users) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display = 'none';
+    document.getElementById('studentsSection').style.display = 'block';
+    const list = document.getElementById('studentsList');
+    list.innerHTML = '';
+    if (users.length === 0) {
+      list.innerHTML = '<p style="color: var(--text-secondary);">Пока нет учеников в школе.</p>';
+      return;
+    }
+    users.forEach(u => {
+      const card = document.createElement('div');
+      card.className = 'course-card';
+      card.style = 'padding: 1rem;';
+      card.innerHTML = `
+        <div style="font-weight: 600;">${escapeHtml(u.username)}</div>
+        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+          Роль: ${escapeHtml(u.role)} · Рейтинг: ${u.blitz_rating || '—'} (блиц) / ${u.puzzle_rating || '—'} (задачи)
+        </div>
+        <a href="/profile?user=${u.id}" style="margin-top: 0.5rem; display: inline-block;">Профиль →</a>
+      `;
+      list.appendChild(card);
+    });
+  }
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+  async function init() {
+    if (!getAccessToken()) {
+      window.location.href = '/login?redirect=' + encodeURIComponent('/coach-panel');
+      return;
+    }
+    try {
+      const meRes = await fetch('/api/users/me', { headers: getHeaders() });
+      if (!meRes.ok) {
+        if (meRes.status === 401) {
+          window.location.href = '/login?redirect=' + encodeURIComponent('/coach-panel');
+          return;
+        }
+        throw new Error('Ошибка загрузки профиля');
+      }
+      const me = await meRes.json();
+      if (!me.school_id) {
+        showError('У вас нет привязки к школе. Обратитесь к администратору.');
+        return;
+      }
+      if (me.role !== 'coach' && me.role !== 'school_admin' && me.role !== 'platform_admin') {
+        showError('Доступ только для тренеров и администраторов школы.');
+        return;
+      }
+      const usersRes = await fetch('/api/schools/' + me.school_id + '/users', { headers: getHeaders() });
+      if (!usersRes.ok) {
+        throw new Error('Ошибка загрузки списка учеников');
+      }
+      const users = await usersRes.json();
+      showStudents(users);
+    } catch (e) {
+      showError(e.message || 'Произошла ошибка');
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+    </script>
+</body>
+</html>

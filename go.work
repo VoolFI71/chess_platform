@@ -1,0 +1,8 @@
+go 1.24
+
+use (
+	./go_shared
+	./games_service_go
+	./computer_games_service
+	./email_service_go
+)

@@ -3,9 +3,19 @@
 
   let wsConnection = null;
 
-  // Получить WebSocket URL
+  // Получить WebSocket URL с token/session_id для аутентификации
   function getWSUrl(gameId) {
-    return window.WebSocketUtils.createWebSocketUrl(`/ws/computer-games/${gameId}`);
+    const api = window.ComputerGameApi;
+    const params = {};
+    if (api && api.getAccessToken) {
+      const token = api.getAccessToken();
+      if (token) params.token = token;
+    }
+    if (api && api.getSessionID) {
+      const sessionId = api.getSessionID();
+      if (sessionId) params.session_id = sessionId;
+    }
+    return window.WebSocketUtils.createWebSocketUrl(`/ws/computer-games/${gameId}`, params);
   }
 
   // Подключиться к WebSocket

@@ -16,6 +16,7 @@ import (
 	"github.com/yourorg/computer_games_service/internal/handlers"
 	"github.com/yourorg/computer_games_service/internal/realtime"
 	"github.com/yourorg/computer_games_service/internal/services"
+	"github.com/yourorg/computer_games_service/internal/watchdog"
 )
 
 func main() {
@@ -53,6 +54,11 @@ func main() {
 
 	// Создание роутера
 	router := handlers.NewRouter(cfg, computerGameService, wsManager)
+
+	// Watchdog для завершения заброшенных AI-партий
+	wd := watchdog.New(db, wsManager, computerGameService)
+	go wd.Start()
+	defer wd.Stop()
 
 	// Настройка HTTP сервера
 	srv := &http.Server{

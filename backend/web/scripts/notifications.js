@@ -115,10 +115,6 @@
       minute: '2-digit' 
     });
 
-    // Для заявок в друзья добавляем кнопки действий
-    const isFriendRequest = notification.notification_type === 'friend_request';
-    const friendshipId = notification.data?.friendship_id;
-
     // Создаем структуру через DOM API для безопасности
     const content = document.createElement('div');
     content.className = 'notification-toast-content';
@@ -145,34 +141,6 @@
     body.appendChild(title);
     body.appendChild(message);
     body.appendChild(timeDiv);
-    
-    // Добавляем кнопки действий, если есть
-    if (isFriendRequest && friendshipId) {
-      const actionsContainer = document.createElement('div');
-      actionsContainer.className = 'notification-toast-actions';
-      
-      const acceptBtn = document.createElement('button');
-      acceptBtn.className = 'notification-toast-action-btn accept-btn';
-      acceptBtn.setAttribute('data-action', 'accept');
-      acceptBtn.setAttribute('data-friendship-id', friendshipId.toString());
-      const acceptIcon = document.createElement('i');
-      acceptIcon.className = 'fas fa-check';
-      acceptBtn.appendChild(acceptIcon);
-      acceptBtn.appendChild(document.createTextNode(' Принять'));
-      
-      const declineBtn = document.createElement('button');
-      declineBtn.className = 'notification-toast-action-btn decline-btn';
-      declineBtn.setAttribute('data-action', 'decline');
-      declineBtn.setAttribute('data-friendship-id', friendshipId.toString());
-      const declineIcon = document.createElement('i');
-      declineIcon.className = 'fas fa-times';
-      declineBtn.appendChild(declineIcon);
-      declineBtn.appendChild(document.createTextNode(' Отклонить'));
-      
-      actionsContainer.appendChild(acceptBtn);
-      actionsContainer.appendChild(declineBtn);
-      body.appendChild(actionsContainer);
-    }
     
     const closeBtn = document.createElement('button');
     closeBtn.className = 'notification-toast-close';
@@ -206,28 +174,8 @@
     }, 10);
     toastTimers.set(`show_${notification.id}`, showTimer);
 
-    // Обработчики для кнопок действий (для заявок в друзья)
-    if (isFriendRequest && friendshipId) {
-      const acceptBtn = toast.querySelector('[data-action="accept"]');
-      const declineBtn = toast.querySelector('[data-action="decline"]');
-      
-      if (acceptBtn) {
-        acceptBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          await handleFriendRequestAction(toast, friendshipId, 'accepted', acceptBtn);
-        });
-      }
-      
-      if (declineBtn) {
-        declineBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          await handleFriendRequestAction(toast, friendshipId, 'declined', declineBtn);
-        });
-      }
-    }
-
-    // Автоматическое удаление через 10 секунд (увеличено для заявок с кнопками)
-    const autoHideDelay = isFriendRequest ? 10000 : 5000;
+    // Автоматическое удаление через 5 секунд
+    const autoHideDelay = 5000;
     const hideTimer = setTimeout(() => {
       if (toast.parentElement) {
         toast.classList.remove('show');
@@ -245,130 +193,13 @@
 
     // Клик по уведомлению (не по кнопкам) открывает страницу уведомлений
     toast.addEventListener('click', (e) => {
-      // Игнорируем клики по кнопкам и кнопке закрытия
-      if (e.target.closest('.notification-toast-close') || 
-          e.target.closest('.notification-toast-actions')) {
+      // Игнорируем клики по кнопке закрытия
+      if (e.target.closest('.notification-toast-close')) {
         return;
       }
       
       markAsRead(notification.id);
-      
-      // Для заявок в друзья - переходим на страницу заявок
-      if (isFriendRequest) {
-        const currentPath = window.location.pathname;
-        if (currentPath.startsWith('/profile/')) {
-          // Если уже на странице профиля, переключаемся на вкладку заявок
-          const friendRequestsSection = document.getElementById('friendRequests');
-          const friendRequestsSidebarItem = document.querySelector('[data-section="friendRequests"]');
-          if (friendRequestsSection && friendRequestsSidebarItem) {
-            // Убираем активность со всех элементов
-            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
-            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
-            
-            // Активируем вкладку заявок
-            friendRequestsSidebarItem.classList.add('active');
-            friendRequestsSection.classList.add('active');
-            
-            // Загружаем заявки, если функция доступна
-            if (typeof window.loadFriendRequests === 'function') {
-              window.loadFriendRequests();
-            }
-          }
-        } else {
-          // Переходим на страницу профиля с вкладкой заявок
-          window.location.href = '/profile/me#friendRequests';
-        }
-      }
     });
-  }
-
-  // Обработка действий с заявкой в друзья
-  async function handleFriendRequestAction(toast, friendshipId, action, button) {
-    if (!window.apiFetch) {
-      return;
-    }
-
-    // Блокируем кнопки
-    const actionsContainer = toast.querySelector('.notification-toast-actions');
-    if (actionsContainer) {
-      actionsContainer.querySelectorAll('button').forEach(btn => {
-        btn.disabled = true;
-      });
-    }
-    button.textContent = '';
-    const spinner = document.createElement('i');
-    spinner.className = 'fas fa-spinner fa-spin';
-    button.appendChild(spinner);
-
-    try {
-      const res = await window.apiFetch(`/api/friendships/${friendshipId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: action }),
-      });
-
-      if (res.ok) {
-        // Помечаем уведомление как прочитанное
-        const notificationId = toast.getAttribute('data-notification-id');
-        if (notificationId) {
-          markAsRead(parseInt(notificationId));
-        }
-
-        // Обновляем содержимое уведомления
-        const messageEl = toast.querySelector('.notification-toast-message');
-        if (messageEl) {
-          messageEl.textContent = action === 'accepted' 
-            ? 'Заявка принята!' 
-            : 'Заявка отклонена';
-          messageEl.style.color = action === 'accepted' ? 'var(--success)' : 'var(--muted-foreground)';
-        }
-
-        // Удаляем кнопки действий
-        if (actionsContainer) {
-          actionsContainer.remove();
-        }
-
-        // Обновляем списки, если функции доступны
-        if (action === 'accepted') {
-          if (typeof window.loadFriendRequests === 'function') {
-            window.loadFriendRequests();
-          }
-          if (typeof window.loadFriendsList === 'function') {
-            window.loadFriendsList();
-          }
-        } else {
-          if (typeof window.loadFriendRequests === 'function') {
-            window.loadFriendRequests();
-          }
-        }
-
-        // Удаляем уведомление через 2 секунды
-        setTimeout(() => {
-          toast.classList.remove('show');
-          setTimeout(() => {
-            if (toast.parentElement) {
-              toast.remove();
-            }
-          }, 300);
-        }, 2000);
-      } else {
-        throw new Error('Failed to process friend request');
-      }
-    } catch (e) {
-      // Восстанавливаем кнопки
-      if (actionsContainer) {
-        actionsContainer.querySelectorAll('button').forEach(btn => {
-          btn.disabled = false;
-        });
-      }
-      button.textContent = '';
-      const icon = document.createElement('i');
-      icon.className = action === 'accepted' ? 'fas fa-check' : 'fas fa-times';
-      button.appendChild(icon);
-      button.appendChild(document.createTextNode(action === 'accepted' ? ' Принять' : ' Отклонить'));
-      
-      alert('Не удалось обработать заявку. Попробуйте еще раз.');
-    }
   }
 
   // Получение иконки для типа уведомления

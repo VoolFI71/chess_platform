@@ -88,11 +88,18 @@
     return authedFetch(url);
   }
 
+  // Сдаться в партии
+  async function resign(gameId) {
+    const url = buildUrl(`/${gameId}/resign`);
+    return authedFetch(url, { method: 'POST' });
+  }
+
   // Export
   window.ComputerGameApi = {
     createComputerGame,
     getGame,
     getMoves,
+    resign,
     buildUrl,
     getAccessToken,
     getSessionID,

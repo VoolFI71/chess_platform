@@ -19,6 +19,8 @@ class UserPublic(BaseModel):
 	avatar_url: Optional[HttpUrl] = None
 	created_at: Optional[datetime] = None
 	updated_at: Optional[datetime] = None
+	school_id: Optional[int] = None
+	role: Optional[str] = None
 
 	model_config = {"from_attributes": True}
 
@@ -27,6 +29,7 @@ class InternalUserCreate(BaseModel):
 	username: str = Field(..., min_length=3, max_length=32)
 	email: EmailStr
 	hashed_password: str = Field(..., min_length=1, max_length=512)
+	school_id: int | None = None  # По умолчанию школа 1 (ChessMint)
 
 
 class InternalUser(BaseModel):
@@ -34,6 +37,8 @@ class InternalUser(BaseModel):
 	username: str
 	email: EmailStr
 	is_active: bool
+	school_id: int | None = None
+	role: str = "student"
 	blitz_rating: int
 	bullet_rating: int
 	rapid_rating: int

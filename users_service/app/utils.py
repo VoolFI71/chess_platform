@@ -17,6 +17,8 @@ def build_user_public(user: User) -> UserPublic:
 		games_played=user.games_played,
 		created_at=user.created_at,
 		updated_at=user.updated_at,
+		school_id=user.school_id,
+		role=user.role,
 	)
 
 
@@ -27,6 +29,8 @@ def build_internal_user(user: User, include_secret: bool = False) -> InternalUse
 		username=user.username,
 		email=user.email,
 		is_active=user.is_active,
+		school_id=user.school_id,
+		role=user.role,
 		blitz_rating=user.blitz_rating,
 		bullet_rating=user.bullet_rating,
 		rapid_rating=user.rapid_rating,

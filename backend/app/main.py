@@ -142,16 +142,6 @@ def serve_coach_by_slug(coach_slug: str, request: Request):
     # Frontend JavaScript will parse coach_slug from window.location.pathname
     return _serve_file(coach_file, request)
 
-@app.get("/course/{course_id}")
-def serve_course_by_id(course_id: int, request: Request):
-    # Always serve course.html for pretty URL, frontend reads courseId from path
-    course_file = WEB_DIR / "course.html"
-    if not course_file.is_file():
-        return JSONResponse({"detail": "Not Found"}, status_code=404)
-    # Inject no special headers; course.js will parse window.location.pathname
-    return _serve_file(course_file, request)
-
-
 @app.get("/games")
 @app.get("/games/")
 def serve_games_page(request: Request):

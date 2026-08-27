@@ -14,9 +14,6 @@ COPY common ./common
 # Copy all service directories (for alembic configs, migrations, and app code)
 COPY users_service ./users_service
 COPY auth_service ./auth_service
-COPY courses_service ./courses_service
-COPY lessons_service ./lessons_service
-COPY enrollments_service ./enrollments_service
 COPY payments_service ./payments_service
 COPY notifications_service ./notifications_service
 COPY puzzles_service ./puzzles_service

@@ -1,5 +1,10 @@
 from .attempts import PuzzleAttemptCreate, PuzzleAttemptRead
-from .importer import PuzzleImportRequest, PuzzleImportResult, PuzzleUpsertRequest
+from .importer import (
+	PuzzleBatchUpsertRequest,
+	PuzzleImportRequest,
+	PuzzleImportResult,
+	PuzzleUpsertRequest,
+)
 from .puzzle import DailyPuzzleResponse, PuzzleCountResponse, PuzzleFilters, PuzzleResponse
 from .stats import PuzzleStatsResponse, PuzzleThemeStatsResponse, ThemeStats
 
@@ -16,5 +21,6 @@ __all__ = [
 	"PuzzleImportRequest",
 	"PuzzleImportResult",
 	"PuzzleUpsertRequest",
+	"PuzzleBatchUpsertRequest",
 ]
 

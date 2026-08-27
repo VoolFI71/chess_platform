@@ -39,47 +39,46 @@ document.querySelectorAll('#colorToggle, #friendColorToggle').forEach(toggle => 
     });
 });
 
-  // Mode card click - Create game directly with selected time
-document.querySelectorAll('.mode-card[data-time]').forEach(card => {
+  // Mode card click - matchmaking for auth users, friend-link for anonymous
+  document.querySelectorAll('.mode-card[data-time]').forEach(card => {
       card.addEventListener('click', async () => {
         const time = card.dataset.time;
-          if (!time) return; // Skip if no time data
+          if (!time) return;
 
-          // Parse time control (format: "minutes+increment" or "minutes")
           const parts = time.split('+').map(Number);
           const minutes = parts[0] || 5;
           const increment = parts[1] || 0;
 
-          // Show loading state
+          // Authenticated users: start matchmaking search
+          if (isAuth && typeof window.findOpponent === 'function') {
+            window.findOpponent(minutes * 60000, increment * 1000, true);
+            return;
+          }
+
+          // Anonymous users: create friend-link game (existing flow)
           card.style.opacity = '0.6';
           card.style.pointerEvents = 'none';
         
           try {
-            // Create game with selected type (rated/casual from selector)
-            // Для быстрой игры всегда используем товарищескую (нерейтинговую) игру
             const game = await window.createGame({
               minutes,
               increment,
-              isRated: false, // Быстрые игры всегда товарищеские
+              isRated: false,
               creatorColor: 'random',
               onSuccess: (game) => {
                 if (game && game.id) {
-                  // Show share screen with QR code and link in customGameModal
                   const customGameModal = document.getElementById('customGameModal');
                   const customGameShareScreen = document.getElementById('customGameShareScreen');
                   const customGameForm = document.getElementById('customGameForm');
                   const customGameShareLink = document.getElementById('customGameShareLink');
                   const customGameQrImage = document.getElementById('customGameQrImage');
                   
-                  // Generate share link
                   const shareLink = `${window.location.origin}/match/${game.id}`;
                   
-                  // Update link input
                   if (customGameShareLink) {
                     customGameShareLink.value = shareLink;
                   }
                   
-                  // Update QR code
                   if (customGameQrImage) {
                     const encoded = encodeURIComponent(shareLink);
                     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&format=svg&data=${encoded}`;
@@ -87,25 +86,21 @@ document.querySelectorAll('.mode-card[data-time]').forEach(card => {
                     customGameQrImage.alt = 'QR-код приглашения';
                   }
                   
-                  // Hide form and show share screen
                   if (customGameForm) customGameForm.style.display = 'none';
                   if (customGameShareScreen) {
                     customGameShareScreen.style.display = 'block';
                     customGameShareScreen.classList.add('active');
                   }
                   
-                  // Update modal title
                   const modalTitle = customGameModal?.querySelector('.modal-title');
                   if (modalTitle) {
                     modalTitle.innerHTML = '<i class="fas fa-user-friends"></i> Игра с другом';
                   }
                   
-                  // Open modal
                   if (customGameModal) {
                     customGameModal.classList.add('active');
                   }
                   
-                  // Start polling for second player
                   startWaitingForOpponent(game.id);
                 }
               },
@@ -116,12 +111,34 @@ document.querySelectorAll('.mode-card[data-time]').forEach(card => {
           } catch (err) {
             if (window.showToast) window.showToast('Не удалось создать партию', 'error');
           } finally {
-            // Restore card state
             card.style.opacity = '1';
             card.style.pointerEvents = 'auto';
           }
     });
-});
+  });
+
+  // "Find opponent" button - opens matchmaking with default time control (5+0)
+  const findOpponentBtn = document.getElementById('findOpponentBtn');
+  if (findOpponentBtn) {
+    if (isAuth) {
+      findOpponentBtn.style.display = '';
+    }
+    findOpponentBtn.addEventListener('click', () => {
+      if (typeof window.findOpponent === 'function') {
+        window.findOpponent(5 * 60000, 0, true);
+      }
+    });
+  }
+
+  // Matchmaking cancel button
+  const matchmakingCancelBtn = document.getElementById('matchmakingCancelBtn');
+  if (matchmakingCancelBtn) {
+    matchmakingCancelBtn.addEventListener('click', () => {
+      if (typeof window.cancelMatchmaking === 'function') {
+        window.cancelMatchmaking();
+      }
+    });
+  }
 
 // Custom game modal
 const customGameBtn = document.getElementById('customGameBtn');

@@ -150,63 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Wire free course enroll (Grobb id=1)
-  const freeCourseButton = document.querySelector('[data-free-course="grob"]');
-  if (freeCourseButton) {
-    freeCourseButton.addEventListener('click', async (e) => {
-      e.preventDefault();
-      try {
-        // Check auth
-        const me = await authedFetch('/api/auth/me');
-        if (!me || !me.ok) {
-          if (typeof showLoginModal === 'function') showLoginModal();
-          return;
-        }
-        const enroll = await authedFetch('/api/courses/1/enroll', { method: 'POST' });
-        if (enroll && enroll.ok) {
-          alert('✅ Курс добавлен на ваш аккаунт');
-          const user = await me.json();
-          const username = user?.username;
-          window.location.href = username ? `/profile/${encodeURIComponent(username)}` : '/profile';
-        } else {
-          const msg = await enroll.text();
-          alert('Не удалось выдать доступ: ' + msg);
-        }
-      } catch (err) {
-        alert('Не удалось выдать доступ. Попробуйте позже.');
-      }
-    });
-  }
-
-  // Reflect ownership of free course (id=1)
-  (async () => {
-    try {
-      const res = await authedFetch('/api/courses/me');
-      if (!res || !res.ok) return;
-      const myCourses = await res.json();
-      const hasGrob = Array.isArray(myCourses) && myCourses.some(c => c.id === 1 || c.slug === 'grob-free');
-      if (hasGrob && freeCourseButton) {
-        freeCourseButton.textContent = 'Уже в вашем аккаунте';
-        freeCourseButton.classList.remove('btn-success');
-        freeCourseButton.classList.add('btn-outline');
-        freeCourseButton.onclick = async (e) => { 
-          e.preventDefault(); 
-          try {
-            const userRes = await authedFetch('/api/auth/me');
-            if (userRes && userRes.ok) {
-              const user = await userRes.json();
-              const username = user?.username;
-              window.location.href = username ? `/profile/${encodeURIComponent(username)}` : '/profile';
-            } else {
-              window.location.href = '/profile';
-            }
-          } catch {
-            window.location.href = '/profile';
-          }
-        };
-      }
-    } catch {}
-  })();
 });
 
 // Mobile menu functions теперь в mobile-menu.js

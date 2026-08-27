@@ -3,24 +3,21 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
+
+	sharedcfg "github.com/yourorg/go_shared/config"
 )
 
 type Config struct {
-	Port         int
-	DatabaseURL  string
-	JWTSecret    string
-	JWTAlgorithm string
+	Port          int
+	DatabaseURL   string
+	JWTSecret     string
+	JWTAlgorithm  string
 	InternalToken string
+	RedisURL      string
 }
 
 func Load() (*Config, error) {
-	port := 8000
-	if portStr := os.Getenv("PORT"); portStr != "" {
-		if p, err := strconv.Atoi(portStr); err == nil {
-			port = p
-		}
-	}
+	port := sharedcfg.ParsePort(8000)
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -36,17 +33,11 @@ func Load() (*Config, error) {
 		Port:          port,
 		DatabaseURL:   dbURL,
 		JWTSecret:     jwtSecret,
-		JWTAlgorithm:  getEnvOrDefault("JWT_ALGORITHM", "HS256"),
+		JWTAlgorithm:  sharedcfg.GetEnvOrDefault("JWT_ALGORITHM", "HS256"),
 		InternalToken: os.Getenv("GAMES_INTERNAL_TOKEN"),
+		RedisURL:      sharedcfg.GetEnvOrDefault("REDIS_URL", "redis://localhost:6379/0"),
 	}
 
 	return cfg, nil
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
 

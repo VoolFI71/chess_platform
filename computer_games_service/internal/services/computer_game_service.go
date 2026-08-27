@@ -221,6 +221,100 @@ func (s *ComputerGameService) GetGame(ctx context.Context, gameID uuid.UUID) (*m
 	return detail, nil
 }
 
+// Resign сдаётся игрок (компьютер побеждает)
+func (s *ComputerGameService) Resign(ctx context.Context, gameID uuid.UUID, playerID *int, playerSessionID *string) (*models.GameDetail, error) {
+	if playerID == nil && playerSessionID == nil {
+		return nil, fmt.Errorf("either player_id or player_session_id must be provided")
+	}
+
+	var game models.Game
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&game, "id = ?", gameID).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("game not found")
+			}
+			return err
+		}
+
+		if game.Status == models.GameStatusFinished {
+			return fmt.Errorf("game already finished")
+		}
+
+		var metadata map[string]interface{}
+		if len(game.Metadata) > 0 {
+			if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
+				metadata = make(map[string]interface{})
+			}
+		} else {
+			metadata = make(map[string]interface{})
+		}
+
+		// Проверяем, что игрок участвует
+		var isPlayerInGame bool
+		var playerSide models.SideToMove
+
+		if playerID != nil {
+			if game.WhiteID != nil && *game.WhiteID == *playerID {
+				isPlayerInGame = true
+				playerSide = models.SideWhite
+			} else if game.BlackID != nil && *game.BlackID == *playerID {
+				isPlayerInGame = true
+				playerSide = models.SideBlack
+			}
+		}
+
+		if !isPlayerInGame && playerSessionID != nil {
+			whiteSessionID, _ := metadata["white_session_id"].(string)
+			blackSessionID, _ := metadata["black_session_id"].(string)
+			if *playerSessionID == whiteSessionID {
+				isPlayerInGame = true
+				playerSide = models.SideWhite
+			} else if *playerSessionID == blackSessionID {
+				isPlayerInGame = true
+				playerSide = models.SideBlack
+			}
+		}
+
+		if !isPlayerInGame {
+			return fmt.Errorf("player not in game")
+		}
+
+		// Игрок сдался — побеждает AI (противоположная сторона)
+		var winner models.SideToMove
+		if playerSide == models.SideWhite {
+			winner = models.SideBlack
+		} else {
+			winner = models.SideWhite
+		}
+
+		reason := models.TerminationResignation
+		now := time.Now().UTC()
+
+		var result models.GameResult
+		if winner == models.SideWhite {
+			result = models.ResultWhiteWin
+		} else {
+			result = models.ResultBlackWin
+		}
+
+		game.Status = models.GameStatusFinished
+		game.Result = &result
+		game.TerminationReason = &reason
+		game.FinishedAt = &now
+		if playerID != nil {
+			game.EndedBy = playerID
+		}
+
+		return tx.Save(&game).Error
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return s.GetGame(ctx, gameID)
+}
+
 // GetMoves получает ходы игры
 func (s *ComputerGameService) GetMoves(ctx context.Context, gameID uuid.UUID, limit int) ([]models.Move, error) {
 	var moves []models.Move

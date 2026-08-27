@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -13,23 +14,35 @@ import (
 	"github.com/yourorg/computer_games_service/internal/config"
 	"github.com/yourorg/computer_games_service/internal/realtime"
 	"github.com/yourorg/computer_games_service/internal/services"
+	"github.com/yourorg/go_shared/middleware"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		// В продакшене нужно проверять origin
-		return true
-	},
-}
-
 // handleWebSocket обрабатывает WebSocket соединения для компьютерных игр
-func handleWebSocket(cfg *config.Config, service *services.ComputerGameService, wsManager *realtime.Manager) gin.HandlerFunc {
+func handleWebSocket(cfg *config.Config, service *services.ComputerGameService, wsManager *realtime.Manager, upgrader websocket.Upgrader) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		gameIDStr := c.Param("game_id")
 		gameID, err := uuid.Parse(gameIDStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game_id"})
 			return
+		}
+
+		// Получаем идентификаторы игрока из query (WebSocket не поддерживает кастомные заголовки в браузере)
+		token := c.Query("token")
+		sessionID := c.Query("session_id")
+		var playerID *int
+		var playerSessionID *string
+
+		if token != "" {
+			uid, err := middleware.ValidateJWT(token, cfg.JWTSecret, cfg.JWTAlgorithm)
+			if err == nil {
+				playerID = &uid
+			}
+		}
+		if sessionID != "" && playerID == nil {
+			if _, err := uuid.Parse(sessionID); err == nil {
+				playerSessionID = &sessionID
+			}
 		}
 
 		// Обновляем соединение до WebSocket
@@ -72,12 +85,14 @@ func handleWebSocket(cfg *config.Config, service *services.ComputerGameService, 
 					continue
 				}
 
-				// Получаем идентификаторы игрока из контекста
-				var playerID *int
-				var playerSessionID *string
-
-				// TODO: Получить из WebSocket соединения или из query параметров
-				// Пока используем nil (для анонимных игр)
+				if playerID == nil && playerSessionID == nil {
+					errorMsg := map[string]interface{}{
+						"type":  "error",
+						"error": "Authentication or session_id required to make moves",
+					}
+					_ = conn.WriteJSON(errorMsg)
+					continue
+				}
 
 				// Применяем ход игрока с контекстом запроса
 				if err := service.MakePlayerMove(ctx, gameID, uciMove, playerID, playerSessionID); err != nil {

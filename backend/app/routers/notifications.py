@@ -54,9 +54,9 @@ async def send_notification(
                     "message": request.message,
                     "data": request.data,
                 },
-                headers={
-                    "Authorization": f"Bearer {internal_token}",
-                    "Content-Type": "application/json",
+				headers={
+					"X-Internal-Token": internal_token,
+					"Content-Type": "application/json",
                 },
             )
 
