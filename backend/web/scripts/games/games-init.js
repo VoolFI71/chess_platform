@@ -36,6 +36,10 @@
     
     // All dependencies ready, initialize tabs
     window.bindTabs();
+    if (typeof window.bindGamesUIEvents !== 'function') {
+      throw new Error('Games UI module is not initialized');
+    }
+    window.bindGamesUIEvents();
   }
   
   // Try to initialize when DOM is ready

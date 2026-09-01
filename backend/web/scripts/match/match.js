@@ -580,7 +580,7 @@
   function updateClockDisplays(resetTimer = false) {
     clocksUpdateClockDisplays(resetTimer, getPanelRoles, (clocks) => {
       maybeAutoDeclareTimeout(clocks);
-      renderActions();
+      updateActionAvailability();
       updateClockProgress();
     });
   }
@@ -627,18 +627,17 @@
     const list = document.getElementById('movesList');
     if (!list) return;
     if (!state.moves.length) {
-      list.textContent = '';
       const emptyItem = document.createElement('li');
       emptyItem.style.justifyContent = 'center';
       emptyItem.style.color = 'rgba(148,163,184,.7)';
       emptyItem.style.padding = '1rem';
       emptyItem.textContent = 'Ходов пока нет';
-      list.appendChild(emptyItem);
+      list.replaceChildren(emptyItem);
       return;
     }
     const activeIndex = getDisplayedMoveIndex();
     const preserveScroll = isAnalysisMode() ? list.scrollTop : null;
-    const rows = [];
+    const fragment = document.createDocumentFragment();
     
     // Группируем ходы по парам (белый, черный) на основе move_index
     // Нечетные move_index (1, 3, 5, ...) - белые ходы
@@ -674,15 +673,9 @@
       row.appendChild(whiteCell);
       row.appendChild(blackCell);
       
-      list.appendChild(row);
+      fragment.appendChild(row);
     }
-    list.querySelectorAll('.move-cell[data-move-index]').forEach((cell) => {
-      cell.addEventListener('click', () => {
-        const idx = Number(cell.dataset.moveIndex);
-        if (Number.isNaN(idx)) return;
-        focusOnMove(idx);
-      });
-    });
+    list.replaceChildren(fragment);
     
     // Update navigation buttons state
     const prevBtn = document.getElementById('prevMoveBtn');
@@ -863,51 +856,69 @@
   function renderActions() {
     const container = document.getElementById('actionsContent');
     if (!container) return;
-    container.innerHTML = '';
-    if (!state.game) return;
+    if (!state.game) {
+      container.replaceChildren();
+      return;
+    }
 
+    const createActionButton = (action, className, content) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = className;
+      button.dataset.matchAction = action;
+      button.innerHTML = content;
+      return button;
+    };
+    const fragment = document.createDocumentFragment();
     const seat = getAvailableSeat(state.game);
-    const joinBtn = document.createElement('button');
-    joinBtn.className = 'btn btn-primary';
-    joinBtn.innerHTML = '<i class="fas fa-user-plus"></i> ' + (
+    const joinBtn = createActionButton('join', 'btn btn-primary', '<i class="fas fa-user-plus"></i> ' + (
       seat === 'white'
         ? 'Присоединиться белыми'
         : seat === 'black'
           ? 'Присоединиться чёрными'
           : 'Присоединиться'
-    );
-    joinBtn.addEventListener('click', () => joinGame());
+    ));
 
-    const resignBtn = document.createElement('button');
-    resignBtn.className = 'btn btn-danger';
-    resignBtn.innerHTML = '<i class="fas fa-flag"></i> Сдаться';
-    resignBtn.addEventListener('click', resignGame);
-
-    const flagBtn = document.createElement('button');
-    flagBtn.className = 'btn btn-outline';
-    flagBtn.innerHTML = '<i class="fas fa-clock"></i> Заявить флаг соперника';
-    flagBtn.addEventListener('click', declareTimeout);
-
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'btn btn-outline';
-    copyBtn.innerHTML = '<i class="fas fa-link"></i> Скопировать ссылку';
-    copyBtn.addEventListener('click', copyShareLink);
-
-    const refreshBtn = document.createElement('button');
-    refreshBtn.className = 'btn btn-outline';
-    refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Обновить';
-    refreshBtn.addEventListener('click', loadMatch);
-
-    if (canJoinGame()) container.appendChild(joinBtn);
+    if (canJoinGame()) fragment.appendChild(joinBtn);
 
     const role = getCurrentUserRole();
     if (role && state.game.status === 'ACTIVE') {
-      container.appendChild(resignBtn);
-      if (canDeclareTimeout(role)) container.appendChild(flagBtn);
+      fragment.appendChild(createActionButton('resign', 'btn btn-danger', '<i class="fas fa-flag"></i> Сдаться'));
+      const flagBtn = createActionButton('declare-timeout', 'btn btn-outline', '<i class="fas fa-clock"></i> Заявить флаг соперника');
+      flagBtn.id = 'declareTimeoutBtn';
+      flagBtn.disabled = !canDeclareTimeout(role);
+      fragment.appendChild(flagBtn);
     }
 
-    container.appendChild(copyBtn);
-    container.appendChild(refreshBtn);
+    fragment.appendChild(createActionButton('copy-link', 'btn btn-outline', '<i class="fas fa-link"></i> Скопировать ссылку'));
+    fragment.appendChild(createActionButton('refresh', 'btn btn-outline', '<i class="fas fa-sync-alt"></i> Обновить'));
+    container.replaceChildren(fragment);
+  }
+
+  function updateActionAvailability() {
+    const flagBtn = document.getElementById('declareTimeoutBtn');
+    const role = getCurrentUserRole();
+    if (flagBtn && role) flagBtn.disabled = !canDeclareTimeout(role);
+  }
+
+  function handleActionClick(event) {
+    const button = event.target.closest('button[data-match-action]');
+    if (!button) return;
+    const handlers = {
+      join: () => joinGame(),
+      resign: resignGame,
+      'declare-timeout': declareTimeout,
+      'copy-link': copyShareLink,
+      refresh: loadMatch,
+    };
+    handlers[button.dataset.matchAction]?.();
+  }
+
+  function handleMoveListClick(event) {
+    const cell = event.target.closest('.move-cell[data-move-index]');
+    if (!cell) return;
+    const moveIndex = Number(cell.dataset.moveIndex);
+    if (!Number.isNaN(moveIndex)) focusOnMove(moveIndex);
   }
 
   function maybeAutoJoin() {
@@ -1697,6 +1708,8 @@
       window.location.href = '/games';
     });
     document.getElementById('moveForm')?.addEventListener('submit', handleMoveSubmit);
+    document.getElementById('movesList')?.addEventListener('click', handleMoveListClick);
+    document.getElementById('actionsContent')?.addEventListener('click', handleActionClick);
     
     // Navigation buttons
     document.getElementById('prevMoveBtn')?.addEventListener('click', () => {

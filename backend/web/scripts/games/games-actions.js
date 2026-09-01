@@ -30,7 +30,7 @@
         if (!tick) return;
         if (whiteClock) whiteClock.textContent = window.formatClock(tick.white);
         if (blackClock) blackClock.textContent = window.formatClock(tick.black);
-        if (window.renderActions) window.renderActions();
+        if (window.updateGameActionAvailability) window.updateGameActionAvailability();
       }, 1000);
     }
   }

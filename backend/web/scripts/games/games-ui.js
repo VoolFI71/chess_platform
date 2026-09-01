@@ -13,15 +13,14 @@
     if (!container) return;
 
     if (!games.length) {
-      container.textContent = '';
       const emptyState = document.createElement('div');
       emptyState.className = 'empty-state';
       emptyState.textContent = view === 'waiting' ? 'Ни одной партии в ожидании. Создайте свою!' : 'Пока нет активных матчей.';
-      container.appendChild(emptyState);
+      container.replaceChildren(emptyState);
       return;
     }
 
-    container.innerHTML = '';
+    const fragment = document.createDocumentFragment();
     games.forEach((game) => {
       const card = document.createElement('div');
       card.className = `game-card${state.selectedGameId === game.id ? ' selected' : ''}`;
@@ -71,10 +70,7 @@
       const openBtn = document.createElement('button');
       openBtn.className = 'btn-outline';
       openBtn.textContent = 'Открыть';
-      openBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        window.location.href = `/match/${game.id}`;
-      });
+      openBtn.dataset.gameAction = 'open';
       actions.appendChild(openBtn);
 
       const openSeat = window.getAvailableSeat(game);
@@ -82,16 +78,13 @@
         const joinBtn = document.createElement('button');
         joinBtn.className = 'btn-primary';
         joinBtn.textContent = openSeat === 'white' ? 'Играть за белых' : 'Играть за чёрных';
-        joinBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          window.selectGame(game.id).then(() => window.joinGame());
-        });
+        joinBtn.dataset.gameAction = 'join';
         actions.appendChild(joinBtn);
       }
 
-      card.addEventListener('click', () => window.selectGame(game.id));
-      container.appendChild(card);
+      fragment.appendChild(card);
     });
+    container.replaceChildren(fragment);
   }
 
   function canJoinGame(game) {
@@ -225,49 +218,76 @@
   function renderActions() {
     const container = document.getElementById('gameActions');
     if (!container || !state.selectedGame) return;
-    container.innerHTML = '';
+    const createActionButton = (action, className, label) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = className;
+      button.dataset.gameAction = action;
+      button.textContent = label;
+      return button;
+    };
+    const fragment = document.createDocumentFragment();
 
     const openSeat = window.getAvailableSeat(state.selectedGame);
-    const joinBtn = document.createElement('button');
-    joinBtn.className = 'btn-primary';
-    joinBtn.textContent =
+    const joinBtn = createActionButton('join', 'btn-primary',
       openSeat === 'white'
         ? 'Присоединиться белыми'
         : openSeat === 'black'
           ? 'Присоединиться чёрными'
-          : 'Присоединиться';
-    joinBtn.addEventListener('click', window.joinGame);
+          : 'Присоединиться');
 
-    const resignBtn = document.createElement('button');
-    resignBtn.className = 'btn-danger';
-    resignBtn.textContent = 'Сдаться';
-    resignBtn.addEventListener('click', window.resignGame);
-
-    const flagBtn = document.createElement('button');
-    flagBtn.className = 'btn-outline';
-    flagBtn.textContent = 'Заявить флаг соперника';
-    flagBtn.addEventListener('click', window.declareTimeout);
-
-    const copyLinkBtn = document.createElement('button');
-    copyLinkBtn.className = 'btn-outline';
-    copyLinkBtn.textContent = 'Скопировать ссылку';
-    copyLinkBtn.addEventListener('click', window.copyShareLink);
-
-    const refreshBtn = document.createElement('button');
-    refreshBtn.className = 'btn-outline';
-    refreshBtn.textContent = 'Обновить';
-    refreshBtn.addEventListener('click', () => loadGameDetail(state.selectedGame.id));
-
-    if (canJoinCurrentGame()) container.appendChild(joinBtn);
+    if (canJoinCurrentGame()) fragment.appendChild(joinBtn);
 
     const role = getCurrentUserRole();
     if (role && state.selectedGame.status === 'ACTIVE') {
-      container.appendChild(resignBtn);
-      if (canDeclareTimeout(role)) container.appendChild(flagBtn);
+      fragment.appendChild(createActionButton('resign', 'btn-danger', 'Сдаться'));
+      const flagBtn = createActionButton('declare-timeout', 'btn-outline', 'Заявить флаг соперника');
+      flagBtn.id = 'declareTimeoutBtn';
+      flagBtn.disabled = !canDeclareTimeout(role);
+      fragment.appendChild(flagBtn);
     }
 
-    container.appendChild(copyLinkBtn);
-    container.appendChild(refreshBtn);
+    fragment.appendChild(createActionButton('copy-link', 'btn-outline', 'Скопировать ссылку'));
+    fragment.appendChild(createActionButton('refresh', 'btn-outline', 'Обновить'));
+    container.replaceChildren(fragment);
+  }
+
+  function updateActionAvailability() {
+    const flagBtn = document.getElementById('declareTimeoutBtn');
+    const role = getCurrentUserRole();
+    if (flagBtn && role) flagBtn.disabled = !canDeclareTimeout(role);
+  }
+
+  function handleCollectionClick(event) {
+    const card = event.target.closest('.game-card[data-game-id]');
+    if (!card) return;
+    const action = event.target.closest('button[data-game-action]')?.dataset.gameAction;
+    const gameId = card.dataset.gameId;
+    if (action === 'open') {
+      window.location.href = `/match/${gameId}`;
+      return;
+    }
+    if (action === 'join') {
+      selectGame(gameId).then(() => window.joinGame());
+      return;
+    }
+    selectGame(gameId);
+  }
+
+  function handleGameActionClick(event) {
+    const action = event.target.closest('button[data-game-action]')?.dataset.gameAction;
+    if (!action) return;
+    if (action === 'join') window.joinGame();
+    else if (action === 'resign') window.resignGame();
+    else if (action === 'declare-timeout') window.declareTimeout();
+    else if (action === 'copy-link') window.copyShareLink();
+    else if (action === 'refresh' && state.selectedGame) loadGameDetail(state.selectedGame.id);
+  }
+
+  function bindGamesUIEvents() {
+    document.getElementById('waitingList')?.addEventListener('click', handleCollectionClick);
+    document.getElementById('liveList')?.addEventListener('click', handleCollectionClick);
+    document.getElementById('gameActions')?.addEventListener('click', handleGameActionClick);
   }
 
   const canJoinCurrentGame = () => {
@@ -328,4 +348,6 @@
   window.renderActions = renderActions;
   window.updateHeroStats = updateHeroStats;
   window.getCurrentUserRole = getCurrentUserRole;
+  window.updateGameActionAvailability = updateActionAvailability;
+  window.bindGamesUIEvents = bindGamesUIEvents;
 })();

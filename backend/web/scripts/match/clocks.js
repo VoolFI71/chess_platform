@@ -3,6 +3,8 @@
   const matchStateModule = window.MatchState;
   const { state, setState, haveBothPlayersJoined } = matchStateModule;
   const { formatClock } = window.MatchUtils || {};
+  const lifecycle = window.App?.Utils?.PageLifecycle;
+  if (!lifecycle) throw new Error('PageLifecycle is not initialized');
 
   function getDisplayedClocks(applyRunning = true) {
     if (!state.game) return null;
@@ -79,8 +81,8 @@
     if (maybeAutoDeclareTimeout) maybeAutoDeclareTimeout(clocks);
 
     if (resetTimer) {
-      if (state.clockTimer) clearInterval(state.clockTimer);
-      const timerId = setInterval(() => {
+      if (state.clockTimer) lifecycle.clearInterval(state.clockTimer);
+      const timerId = lifecycle.setInterval(() => {
         const tick = getDisplayedClocks(true);
         if (!tick) return;
         if (whiteEl) whiteEl.textContent = formatTime(tick.white);
