@@ -17,14 +17,16 @@ func handleStatsWebSocket(statsManager *realtime.StatsConnectionManager, gameMan
 			log.Printf("[WS Stats] Failed to upgrade connection: %v", err)
 			return
 		}
-		defer ws.Close()
+		client := realtime.NewClient(ws)
+		defer client.Close()
 
 		// Устанавливаем лимит чтения для защиты от больших сообщений
 		ws.SetReadLimit(1024)
+		client.SetReadDeadline()
 
 		// Регистрируем соединение
-		statsManager.Connect(ws)
-		defer statsManager.Disconnect(ws)
+		statsManager.Connect(client)
+		defer statsManager.Disconnect(client)
 
 		// Отправляем начальную статистику
 		onlinePlayers, activeGames := gameManager.GetOnlineStats()
@@ -33,7 +35,7 @@ func handleStatsWebSocket(statsManager *realtime.StatsConnectionManager, gameMan
 			"online_players": onlinePlayers,
 			"active_games":   activeGames,
 		}
-		if err := ws.WriteJSON(initialMsg); err != nil {
+		if err := statsManager.SendPersonal(client, initialMsg); err != nil {
 			log.Printf("[WS Stats] Failed to send initial stats: %v", err)
 			return
 		}

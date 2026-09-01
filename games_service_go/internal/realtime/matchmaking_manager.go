@@ -6,55 +6,57 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 )
 
 type MatchmakingConnectionManager struct {
 	mu    sync.RWMutex
-	conns map[int]*websocket.Conn // userID -> ws connection
+	conns map[int]*Client
 }
 
 func NewMatchmakingConnectionManager() *MatchmakingConnectionManager {
-	return &MatchmakingConnectionManager{
-		conns: make(map[int]*websocket.Conn),
-	}
+	return &MatchmakingConnectionManager{conns: make(map[int]*Client)}
 }
 
-func (m *MatchmakingConnectionManager) Register(userID int, ws *websocket.Conn) {
+func (m *MatchmakingConnectionManager) Register(userID int, client *Client) {
+	client.Start()
 	m.mu.Lock()
-	defer m.mu.Unlock()
+	old := m.conns[userID]
+	m.conns[userID] = client
+	m.mu.Unlock()
 
-	if old, ok := m.conns[userID]; ok && old != ws {
+	if old != nil && old != client {
 		old.Close()
 	}
-	m.conns[userID] = ws
-	log.Printf("[Matchmaking WS] User %d connected", userID)
+	log.Printf("[Matchmaking WS] user %d connected", userID)
 }
 
-func (m *MatchmakingConnectionManager) Unregister(userID int) {
+func (m *MatchmakingConnectionManager) Unregister(userID int, client *Client) bool {
 	m.mu.Lock()
-	defer m.mu.Unlock()
+	if m.conns[userID] != client {
+		m.mu.Unlock()
+		return false
+	}
 	delete(m.conns, userID)
-	log.Printf("[Matchmaking WS] User %d disconnected", userID)
+	m.mu.Unlock()
+	client.Close()
+	log.Printf("[Matchmaking WS] user %d disconnected", userID)
+	return true
 }
 
 func (m *MatchmakingConnectionManager) SendToUser(userID int, message interface{}) error {
-	m.mu.RLock()
-	ws, ok := m.conns[userID]
-	m.mu.RUnlock()
-
-	if !ok || ws == nil {
-		return nil
-	}
-
 	data, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
-
-	if err := ws.WriteMessage(websocket.TextMessage, data); err != nil {
-		log.Printf("[Matchmaking WS] Failed to send to user %d: %v", userID, err)
-		return err
+	m.mu.RLock()
+	client := m.conns[userID]
+	m.mu.RUnlock()
+	if client == nil {
+		return nil
+	}
+	if !client.Send(data) {
+		m.Unregister(userID, client)
+		return ErrClientUnavailable
 	}
 	return nil
 }
@@ -62,14 +64,14 @@ func (m *MatchmakingConnectionManager) SendToUser(userID int, message interface{
 func (m *MatchmakingConnectionManager) IsConnected(userID int) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	_, ok := m.conns[userID]
-	return ok
+	return m.conns[userID] != nil
 }
 
-// NotifyMatch реализует интерфейс services.MatchNotifier — отправляет пользователю уведомление о найденной паре.
 func (m *MatchmakingConnectionManager) NotifyMatch(userID int, gameID uuid.UUID) {
-	m.SendToUser(userID, map[string]interface{}{
+	if err := m.SendToUser(userID, map[string]interface{}{
 		"type":    "matched",
 		"game_id": gameID,
-	})
+	}); err != nil {
+		log.Printf("[Matchmaking WS] failed to notify user %d: %v", userID, err)
+	}
 }

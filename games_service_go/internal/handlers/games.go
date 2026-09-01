@@ -71,7 +71,17 @@ func getGame(service *services.GameService) gin.HandlerFunc {
 			return
 		}
 
-		game, err := service.GetGame(c.Request.Context(), gameID)
+		movesLimit := 200
+		if rawLimit := c.Query("moves_limit"); rawLimit != "" {
+			parsedLimit, parseErr := strconv.Atoi(rawLimit)
+			if parseErr != nil || parsedLimit < 1 || parsedLimit > 200 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "moves_limit must be between 1 and 200"})
+				return
+			}
+			movesLimit = parsedLimit
+		}
+
+		game, err := service.GetGameWithMoves(c.Request.Context(), gameID, movesLimit)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "game not found"})
 			return
@@ -81,7 +91,7 @@ func getGame(service *services.GameService) gin.HandlerFunc {
 	}
 }
 
-func joinGame(service *services.GameService) gin.HandlerFunc {
+func joinGame(service *services.GameService, wsManager *realtime.ConnectionManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		gameIDStr := c.Param("game_id")
 		gameID, err := uuid.Parse(gameIDStr)
@@ -123,6 +133,18 @@ func joinGame(service *services.GameService) gin.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
+		}
+
+		// Notify existing game viewers/players immediately. This lets the
+		// frontend stop polling while a CREATED game waits for its opponent.
+		if wsManager != nil && game != nil {
+			if err := wsManager.Broadcast(gameID, map[string]interface{}{
+				"type":     "state",
+				"revision": game.MoveCount,
+				"game":     game,
+			}); err != nil {
+				c.Error(err)
+			}
 		}
 
 		c.JSON(http.StatusOK, game)
@@ -170,8 +192,9 @@ func resignGame(service *services.GameService, wsManager *realtime.ConnectionMan
 		// Broadcast через WebSocket о завершении игры
 		if wsManager != nil && game != nil {
 			wsManager.Broadcast(gameID, map[string]interface{}{
-				"type": "game_finished",
-				"game": game,
+				"type":     "game_finished",
+				"revision": game.MoveCount,
+				"game":     game.Game,
 			})
 		}
 
@@ -179,7 +202,7 @@ func resignGame(service *services.GameService, wsManager *realtime.ConnectionMan
 	}
 }
 
-func timeoutGame(service *services.GameService) gin.HandlerFunc {
+func timeoutGame(service *services.GameService, wsManager *realtime.ConnectionManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		gameIDStr := c.Param("game_id")
 		gameID, err := uuid.Parse(gameIDStr)
@@ -211,6 +234,16 @@ func timeoutGame(service *services.GameService) gin.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
+		}
+
+		if wsManager != nil && game != nil {
+			if err := wsManager.Broadcast(gameID, map[string]interface{}{
+				"type":     "game_finished",
+				"revision": game.MoveCount,
+				"game":     game.Game,
+			}); err != nil {
+				c.Error(err)
+			}
 		}
 
 		c.JSON(http.StatusOK, game)

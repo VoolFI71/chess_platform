@@ -49,9 +49,9 @@ func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, statsMana
 		api.GET("", listGames(gameService))
 		api.GET("/", listGames(gameService))
 		api.GET("/:game_id", getGame(gameService))
-		api.POST("/:game_id/join", middleware.OptionalAuthMiddleware(authCfg), joinGame(gameService))
+		api.POST("/:game_id/join", middleware.OptionalAuthMiddleware(authCfg), joinGame(gameService, wsManager))
 		api.POST("/:game_id/resign", middleware.OptionalAuthMiddleware(authCfg), resignGame(gameService, wsManager))
-		api.POST("/:game_id/timeout", middleware.AuthMiddleware(authCfg), timeoutGame(gameService))
+		api.POST("/:game_id/timeout", middleware.AuthMiddleware(authCfg), timeoutGame(gameService, wsManager))
 		api.GET("/:game_id/moves", getMoves(gameService))
 	}
 

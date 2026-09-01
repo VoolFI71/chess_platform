@@ -32,6 +32,8 @@ type MatchResult struct {
 	GameID uuid.UUID `json:"game_id,omitempty"`
 }
 
+const matchmakingUsersKey = "matchmaking:users"
+
 func NewMatchmakingService(rdb *redis.Client, db *database.DB, gameService *GameService) *MatchmakingService {
 	return &MatchmakingService{
 		rdb:         rdb,
@@ -44,10 +46,14 @@ func (ms *MatchmakingService) SetNotifier(n MatchNotifier) {
 	ms.notifier = n
 }
 
-func (ms *MatchmakingService) queueKey(tc *models.TimeControl) string {
+func (ms *MatchmakingService) queueKey(tc *models.TimeControl, rated bool) string {
 	format := ms.gameService.getGameFormat(tc)
 	timeKey := fmt.Sprintf("%d_%d", tc.InitialMs, tc.IncrementMs)
-	return fmt.Sprintf("matchmaking:%s:%s", format, timeKey)
+	mode := "casual"
+	if rated {
+		mode = "rated"
+	}
+	return fmt.Sprintf("matchmaking:%s:%s:%s", mode, format, timeKey)
 }
 
 func (ms *MatchmakingService) getUserRating(ctx context.Context, userID int, tc *models.TimeControl) (int, error) {
@@ -76,43 +82,51 @@ func (ms *MatchmakingService) getUserRating(ctx context.Context, userID int, tc 
 	return rating, nil
 }
 
-// Lua script: atomically add player, find closest opponent, remove both if matched.
-// KEYS[1] = queue key
+// Lua script atomically inserts a player and considers only the nearest ratings
+// above and below their score. It also maintains a direct user-to-queue index.
+// KEYS[1] = queue key, KEYS[2] = matchmaking users hash
 // ARGV[1] = member (user:{id})
 // ARGV[2] = score (rating)
 // Returns: "nil" if no match, or "user:{opponentID}" if matched
 var matchmakingLua = redis.NewScript(`
 local queue = KEYS[1]
+local users = KEYS[2]
 local member = ARGV[1]
 local score = tonumber(ARGV[2])
 
-redis.call('ZADD', queue, score, member)
-
-local all = redis.call('ZRANGE', queue, 0, -1, 'WITHSCORES')
-if #all < 4 then
-    return "nil"
+local previousQueue = redis.call('HGET', users, member)
+if previousQueue and previousQueue ~= queue then
+    redis.call('ZREM', previousQueue, member)
 end
+redis.call('ZADD', queue, score, member)
+redis.call('HSET', users, member, queue)
 
 local bestMatch = nil
 local bestDiff = math.huge
 
-for i = 1, #all, 2 do
-    local m = all[i]
-    local s = tonumber(all[i+1])
-    if m ~= member then
-        local diff = math.abs(s - score)
-        if diff < bestDiff then
-            bestDiff = diff
-            bestMatch = m
+local function consider(candidates)
+    for i = 1, #candidates, 2 do
+        local candidate = candidates[i]
+        local candidateScore = tonumber(candidates[i + 1])
+        if candidate ~= member then
+            local diff = math.abs(candidateScore - score)
+            if diff < bestDiff then
+                bestDiff = diff
+                bestMatch = candidate
+            end
         end
     end
 end
+
+consider(redis.call('ZREVRANGEBYSCORE', queue, score, '-inf', 'WITHSCORES', 'LIMIT', 0, 2))
+consider(redis.call('ZRANGEBYSCORE', queue, score, '+inf', 'WITHSCORES', 'LIMIT', 0, 2))
 
 if bestMatch == nil then
     return "nil"
 end
 
 redis.call('ZREM', queue, member, bestMatch)
+redis.call('HDEL', users, member, bestMatch)
 return bestMatch
 `)
 
@@ -122,16 +136,18 @@ func (ms *MatchmakingService) Join(ctx context.Context, userID int, tc *models.T
 		return nil, err
 	}
 
-	queueKey := ms.queueKey(tc)
+	queueKey := ms.queueKey(tc, rated)
 	member := fmt.Sprintf("user:%d", userID)
 
-	result, err := matchmakingLua.Run(ctx, ms.rdb, []string{queueKey}, member, rating).Text()
+	result, err := matchmakingLua.Run(ctx, ms.rdb, []string{queueKey, matchmakingUsersKey}, member, rating).Text()
 	if err != nil {
 		return nil, fmt.Errorf("matchmaking lua error: %w", err)
 	}
 
 	if result == "nil" {
-		ms.rdb.Expire(ctx, queueKey, 5*time.Minute)
+		if err := ms.rdb.Expire(ctx, queueKey, 5*time.Minute).Err(); err != nil {
+			return nil, fmt.Errorf("failed to set matchmaking queue expiry: %w", err)
+		}
 		return &MatchResult{Status: "searching"}, nil
 	}
 
@@ -142,9 +158,13 @@ func (ms *MatchmakingService) Join(ctx context.Context, userID int, tc *models.T
 
 	gameDetail, err := ms.createMatchedGame(ctx, userID, opponentID, tc, rated)
 	if err != nil {
-		ms.rdb.ZAdd(ctx, queueKey, redis.Z{Score: float64(rating), Member: member})
+		pipe := ms.rdb.TxPipeline()
+		pipe.ZAdd(ctx, queueKey, redis.Z{Score: float64(rating), Member: member})
+		pipe.HSet(ctx, matchmakingUsersKey, member, queueKey)
 		oppRating, _ := ms.getUserRating(ctx, opponentID, tc)
-		ms.rdb.ZAdd(ctx, queueKey, redis.Z{Score: float64(oppRating), Member: result})
+		pipe.ZAdd(ctx, queueKey, redis.Z{Score: float64(oppRating), Member: result})
+		pipe.HSet(ctx, matchmakingUsersKey, result, queueKey)
+		_, _ = pipe.Exec(ctx)
 		return nil, fmt.Errorf("failed to create matched game: %w", err)
 	}
 
@@ -160,12 +180,17 @@ func (ms *MatchmakingService) Join(ctx context.Context, userID int, tc *models.T
 
 func (ms *MatchmakingService) Leave(ctx context.Context, userID int) error {
 	member := fmt.Sprintf("user:%d", userID)
-
-	iter := ms.rdb.Scan(ctx, 0, "matchmaking:*", 100).Iterator()
-	for iter.Next(ctx) {
-		ms.rdb.ZRem(ctx, iter.Val(), member)
+	queueKey, err := ms.rdb.HGet(ctx, matchmakingUsersKey, member).Result()
+	if err == redis.Nil {
+		return nil
 	}
-	if err := iter.Err(); err != nil {
+	if err != nil {
+		return fmt.Errorf("failed to get matchmaking queue: %w", err)
+	}
+	pipe := ms.rdb.TxPipeline()
+	pipe.ZRem(ctx, queueKey, member)
+	pipe.HDel(ctx, matchmakingUsersKey, member)
+	if _, err := pipe.Exec(ctx); err != nil {
 		return fmt.Errorf("failed to leave matchmaking: %w", err)
 	}
 
@@ -174,13 +199,19 @@ func (ms *MatchmakingService) Leave(ctx context.Context, userID int) error {
 
 func (ms *MatchmakingService) Status(ctx context.Context, userID int) (*MatchResult, error) {
 	member := fmt.Sprintf("user:%d", userID)
-	iter := ms.rdb.Scan(ctx, 0, "matchmaking:*", 100).Iterator()
-	for iter.Next(ctx) {
-		_, err := ms.rdb.ZScore(ctx, iter.Val(), member).Result()
-		if err == nil {
-			return &MatchResult{Status: "searching"}, nil
-		}
+	queueKey, err := ms.rdb.HGet(ctx, matchmakingUsersKey, member).Result()
+	if err == redis.Nil {
+		return &MatchResult{Status: "idle"}, nil
 	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get matchmaking status: %w", err)
+	}
+	if _, err := ms.rdb.ZScore(ctx, queueKey, member).Result(); err == nil {
+		return &MatchResult{Status: "searching"}, nil
+	} else if err != redis.Nil {
+		return nil, fmt.Errorf("failed to read matchmaking status: %w", err)
+	}
+	_ = ms.rdb.HDel(ctx, matchmakingUsersKey, member).Err()
 
 	return &MatchResult{Status: "idle"}, nil
 }

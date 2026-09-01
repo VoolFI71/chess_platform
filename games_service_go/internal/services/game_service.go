@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
+	"github.com/VoolFI71/go-arena"
 	"github.com/google/uuid"
 	"github.com/notnil/chess"
-	"github.com/VoolFI71/go-arena"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -52,11 +53,17 @@ func (s *GameService) CreateGame(ctx context.Context, creatorID *int, creatorSes
 	}
 
 	initialPos := "startpos"
-	if req.InitialFen != "" {
+	if req.InitialFen != "" && req.InitialFen != "startpos" {
 		initialPos = req.InitialFen
 	}
 
 	currentPos := "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+	if req.InitialFen != "" {
+		if _, err := boardFromFEN(req.InitialFen); err != nil {
+			return nil, fmt.Errorf("invalid initial FEN: %w", err)
+		}
+		currentPos = req.InitialFen
+	}
 
 	var timeControlJSON []byte
 	if req.TimeControl != nil {
@@ -133,6 +140,10 @@ func (s *GameService) CreateGame(ctx context.Context, creatorID *int, creatorSes
 }
 
 func (s *GameService) GetGame(ctx context.Context, gameID uuid.UUID) (*models.GameDetail, error) {
+	return s.GetGameWithMoves(ctx, gameID, 0)
+}
+
+func (s *GameService) GetGameWithMoves(ctx context.Context, gameID uuid.UUID, movesLimit int) (*models.GameDetail, error) {
 	var game models.Game
 	if err := s.db.WithContext(ctx).First(&game, "id = ?", gameID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -142,7 +153,13 @@ func (s *GameService) GetGame(ctx context.Context, gameID uuid.UUID) (*models.Ga
 	}
 
 	// Загружаем ходы
-	moves, err := s.GetMoves(ctx, gameID, 200)
+	var moves []models.Move
+	var err error
+	if movesLimit > 0 {
+		moves, err = s.GetRecentMoves(ctx, gameID, movesLimit)
+	} else {
+		moves, err = s.GetMoves(ctx, gameID, 0)
+	}
 	if err != nil {
 		moves = []models.Move{}
 	}
@@ -168,14 +185,30 @@ func (s *GameService) GetGame(ctx context.Context, gameID uuid.UUID) (*models.Ga
 
 func (s *GameService) GetMoves(ctx context.Context, gameID uuid.UUID, limit int) ([]models.Move, error) {
 	var moves []models.Move
-	if err := s.db.WithContext(ctx).
-		Where("game_id = ?", gameID).
-		Order("move_index ASC").
-		Limit(limit).
-		Find(&moves).Error; err != nil {
+	query := s.db.WithContext(ctx).Where("game_id = ?", gameID).Order("move_index ASC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if err := query.Find(&moves).Error; err != nil {
 		return nil, fmt.Errorf("failed to query moves: %w", err)
 	}
 
+	return moves, nil
+}
+
+func (s *GameService) GetRecentMoves(ctx context.Context, gameID uuid.UUID, limit int) ([]models.Move, error) {
+	var moves []models.Move
+	if err := s.db.WithContext(ctx).
+		Where("game_id = ?", gameID).
+		Order("move_index DESC").
+		Limit(limit).
+		Find(&moves).Error; err != nil {
+		return nil, fmt.Errorf("failed to query recent moves: %w", err)
+	}
+
+	for left, right := 0, len(moves)-1; left < right; left, right = left+1, right-1 {
+		moves[left], moves[right] = moves[right], moves[left]
+	}
 	return moves, nil
 }
 
@@ -443,7 +476,7 @@ func (s *GameService) JoinGame(ctx context.Context, gameID uuid.UUID, playerID *
 // buildGameDetail создает GameDetail из Game
 func (s *GameService) buildGameDetail(ctx context.Context, game *models.Game) (*models.GameDetail, error) {
 	// Загружаем ходы
-	moves, err := s.GetMoves(ctx, game.ID, 200)
+	moves, err := s.GetMoves(ctx, game.ID, 0)
 	if err != nil {
 		moves = []models.Move{}
 	}
@@ -765,6 +798,7 @@ func (s *GameService) finishGame(ctx context.Context, tx *gorm.DB, game *models.
 	now := time.Now().UTC()
 	game.Status = models.GameStatusFinished
 	game.FinishedAt = &now
+	game.TurnDeadlineAt = nil
 	terminationReason := models.TerminationReason(reason)
 	game.TerminationReason = &terminationReason
 	game.EndedBy = endedBy
@@ -1054,7 +1088,7 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 		// Парсим metadata для проверки анонимных игроков в арене
 		var metadata map[string]interface{}
 		if len(game.Metadata) > 0 {
-			// Используем арену для временного маппинга если нужно (хотя json.Unmarshal аллоцирует сам, 
+			// Используем арену для временного маппинга если нужно (хотя json.Unmarshal аллоцирует сам,
 			// мы можем оптимизировать последующую работу если бы у нас был арена-совместимый парсер)
 			if err := json.Unmarshal(game.Metadata, &metadata); err != nil {
 				metadata = make(map[string]interface{})
@@ -1108,8 +1142,21 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 			return err
 		}
 
+		uci := strings.ToLower(strings.TrimSpace(payload.UCI))
+		if payload.Promotion != nil {
+			promotion := strings.ToLower(strings.TrimSpace(*payload.Promotion))
+			if len(promotion) != 1 || !strings.ContainsRune("qrbn", rune(promotion[0])) {
+				return fmt.Errorf("invalid promotion piece")
+			}
+			if len(uci) == 4 {
+				uci += promotion
+			} else if len(uci) != 5 || uci[4] != promotion[0] {
+				return fmt.Errorf("promotion does not match UCI move")
+			}
+		}
+
 		// Парсим ход в UCI нотации
-		chessMove, err := chess.UCINotation{}.Decode(board.Position(), payload.UCI)
+		chessMove, err := chess.UCINotation{}.Decode(board.Position(), uci)
 		if err != nil {
 			return fmt.Errorf("invalid UCI move format: %w", err)
 		}
@@ -1119,7 +1166,7 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 		validMoves := board.ValidMoves()
 		var validMove *chess.Move
 		for _, m := range validMoves {
-			if m.S1() == chessMove.S1() && m.S2() == chessMove.S2() {
+			if m.S1() == chessMove.S1() && m.S2() == chessMove.S2() && m.Promo() == chessMove.Promo() {
 				validMove = m
 				break
 			}
@@ -1129,12 +1176,12 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 			return fmt.Errorf("illegal move")
 		}
 
+		// Проверяем, был ли это взятие
+		isCapture := board.Position().Board().Piece(validMove.S2()) != chess.NoPiece || validMove.HasTag(chess.Capture)
+
 		// Делаем ход
 		board.Move(validMove)
-
-		// Проверяем, был ли это взятие
 		pos := board.Position()
-		isCapture := pos.Board().Piece(validMove.S2()) != chess.NoPiece || validMove.HasTag(chess.Capture)
 
 		// Получаем SAN нотацию
 		san := validMove.String()
@@ -1221,7 +1268,7 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 		move := arena.New[models.Move](mem)
 		move.GameID = gameID
 		move.MoveIndex = moveIndex
-		move.UCI = payload.UCI
+		move.UCI = uci
 		move.SAN = &san
 		move.FenAfter = newFEN
 		move.PlayerID = playerID
@@ -1261,6 +1308,19 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 		game.WhiteClockMs = whitePast
 		game.BlackClockMs = blackPast
 		game.NextTurn = newNextTurn
+		game.TurnDeadlineAt = nil
+		if tc != nil && tc.InitialMs > 0 {
+			nextPast, nextFinish := blackPast, blackFinishNew
+			if newNextTurn == models.SideWhite {
+				nextPast, nextFinish = whitePast, whiteFinishNew
+			}
+			remainingMs := nextFinish - nextPast
+			if remainingMs < 0 {
+				remainingMs = 0
+			}
+			deadline := moveCreatedAt.Add(time.Duration(remainingMs) * time.Millisecond)
+			game.TurnDeadlineAt = &deadline
+		}
 
 		// Проверка окончания игры
 		outcome := board.Outcome()

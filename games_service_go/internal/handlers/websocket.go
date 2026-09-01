@@ -16,6 +16,8 @@ import (
 	"github.com/yourorg/go_shared/middleware"
 )
 
+const realtimeInitialMovesLimit = 200
+
 // createUpgrader создает WebSocket upgrader с валидацией origin
 func createUpgrader(allowedOrigins []string) websocket.Upgrader {
 	allowedSet := make(map[string]bool)
@@ -51,7 +53,7 @@ func handleWebSocketWithUpgrader(gameService *services.GameService, wsManager *r
 			return
 		}
 
-		token := c.Query("token")
+		token, _ := c.Cookie("access_token")
 		sessionID := c.Query("session_id")
 		var userID *int
 		var playerSessionID *string
@@ -82,15 +84,17 @@ func handleWebSocketWithUpgrader(gameService *services.GameService, wsManager *r
 			// Failed to upgrade connection
 			return
 		}
-		defer ws.Close()
+		client := realtime.NewClient(ws)
+		defer client.Close()
 
 		// Устанавливаем лимит чтения для защиты от больших сообщений (512KB)
 		ws.SetReadLimit(512 * 1024)
+		client.SetReadDeadline()
 
 		ctx := c.Request.Context()
 
 		// Загружаем игру
-		gameDetail, err := gameService.GetGame(ctx, gameID)
+		gameDetail, err := gameService.GetGameWithMoves(ctx, gameID, realtimeInitialMovesLimit)
 		if err != nil {
 			// Failed to get game
 			ws.WriteJSON(map[string]interface{}{
@@ -105,19 +109,20 @@ func handleWebSocketWithUpgrader(gameService *services.GameService, wsManager *r
 
 		// Регистрируем соединение
 		connInfo := &realtime.ConnectionInfo{
-			Websocket: ws,
-			UserID:    userID,
-			Role:      role,
+			Client: client,
+			UserID: userID,
+			Role:   role,
 		}
 		wsManager.Connect(gameID, connInfo)
-		defer wsManager.Disconnect(ws)
+		defer wsManager.Disconnect(client)
 
 		// Отправляем начальное состояние
 		stateMsg := map[string]interface{}{
-			"type": "state",
-			"game": gameDetail,
+			"type":     "state",
+			"revision": gameDetail.MoveCount,
+			"game":     gameDetail,
 		}
-		if err := wsManager.SendPersonal(ws, stateMsg); err != nil {
+		if err := wsManager.SendPersonal(client, stateMsg); err != nil {
 			// Failed to send initial state
 			return
 		}
@@ -128,14 +133,9 @@ func handleWebSocketWithUpgrader(gameService *services.GameService, wsManager *r
 			"type":          "viewers_count",
 			"viewers_count": viewersCount,
 		}
-		if err := wsManager.SendPersonal(ws, viewersMsg); err != nil {
+		if err := wsManager.SendPersonal(client, viewersMsg); err != nil {
 			// Failed to send initial viewers count
 		}
-
-		// Кэш последних ходов для оптимизации
-		cachedMoves := make([]models.Move, len(gameDetail.Moves))
-		copy(cachedMoves, gameDetail.Moves)
-		const recentMovesLimit = 60
 
 		// Основной цикл обработки сообщений
 		for {
@@ -152,16 +152,24 @@ func handleWebSocketWithUpgrader(gameService *services.GameService, wsManager *r
 			var payload services.MakeMovePayload
 			if err := json.Unmarshal(rawMessage, &payload); err != nil {
 				// Failed to parse payload
-				wsManager.SendPersonal(ws, map[string]interface{}{
+				wsManager.SendPersonal(client, map[string]interface{}{
 					"type":           "error",
 					"message":        "Invalid payload",
 					"client_move_id": getClientMoveID(rawMessage),
 				})
 				continue
 			}
+			if payload.Type != "make_move" {
+				wsManager.SendPersonal(client, map[string]interface{}{
+					"type":           "error",
+					"message":        "unknown message type",
+					"client_move_id": payload.ClientMoveID,
+				})
+				continue
+			}
 
 			if userID == nil && playerSessionID == nil {
-				wsManager.SendPersonal(ws, map[string]interface{}{
+				wsManager.SendPersonal(client, map[string]interface{}{
 					"type":           "move_rejected",
 					"message":        "Authentication or session_id required",
 					"client_move_id": payload.ClientMoveID,
@@ -173,7 +181,7 @@ func handleWebSocketWithUpgrader(gameService *services.GameService, wsManager *r
 			updatedGame, move, err := gameService.MakeMove(ctx, gameID, userID, playerSessionID, &payload)
 			if err != nil {
 				// Move rejected
-				wsManager.SendPersonal(ws, map[string]interface{}{
+				wsManager.SendPersonal(client, map[string]interface{}{
 					"type":           "move_rejected",
 					"message":        err.Error(),
 					"client_move_id": payload.ClientMoveID,
@@ -181,51 +189,16 @@ func handleWebSocketWithUpgrader(gameService *services.GameService, wsManager *r
 				continue
 			}
 
-			// Добавляем новый ход в кэш
-			if move != nil {
-				cachedMoves = append(cachedMoves, *move)
-				// Ограничиваем размер кэша
-				if len(cachedMoves) > recentMovesLimit {
-					cachedMoves = cachedMoves[len(cachedMoves)-recentMovesLimit:]
-				}
-			}
-
-			// Создаем game detail с кэшированными ходами
-			broadcastGameDetail := &models.GameDetail{
-				Game:  *updatedGame,
-				Moves: cachedMoves,
-			}
-			// Парсим TimeControl из JSON
-			if len(updatedGame.TimeControl) > 0 {
-				var tc models.TimeControl
-				if err := json.Unmarshal(updatedGame.TimeControl, &tc); err != nil {
-					// Failed to unmarshal TimeControl
-				} else {
-					broadcastGameDetail.WhiteFinishMs = &tc.WhiteFinishMs
-					broadcastGameDetail.BlackFinishMs = &tc.BlackFinishMs
-				}
-			}
-
-			// Broadcast обновления всем подключенным
+			// Broadcast только дельты: клиент уже получил snapshot при подключении.
 			moveMadeMsg := map[string]interface{}{
 				"type":           "move_made",
 				"client_move_id": payload.ClientMoveID,
+				"revision":       updatedGame.MoveCount,
 				"move":           move,
-				"game":           *broadcastGameDetail,
+				"game":           updatedGame,
 			}
 			if err := wsManager.Broadcast(gameID, moveMadeMsg); err != nil {
 				// Failed to broadcast move_made
-			}
-
-			// Если игра завершена, отправляем game_finished
-			if updatedGame.Status == models.GameStatusFinished {
-				finishedMsg := map[string]interface{}{
-					"type": "game_finished",
-					"game": broadcastGameDetail,
-				}
-				if err := wsManager.Broadcast(gameID, finishedMsg); err != nil {
-					// Failed to broadcast game_finished
-				}
 			}
 		}
 	}

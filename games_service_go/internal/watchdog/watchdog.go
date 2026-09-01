@@ -2,7 +2,6 @@ package watchdog
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 const (
 	watchdogIntervalSeconds     = 15
 	abandonedGameTimeoutMinutes = 60
-	recentMovesLimit            = 120
 	// Время ожидания первого хода для активных игр (в минутах)
 	activeGameNoMoveTimeoutMinutes = 5
 )
@@ -70,105 +68,41 @@ func (w *Watchdog) tick() {
 }
 
 func (w *Watchdog) checkTimeouts(ctx context.Context) {
+	// turn_deadline_at is updated in the same transaction as a move, so the
+	// watchdog can use an indexed query instead of scanning every active game.
 	var games []models.Game
+	now := time.Now().UTC()
 	if err := w.db.WithContext(ctx).
-		Where("status = ?", models.GameStatusActive).
+		Where("status = ? AND turn_deadline_at IS NOT NULL AND turn_deadline_at <= ?", models.GameStatusActive, now).
+		Order("turn_deadline_at ASC").
+		Limit(100).
 		Find(&games).Error; err != nil {
-		log.Printf("[Watchdog] Failed to query active games: %v", err)
+		log.Printf("[Watchdog] failed to query expired games: %v", err)
 		return
 	}
 
 	for i := range games {
-		w.checkGameTimeout(ctx, &games[i])
-	}
-}
-
-func (w *Watchdog) checkGameTimeout(ctx context.Context, game *models.Game) {
-	// Получаем последний ход
-	lastMove, err := w.service.GetMoves(ctx, game.ID, 1)
-	if err != nil {
-		log.Printf("[Watchdog] Failed to get last move for game %s: %v", game.ID, err)
-		return
-	}
-
-	var lastMovePtr *models.Move
-	if len(lastMove) > 0 {
-		lastMovePtr = &lastMove[0]
-	}
-
-	// Вычисляем эффективные часы
-	whitePast, blackPast, err := w.service.ComputeEffectiveClocks(ctx, game, lastMovePtr)
-	if err != nil {
-		log.Printf("[Watchdog] Failed to compute effective clocks for game %s: %v", game.ID, err)
-		return
-	}
-
-	// Получаем finish_time из TimeControl JSON
-	whiteFinish := int64(0)
-	blackFinish := int64(0)
-	if len(game.TimeControl) > 0 {
-		var tc models.TimeControl
-		if err := json.Unmarshal(game.TimeControl, &tc); err != nil {
-			log.Printf("[Watchdog] Failed to unmarshal TimeControl for game %s: %v", game.ID, err)
-		} else {
-			whiteFinish = tc.WhiteFinishMs
-			blackFinish = tc.BlackFinishMs
-			if whiteFinish == 0 {
-				whiteFinish = tc.InitialMs
-			}
-			if blackFinish == 0 {
-				blackFinish = tc.InitialMs
-			}
+		loserColor := "white"
+		if games[i].NextTurn == models.SideBlack {
+			loserColor = "black"
 		}
-	}
-
-	// Если нет тайм-контроля, пропускаем проверку
-	if whiteFinish == 0 && blackFinish == 0 {
-		return
-	}
-
-	// Проверяем, достиг ли past_time finish_time
-	var loser models.SideToMove
-	if whiteFinish > 0 && whitePast >= whiteFinish && blackPast < blackFinish {
-		loser = models.SideWhite
-	} else if blackFinish > 0 && blackPast >= blackFinish && whitePast < whiteFinish {
-		loser = models.SideBlack
-	} else if whiteFinish > 0 && blackFinish > 0 && whitePast >= whiteFinish && blackPast >= blackFinish {
-		// Оба игрока закончили время - проигрывает тот, чей ход
-		if game.NextTurn == models.SideWhite {
-			loser = models.SideWhite
-		} else {
-			loser = models.SideBlack
+		if err := w.service.TimeoutAuto(ctx, games[i].ID, loserColor); err != nil {
+			// Another request or replica can legitimately finish the game first.
+			log.Printf("[Watchdog] failed to timeout game %s: %v", games[i].ID, err)
+			continue
 		}
-	} else {
-		return // Время не истекло
+
+		gameDetail, err := w.service.GetGame(ctx, games[i].ID)
+		if err != nil {
+			log.Printf("[Watchdog] failed to get game detail for %s: %v", games[i].ID, err)
+			continue
+		}
+		_ = w.wsManager.Broadcast(games[i].ID, map[string]interface{}{
+			"type":     "game_finished",
+			"revision": gameDetail.MoveCount,
+			"game":     gameDetail.Game,
+		})
 	}
-
-	loserColor := "white"
-	if loser == models.SideBlack {
-		loserColor = "black"
-	}
-
-	// Завершаем игру по таймауту автоматически (без проверки playerID)
-	err = w.service.TimeoutAuto(ctx, game.ID, loserColor)
-	if err != nil {
-		log.Printf("[Watchdog] Failed to timeout game %s: %v", game.ID, err)
-		return
-	}
-
-	log.Printf("[Watchdog] Game %s finished by timeout: %s lost", game.ID, loserColor)
-
-	// Broadcast через WebSocket
-	gameDetail, err := w.service.GetGame(ctx, game.ID)
-	if err != nil {
-		log.Printf("[Watchdog] Failed to get game detail for game %s: %v", game.ID, err)
-		return
-	}
-
-	w.wsManager.Broadcast(game.ID, map[string]interface{}{
-		"type": "game_finished",
-		"game": gameDetail,
-	})
 }
 
 func (w *Watchdog) cleanupAbandonedGames(ctx context.Context) {
@@ -194,28 +128,11 @@ func (w *Watchdog) cleanupAbandonedGames(ctx context.Context) {
 	)`
 
 	var abandonedGames []models.Game
-	if err := w.db.WithContext(ctx).
-		Where(whereClause,
-			models.GameStatusCreated, cutoffTime).
-		Find(&abandonedGames).Error; err != nil {
-		log.Printf("[Watchdog] Failed to query abandoned games: %v", err)
-		return
-	}
-
-	if len(abandonedGames) == 0 {
-		return
-	}
-
-	// Удаляем заброшенные игры
-	result := w.db.WithContext(ctx).
-		Where(whereClause,
-			models.GameStatusCreated, cutoffTime).
-		Delete(&models.Game{})
-
-	if result.Error != nil {
-		log.Printf("[Watchdog] Failed to delete abandoned games: %v", result.Error)
-		// Return early - can't broadcast if deletion failed
-		// This is acceptable as watchdog will retry on next tick
+	if err := w.db.WithContext(ctx).Raw(
+		"DELETE FROM games WHERE "+whereClause+" RETURNING id",
+		models.GameStatusCreated, cutoffTime,
+	).Scan(&abandonedGames).Error; err != nil {
+		log.Printf("[Watchdog] failed to delete abandoned games: %v", err)
 		return
 	}
 
@@ -245,30 +162,17 @@ func (w *Watchdog) cleanupActiveGamesWithoutMoves(ctx context.Context) {
 	)`
 
 	var gamesToDelete []models.Game
-	if err := w.db.WithContext(ctx).
-		Where(whereClause,
-			models.GameStatusActive, cutoffTime).
-		Find(&gamesToDelete).Error; err != nil {
-		log.Printf("[Watchdog] Failed to query active games without moves: %v", err)
+	if err := w.db.WithContext(ctx).Raw(
+		"DELETE FROM games WHERE "+whereClause+" RETURNING id",
+		models.GameStatusActive, cutoffTime,
+	).Scan(&gamesToDelete).Error; err != nil {
+		log.Printf("[Watchdog] failed to delete active games without moves: %v", err)
 		return
 	}
 
-	if len(gamesToDelete) == 0 {
-		return
+	if len(gamesToDelete) > 0 {
+		log.Printf("[Watchdog] deleted %d active games without moves", len(gamesToDelete))
 	}
-
-	// Удаляем игры без ходов
-	result := w.db.WithContext(ctx).
-		Where(whereClause,
-			models.GameStatusActive, cutoffTime).
-		Delete(&models.Game{})
-
-	if result.Error != nil {
-		log.Printf("[Watchdog] Failed to delete active games without moves: %v", result.Error)
-		return
-	}
-
-	log.Printf("[Watchdog] Deleted %d active games without moves", result.RowsAffected)
 
 	// Broadcast отмены для каждой удаленной игры
 	for _, game := range gamesToDelete {

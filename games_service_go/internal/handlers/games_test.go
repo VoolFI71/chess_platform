@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -48,46 +47,35 @@ func (m *MockGameService) JoinGame(ctx context.Context, gameID uuid.UUID, player
 func setupRouter(service *services.GameService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	
+
 	r.POST("/games", createGame(service))
 	r.GET("/games/:game_id", getGame(service))
-	r.POST("/games/:game_id/join", joinGame(service))
-	
+	r.POST("/games/:game_id/join", joinGame(service, nil))
+
 	return r
 }
 
 func TestCreateGame_Success(t *testing.T) {
-	router := gin.New()
-	gin.SetMode(gin.TestMode)
-	
-	reqBody := map[string]interface{}{
-		"time_control": map[string]interface{}{
-			"initial_ms":   600000,
-			"increment_ms": 0,
-			"type":        "blitz",
-		},
-	}
-	
-	body, _ := json.Marshal(reqBody)
+	router := setupRouter(nil)
+	body := []byte("{")
 	req, _ := http.NewRequest("POST", "/games", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
-	
-	assert.NotNil(t, w)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestGetGame_InvalidUUID(t *testing.T) {
-	router := gin.New()
-	gin.SetMode(gin.TestMode)
-	
+	router := setupRouter(nil)
+
 	req, _ := http.NewRequest("GET", "/games/invalid-uuid", nil)
 	w := httptest.NewRecorder()
-	
+
 	router.ServeHTTP(w, req)
-	
-	assert.NotNil(t, w)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestGameFlow_Integration(t *testing.T) {

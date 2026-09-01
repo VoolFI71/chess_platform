@@ -104,6 +104,7 @@ type Game struct {
 	Metadata          datatypes.JSON     `gorm:"type:jsonb" json:"metadata"`
 	CreatedAt         time.Time          `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	StartedAt         *time.Time         `json:"started_at"`
+	TurnDeadlineAt    *time.Time         `gorm:"index" json:"turn_deadline_at"`
 	FinishedAt        *time.Time         `json:"finished_at"`
 }
 

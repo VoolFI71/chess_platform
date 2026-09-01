@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -32,7 +33,7 @@ func handleMatchmakingWebSocket(
 	upgrader websocket.Upgrader,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.Query("token")
+		token, _ := c.Cookie("access_token")
 		if token == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "token required"})
 			return
@@ -48,15 +49,21 @@ func handleMatchmakingWebSocket(
 		if err != nil {
 			return
 		}
-		defer ws.Close()
+		client := realtime.NewClient(ws)
+		defer client.Close()
 
 		ws.SetReadLimit(4 * 1024)
+		client.SetReadDeadline()
 
-		mmManager.Register(userID, ws)
+		mmManager.Register(userID, client)
 		defer func() {
-			mmManager.Unregister(userID)
+			if !mmManager.Unregister(userID, client) {
+				return
+			}
 			// Auto-remove from queue on disconnect
-			if err := matchmakingSvc.Leave(context.Background(), userID); err != nil {
+			leaveCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			if err := matchmakingSvc.Leave(leaveCtx, userID); err != nil {
 				log.Printf("[Matchmaking WS] Failed to remove user %d from queue on disconnect: %v", userID, err)
 			}
 		}()
@@ -72,14 +79,14 @@ func handleMatchmakingWebSocket(
 
 			var msg wsMatchmakingMessage
 			if err := json.Unmarshal(rawMsg, &msg); err != nil {
-				sendWSError(ws, "invalid message format")
+				sendWSError(client, "invalid message format")
 				continue
 			}
 
 			switch msg.Type {
 			case "join":
 				if msg.TimeControl == nil {
-					sendWSError(ws, "time_control required")
+					sendWSError(client, "time_control required")
 					continue
 				}
 
@@ -91,41 +98,43 @@ func handleMatchmakingWebSocket(
 
 				result, err := matchmakingSvc.Join(c.Request.Context(), userID, tc, msg.Rated)
 				if err != nil {
-					sendWSError(ws, err.Error())
+					sendWSError(client, err.Error())
 					continue
 				}
 
-				sendWSJSON(ws, map[string]interface{}{
+				sendWSJSON(client, map[string]interface{}{
 					"type":    result.Status,
 					"game_id": result.GameID,
 				})
 
 			case "leave":
 				if err := matchmakingSvc.Leave(c.Request.Context(), userID); err != nil {
-					sendWSError(ws, err.Error())
+					sendWSError(client, err.Error())
 					continue
 				}
-				sendWSJSON(ws, map[string]interface{}{
+				sendWSJSON(client, map[string]interface{}{
 					"type": "left",
 				})
 
 			default:
-				sendWSError(ws, "unknown message type: "+msg.Type)
+				sendWSError(client, "unknown message type: "+msg.Type)
 			}
 		}
 	}
 }
 
-func sendWSJSON(ws *websocket.Conn, msg interface{}) {
+func sendWSJSON(client *realtime.Client, msg interface{}) {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return
 	}
-	ws.WriteMessage(websocket.TextMessage, data)
+	if !client.Send(data) {
+		client.Close()
+	}
 }
 
-func sendWSError(ws *websocket.Conn, message string) {
-	sendWSJSON(ws, map[string]interface{}{
+func sendWSError(client *realtime.Client, message string) {
+	sendWSJSON(client, map[string]interface{}{
 		"type":    "error",
 		"message": message,
 	})

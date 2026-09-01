@@ -27,7 +27,7 @@ ENV/
 *.dylib
 *.test
 *.out
-server
+/server
 server.exe
 
 # Node.js (if any)
