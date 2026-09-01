@@ -12,16 +12,16 @@
     <link rel="icon" type="image/png" sizes="120x120" href="/favicon.png">
     <link rel="apple-touch-icon" sizes="120x120" href="/favicon.png">
     <title>Шахматные задачи онлайн бесплатно - Решать задачи по шахматам | ChessMint</title>
-    
+
     <!-- SEO Meta Tags -->
     <meta name="description" content="Решайте шахматные задачи онлайн бесплатно без регистрации. Более 1.000.000 тактических задач: мат в 1-3 хода, комбинации. Режимы выживания и рейтинга. Начните тренироваться прямо сейчас!">
     <meta name="keywords" content="шахматные задачи, решать задачи по шахматам, тактика в шахматах, шахматная тактика, мат в 1 ход, мат в 2 хода, шахматные комбинации, тренировка шахмат, задачи онлайн, тактические задачи">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://chessmint.ru/tasks">
-    
+
     <!-- Hreflang -->
     <link rel="alternate" hreflang="ru" href="https://chessmint.ru/tasks">
-    
+
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://chessmint.ru/tasks">
@@ -34,7 +34,7 @@
     <meta property="og:locale" content="ru_RU">
     <meta property="og:site_name" content="ChessMint">
     <meta property="article:author" content="ChessMint">
-    
+
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://chessmint.ru/tasks">
@@ -43,7 +43,7 @@
     <meta name="twitter:image" content="https://chessmint.ru/favicon.svg">
     <meta name="twitter:image:alt" content="ChessMint - Шахматные задачи онлайн для тренировки тактики">
     <meta name="twitter:site" content="@chessmint">
-    
+
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
     {
@@ -66,7 +66,7 @@
       }
     }
     </script>
-    
+
     <!-- Structured Data - BreadcrumbList -->
     <script type="application/ld+json">
     {
@@ -88,7 +88,7 @@
       ]
     }
     </script>
-    
+
     <!-- Structured Data - Game (Шахматные задачи) -->
     <script type="application/ld+json">
     {
@@ -136,7 +136,7 @@
       }
     }
     </script>
-    
+
     <!-- Structured Data - LearningResource -->
     <script type="application/ld+json">
     {
@@ -172,7 +172,7 @@
       }
     }
     </script>
-    
+
     <!-- Загрузка темы до отрисовки страницы, чтобы избежать мерцания -->
     <script>
       (function() {
@@ -189,22 +189,22 @@
         } catch {}
       })();
     </script>
-    
+
     <!-- DNS Prefetch & Preconnect для производительности -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
+
     <!-- Fonts -->
     <!-- Fonts - асинхронная загрузка -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"></noscript>
-    
+
     <!-- Font Awesome - defer для не критичных иконок -->
     <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
-    
+
     <!-- Performance: Preload critical resources -->
     <link rel="preload" href="/styles/base/variables.css?v=2.0" as="style">
     <link rel="preload" href="/styles/base/common.css?v=2.0" as="style">
@@ -217,7 +217,7 @@
     <link rel="stylesheet" href="/styles/components/chess-board.css?v=2.0">
     <link rel="stylesheet" href="/styles/components/mini-footer.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/tasks.css?v=2.0">
-    
+
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
         (function(m,e,t,r,i,k,a){
@@ -229,7 +229,7 @@
         ym(105743222, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
     </script>
     <!-- /Yandex.Metrika counter -->
-    
+
     <!-- Yandex Autoplacement 18293483 -->
     <script src="https://yandex.ru/ads/system/context.js" async></script>
     <script data-page-id="18293483" src="https://yandex.ru/ads/system/ap-loader.js" async></script>
@@ -248,9 +248,9 @@
                     </div>
                 </a>
                 <nav class="nav">
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
-                    <button type="button" class="nav-link active" onclick="window.location.href='/tasks'">Задачи</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/games">Играть</button>
+                    <button type="button" class="nav-link active" data-action="navigate" data-route="/tasks">Задачи</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/leaderboard">Рейтинг</button>
                 </nav>
                 <div class="header-actions">
                     <div id="userActions">
@@ -258,7 +258,7 @@
                             <span></span>
                         </div>
                     </div>
-                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()" aria-label="Переключить тему">
+                    <button class="theme-toggle" title="Переключить тему" data-action="toggle-theme" aria-label="Переключить тему">
                         <i class="fas fa-sun" id="themeIcon" aria-hidden="true"></i>
                     </button>
                     <div id="authButtons">
@@ -274,27 +274,27 @@
                     </button>
                 </div>
             </div>
-            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" data-action="close-mobile-menu"></div>
             <div class="mobile-menu" id="mobileMenu">
-                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                <button class="mobile-menu-close" data-action="close-mobile-menu" aria-label="Закрыть меню">
                     <i class="fas fa-times"></i>
                 </button>
                 <div>
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/games">
                         <i class="fas fa-chess"></i>
                         <span>Играть</span>
                     </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/tasks">
                         <i class="fas fa-puzzle-piece"></i>
                         <span>Задачи</span>
                     </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/leaderboard">
                         <i class="fas fa-trophy"></i>
                         <span>Рейтинг</span>
                     </button>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+                        <a href="/login" class="mobile-login-link" data-action="close-mobile-menu">
                             <i class="fas fa-sign-in-alt"></i>
                             <span>Войти / Регистрация</span>
                         </a>
@@ -303,7 +303,7 @@
                         <div id="gamesUserInfoMobile">
                             <span></span>
                         </div>
-                        <a href="/profile" class="mobile-cabinet-link" onclick="closeMobileMenu();">
+                        <a href="/profile" class="mobile-cabinet-link" data-action="close-mobile-menu">
                             <i class="fas fa-user"></i>
                             <span>Личный кабинет</span>
                         </a>
@@ -323,7 +323,7 @@
                 <h1 id="tasks-heading" class="tasks-title">Шахматные задачи онлайн бесплатно без регистрации</h1>
                 <p class="tasks-subtitle">Решайте шахматные задачи онлайн бесплатно без регистрации. Более 1.000.000 тактических задач. Режимы выживания, рейтинга и марафона. Шахматные задачи для все.</p>
             </div>
-            
+
             <div class="mode-grid" id="modeGrid" role="group" aria-label="Режимы решения задач"></div>
 
             <section class="puzzle-section hidden" id="puzzleSection" aria-labelledby="puzzle-section-heading">
@@ -422,7 +422,7 @@
                                 <i class="fas fa-chart-line" aria-hidden="true"></i>
                                 Статистика
                             </h3>
-                            
+
                             <div class="stats-section" role="list" aria-labelledby="stats-heading">
                                 <div class="stat-item" id="currentRatingStat" role="listitem">
                                     <div class="stat-label">
@@ -431,7 +431,7 @@
                                     </div>
                                     <div class="stat-value" id="currentRatingValue" aria-live="polite">—</div>
                                 </div>
-                                
+
                                 <div class="stat-item" id="streakStat" role="listitem">
                                     <div class="stat-label">
                                         <i class="fas fa-fire" aria-hidden="true"></i>
@@ -442,7 +442,7 @@
                                         <span class="streak-value" id="streakValue">0</span>
                                     </div>
                                 </div>
-                                
+
                                 <div class="stat-item" id="timeStat" role="listitem">
                                     <div class="stat-label">
                                         <i class="fas fa-clock" aria-hidden="true"></i>
@@ -526,8 +526,8 @@
                     </div>
                     <div class="faq-container" role="list">
                         <div class="faq-item" role="listitem">
-                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                    aria-expanded="false" 
+                            <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                    aria-expanded="false"
                                     aria-controls="faq-tasks-1"
                                     type="button">
                                 <span>Можно ли решать шахматные задачи онлайн бесплатно без регистрации?</span>
@@ -538,8 +538,8 @@
                             </div>
                         </div>
                         <div class="faq-item" role="listitem">
-                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                    aria-expanded="false" 
+                            <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                    aria-expanded="false"
                                     aria-controls="faq-tasks-2"
                                     type="button">
                                 <span>Какие типы шахматных задач доступны?</span>
@@ -550,8 +550,8 @@
                             </div>
                         </div>
                         <div class="faq-item" role="listitem">
-                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                    aria-expanded="false" 
+                            <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                    aria-expanded="false"
                                     aria-controls="faq-tasks-3"
                                     type="button">
                                 <span>Как работают режимы решения задач?</span>
@@ -562,8 +562,8 @@
                             </div>
                         </div>
                         <div class="faq-item" role="listitem">
-                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                    aria-expanded="false" 
+                            <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                    aria-expanded="false"
                                     aria-controls="faq-tasks-4"
                                     type="button">
                                 <span>Подходят ли задачи для начинающих?</span>
@@ -574,8 +574,8 @@
                             </div>
                         </div>
                         <div class="faq-item" role="listitem">
-                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                    aria-expanded="false" 
+                            <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                    aria-expanded="false"
                                     aria-controls="faq-tasks-5"
                                     type="button">
                                 <span>Как улучшить навыки решения задач?</span>
@@ -586,8 +586,8 @@
                             </div>
                         </div>
                         <div class="faq-item" role="listitem">
-                            <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                    aria-expanded="false" 
+                            <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                    aria-expanded="false"
                                     aria-controls="faq-tasks-6"
                                     type="button">
                                 <span>Сколько задач доступно?</span>
@@ -604,6 +604,7 @@
     </main>
 
     <script src="/scripts/mobile-menu.js"></script>
+    <script src="/scripts/http-client.js" defer></script>
     <script src="/scripts/auth.js" defer></script>
     <script src="/scripts/modal-utils.js" defer></script>
     <script src="/scripts/event-listener-utils.js" defer></script>
@@ -627,18 +628,18 @@
         const menuBtn = document.getElementById('mobileMenuBtn');
         const menu = document.getElementById('mobileMenu');
         const overlay = document.getElementById('mobileMenuOverlay');
-        
+
         console.log('[Mobile Menu Init] menuBtn found:', !!menuBtn, menuBtn);
         console.log('[Mobile Menu Init] menu found:', !!menu, menu);
         console.log('[Mobile Menu Init] toggleMobileMenu function available:', typeof window.toggleMobileMenu === 'function');
-        
+
         // Проверяем начальное состояние меню
         if (menu) {
           const isInitiallyActive = menu.classList.contains('active');
           console.log('[Mobile Menu Init] Initial menu state - has active class:', isInitiallyActive);
           console.log('[Mobile Menu Init] Initial menu classes:', menu.className);
           console.log('[Mobile Menu Init] Initial menu computed display:', window.getComputedStyle(menu).display);
-          
+
           // Если меню открыто при загрузке, закрываем его
           if (isInitiallyActive) {
             console.warn('[Mobile Menu Init] Menu is open on page load! Closing it...');
@@ -648,7 +649,7 @@
             console.log('[Mobile Menu Init] Menu closed on initialization');
           }
         }
-        
+
         if (menuBtn && typeof window.toggleMobileMenu === 'function') {
           console.log('[Mobile Menu Init] Adding click event listener to menu button');
           menuBtn.addEventListener('click', function(e) {
@@ -670,7 +671,7 @@
         }
       });
     </script>
-    
+
     <script>
         // Accessibility improvements для tasks страницы
         document.addEventListener('DOMContentLoaded', function() {
@@ -687,7 +688,7 @@
                     }
                 });
             }
-            
+
             // Keyboard navigation для карточек режимов
             const modeGrid = document.getElementById('modeGrid');
             if (modeGrid) {
@@ -695,7 +696,7 @@
                 modeGrid.addEventListener('keydown', function(e) {
                     const cards = Array.from(modeGrid.querySelectorAll('.mode-card'));
                     const currentIndex = cards.indexOf(document.activeElement);
-                    
+
                     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
                         e.preventDefault();
                         const nextIndex = (currentIndex + 1) % cards.length;
@@ -736,5 +737,6 @@
             }
         });
     </script>
+  <script src="/scripts/template-actions.js" defer></script>
 </body>
 </html>

@@ -50,28 +50,18 @@
   }[status] || '');
 
   const normalizeUserId = (value) => {
-    if (window.MatchUtils && window.MatchUtils.normalizeUserId) {
-      return window.MatchUtils.normalizeUserId(value);
-    }
     if (value === null || value === undefined) return null;
     const numeric = Number(value);
     return Number.isNaN(numeric) ? value : numeric;
   };
 
   const usernameFromCache = (id) => {
-    if (window.MatchPlayerNamesUtils && window.MatchPlayerNamesUtils.usernameFromCache) {
-      return window.MatchPlayerNamesUtils.usernameFromCache(id);
-    }
     const key = normalizeUserId(id);
     if (key === null) return null;
     return playerUsernames.has(key) ? playerUsernames.get(key) : null;
   };
 
   const storeUsername = (id, username) => {
-    if (window.MatchPlayerNamesUtils && window.MatchPlayerNamesUtils.storeUsername) {
-      window.MatchPlayerNamesUtils.storeUsername(id, username);
-      return;
-    }
     const key = normalizeUserId(id);
     if (key === null) return;
     if (typeof username === 'string') {
@@ -83,10 +73,6 @@
   };
 
   async function fetchUsername(id) {
-    if (window.MatchPlayerNamesUtils && window.MatchPlayerNamesUtils.fetchUsername) {
-      return window.MatchPlayerNamesUtils.fetchUsername(id);
-    }
-    
     const key = normalizeUserId(id);
     if (key === null) return null;
     if (playerUsernames.has(key)) return playerUsernames.get(key);

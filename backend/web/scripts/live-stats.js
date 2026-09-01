@@ -23,18 +23,17 @@
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws/stats`;
 
-    try {
-      statsWs = new WebSocket(wsUrl);
+    statsWs = new WebSocket(wsUrl);
 
-      statsWs.onopen = () => {
+    statsWs.onopen = () => {
         // Сбрасываем таймер переподключения при успешном подключении
         if (reconnectTimeout) {
           clearTimeout(reconnectTimeout);
           reconnectTimeout = null;
         }
-      };
+    };
 
-      statsWs.onmessage = (event) => {
+    statsWs.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'online_stats') {
@@ -42,50 +41,16 @@
           }
         } catch (err) {
           }
-      };
+    };
 
-      statsWs.onerror = (error) => {
-        };
+    statsWs.onerror = () => {
+      statsWs?.close();
+    };
 
-      statsWs.onclose = () => {
-        statsWs = null;
-        // Переподключаемся через некоторое время
-        reconnectTimeout = setTimeout(connectStatsWebSocket, RECONNECT_DELAY);
-      };
-    } catch (err) {
-      // Fallback: используем polling при ошибке WebSocket
-      fallbackToPolling();
-    }
-  }
-
-  function fallbackToPolling() {
-    // Останавливаем предыдущий polling, если есть
-    stopPolling();
-
-    async function fetchOnlineCount() {
-      try {
-        const res = await fetch('/api/stats/online');
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        const data = await res.json();
-        updateOnlineCount(data.online_players || 0);
-      } catch (err) {
-        const el = document.getElementById('heroOnlineCount');
-        if (el) {
-          el.textContent = '';
-          const span = document.createElement('span');
-          span.style.fontWeight = '600';
-          span.style.color = '#10b981';
-          span.textContent = '—';
-          el.appendChild(span);
-          const text = document.createTextNode(' игроков онлайн');
-          el.appendChild(text);
-        }
-      }
-    }
-    fetchOnlineCount();
-    pollingInterval = setInterval(fetchOnlineCount, 30000);
+    statsWs.onclose = () => {
+      statsWs = null;
+      reconnectTimeout = setTimeout(connectStatsWebSocket, RECONNECT_DELAY);
+    };
   }
 
   function animateCounter(element, target, duration = 2000) {
@@ -119,11 +84,14 @@
   }
 
   function disconnect() {
-    if (wsConnection) {
-      wsConnection.disconnect();
-      wsConnection = null;
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout);
+      reconnectTimeout = null;
     }
-    stopPolling();
+    if (statsWs) {
+      statsWs.close(1000, 'User disconnect');
+      statsWs = null;
+    }
   }
 
   window.LiveStats = {

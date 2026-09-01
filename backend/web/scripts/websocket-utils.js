@@ -2,6 +2,11 @@
 (() => {
   'use strict';
 
+  const lifecycle = window.App?.Utils?.PageLifecycle;
+  if (!lifecycle) {
+    throw new Error('PageLifecycle is not initialized');
+  }
+
   /**
    * Создает и управляет WebSocket подключением с автоматическим переподключением
    * @param {Object} options - Опции подключения
@@ -10,7 +15,7 @@
    * @param {Function} [options.onConnect] - Callback при подключении
    * @param {Function} [options.onDisconnect] - Callback при отключении
    * @param {Function} [options.onError] - Callback при ошибке
-   * @param {number} [options.maxReconnectAttempts=5] - Максимальное количество попыток переподключения
+   * @param {number} [options.maxReconnectAttempts=Infinity] - Максимальное количество попыток переподключения
    * @param {number} [options.baseDelay=1000] - Базовая задержка переподключения (мс)
    * @param {number} [options.maxDelay=30000] - Максимальная задержка переподключения (мс)
    * @returns {Object} - Объект с методами управления подключением
@@ -22,18 +27,20 @@
       onConnect,
       onDisconnect,
       onError,
-      maxReconnectAttempts = 5,
+      maxReconnectAttempts = Infinity,
       baseDelay = 1000,
       maxDelay = 30000,
+      jitter = 0.25,
     } = options;
 
     let ws = null;
     let reconnectAttempts = 0;
     let reconnectTimer = null;
     let isManualDisconnect = false;
+    let unregisterCleanup = null;
 
     function connect() {
-      if (ws && ws.readyState === WebSocket.OPEN) {
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
         return;
       }
 
@@ -42,21 +49,22 @@
       }
 
       try {
-        ws = new WebSocket(url);
+        const socket = new WebSocket(url);
+        ws = socket;
 
-        ws.onopen = () => {
+        socket.onopen = () => {
           reconnectAttempts = 0;
           isManualDisconnect = false;
           if (onConnect) {
-            onConnect(ws);
+            onConnect(socket);
           }
         };
 
-        ws.onmessage = (event) => {
+        socket.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
             if (onMessage) {
-              onMessage(message, ws);
+              onMessage(message, socket);
             }
           } catch (error) {
             // Failed to parse message
@@ -66,13 +74,15 @@
           }
         };
 
-        ws.onerror = (error) => {
+        socket.onerror = (error) => {
           if (onError) {
             onError(error, 'connection');
           }
         };
 
-        ws.onclose = (event) => {
+        socket.onclose = (event) => {
+          // An old socket must not tear down a newer connection.
+          if (ws !== socket) return;
           ws = null;
 
           if (onDisconnect) {
@@ -83,7 +93,7 @@
           if (
             !isManualDisconnect &&
             event.code !== 1000 &&
-            reconnectAttempts < maxReconnectAttempts
+            (maxReconnectAttempts === Infinity || reconnectAttempts < maxReconnectAttempts)
           ) {
             scheduleReconnect();
           }
@@ -92,7 +102,7 @@
         if (onError) {
           onError(error, 'connection');
         }
-        if (reconnectAttempts < maxReconnectAttempts) {
+        if (maxReconnectAttempts === Infinity || reconnectAttempts < maxReconnectAttempts) {
           scheduleReconnect();
         }
       }
@@ -100,7 +110,7 @@
 
     function scheduleReconnect() {
       if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
+        lifecycle.clearTimeout(reconnectTimer);
       }
 
       reconnectAttempts++;
@@ -108,17 +118,22 @@
         baseDelay * Math.pow(2, reconnectAttempts - 1),
         maxDelay
       );
+      const jitteredDelay = Math.max(
+        0,
+        Math.round(delay * (1 + (Math.random() * 2 - 1) * jitter))
+      );
 
-      reconnectTimer = setTimeout(() => {
+      reconnectTimer = lifecycle.setTimeout(() => {
+        reconnectTimer = null;
         connect();
-      }, delay);
+      }, jitteredDelay);
     }
 
     function disconnect() {
       isManualDisconnect = true;
 
       if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
+        lifecycle.clearTimeout(reconnectTimer);
         reconnectTimer = null;
       }
 
@@ -128,6 +143,11 @@
       }
 
       reconnectAttempts = 0;
+
+      if (unregisterCleanup) {
+        unregisterCleanup();
+        unregisterCleanup = null;
+      }
     }
 
     function send(data) {
@@ -144,6 +164,8 @@
     function getWebSocket() {
       return ws;
     }
+
+    unregisterCleanup = lifecycle.onCleanup(disconnect);
 
     // Автоматически подключаемся при создании
     connect();
@@ -194,6 +216,4 @@
     createWebSocketUrl,
   };
 
-  // Для обратной совместимости: сохраняем старый экспорт
-  window.WebSocketUtils = window.App.WS;
 })();

@@ -114,9 +114,9 @@
           </div>
         </a>
         <nav class="nav">
-          <button type="button" class="nav-link active" onclick="window.location.href='/games'">Играть</button>
-          <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
-          <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+          <button type="button" class="nav-link active" data-action="navigate" data-route="/games">Играть</button>
+          <button type="button" class="nav-link" data-action="navigate" data-route="/tasks">Задачи</button>
+          <button type="button" class="nav-link" data-action="navigate" data-route="/leaderboard">Рейтинг</button>
         </nav>
         <div class="header-actions">
           <div id="userActions">
@@ -141,27 +141,27 @@
         </div>
       </div>
       <!-- Mobile Menu -->
-      <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+      <div class="mobile-menu-overlay" id="mobileMenuOverlay" data-action="close-mobile-menu"></div>
       <div class="mobile-menu" id="mobileMenu">
-        <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+        <button class="mobile-menu-close" data-action="close-mobile-menu" aria-label="Закрыть меню">
           <i class="fas fa-times"></i>
         </button>
         <div>
-          <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+          <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/games">
             <i class="fas fa-chess"></i>
             <span>Играть</span>
           </button>
-          <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+          <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/tasks">
             <i class="fas fa-puzzle-piece"></i>
             <span>Задачи</span>
           </button>
-          <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+          <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/leaderboard">
             <i class="fas fa-trophy"></i>
             <span>Рейтинг</span>
           </button>
           <hr>
           <div id="mobileAuthButtons">
-            <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+            <a href="/login" class="mobile-login-link" data-action="close-mobile-menu">
               <i class="fas fa-sign-in-alt"></i>
               <span>Войти / Регистрация</span>
             </a>
@@ -170,7 +170,7 @@
             <div id="gamesUserInfoMobile">
               <span></span>
             </div>
-            <a href="/profile" class="mobile-cabinet-link" onclick="closeMobileMenu();">
+            <a href="/profile" class="mobile-cabinet-link" data-action="close-mobile-menu">
               <i class="fas fa-user"></i>
               <span>Личный кабинет</span>
             </a>
@@ -320,6 +320,7 @@
 
   <!-- Common Auth Script (must load first) -->
   <script src="/scripts/page-lifecycle.js"></script>
+  <script src="/scripts/http-client.js"></script>
   <script src="/scripts/auth.js"></script>
   <script src="/scripts/mobile-menu.js" defer></script>
   <script src="/scripts/websocket-utils.js"></script>
@@ -338,6 +339,7 @@
   <script src="/scripts/match/player-names.js" defer></script>
   <script src="/scripts/match/clocks.js" defer></script>
   <script src="/scripts/match/timers.js" defer></script>
+  <script src="/scripts/match/board-interaction.js" defer></script>
   <!-- Main Match Script -->
   <script src="/scripts/match/match.js" defer></script>
   <!-- Header Mobile Control - должен загружаться ПОСЛЕ всех скриптов, которые управляют хедером -->
@@ -350,18 +352,10 @@
         themeToggleBtn.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
-          // Используем глобальную функцию из auth.js
-          if (window.toggleTheme && typeof window.toggleTheme === 'function') {
-            window.toggleTheme();
-          } else {
-            // Fallback если auth.js еще не загружен
-            const isDark = document.body.classList.contains('dark');
-            document.body.classList.toggle('dark', !isDark);
-            document.documentElement.classList.toggle('dark', !isDark);
-            const icon = document.getElementById('themeIcon');
-            if (icon) icon.className = !isDark ? 'fas fa-moon' : 'fas fa-sun';
-            localStorage.setItem('theme', !isDark ? 'dark' : 'light');
+          if (typeof window.toggleTheme !== 'function') {
+            throw new Error('Theme API is not initialized');
           }
+          window.toggleTheme();
         });
       }
       
@@ -447,7 +441,6 @@
           }
       });
   </script>
+  <script src="/scripts/template-actions.js" defer></script>
 </body>
 </html>
-
-  

@@ -5,16 +5,15 @@
   if (!TasksConstants || !TasksState) {
     throw new Error('Required modules not loaded. Ensure tasks/constants.js and tasks/state.js are included first.');
   }
+  const http = window.App?.Http;
+  if (!http || typeof http.apiFetch !== 'function') {
+    throw new Error('App.Http is not initialized');
+  }
 
   window.TasksAPI = {
     // Используем единую apiFetch из auth.js
     async authorizedFetch(path, options = {}) {
-      if (typeof window.apiFetch === 'function') {
-        return window.apiFetch(path, options);
-      }
-      // Fallback если apiFetch не загружен (не должен происходить в нормальных условиях)
-      console.warn('apiFetch not available, using direct fetch');
-      return fetch(path, options);
+      return http.apiFetch(path, options);
     },
 
     buildPuzzleRequestUrl(excludePuzzleId = null) {

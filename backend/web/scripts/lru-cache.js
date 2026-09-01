@@ -104,7 +104,5 @@
 
   window.App.Utils.LRUCache = LRUCache;
 
-  // Для обратной совместимости (если нужно)
-  window.LRUCache = LRUCache;
 })();
 

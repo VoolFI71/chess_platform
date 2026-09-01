@@ -1,6 +1,7 @@
 // Утилита для управления анонимными сессиями
 
 const SESSION_KEY = 'anonymous_session_id';
+const authIsAuthenticated = window.App?.Auth?.isAuthenticated;
 
 /**
  * Получить или создать session_id для анонимного игрока
@@ -46,8 +47,10 @@ function getAnonymousHeaders() {
  * @returns {boolean} true если пользователь авторизован
  */
 function isAuthenticated() {
-    return typeof window.apiFetch === 'function' && 
-           localStorage.getItem('access_token') !== null;
+    if (typeof authIsAuthenticated !== 'function') {
+        throw new Error('Auth API is not initialized');
+    }
+    return authIsAuthenticated();
 }
 
 /**

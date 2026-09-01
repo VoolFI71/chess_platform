@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="/styles/components/header.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/cabinet.css?v=2.0">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <script src="/scripts/http-client.js"></script>
     <script src="/scripts/auth.js"></script>
     <script src="/scripts/mobile-menu.js"></script>
     <script src="/scripts/header-mobile-control.js"></script>
@@ -31,9 +32,9 @@
                     <div><div class="gradient-text">ChessMint</div></div>
                 </a>
                 <nav class="nav">
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/games">Играть</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/tasks">Задачи</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/leaderboard">Рейтинг</button>
                 </nav>
                 <div class="header-actions">
                     <div id="userActions"></div>
@@ -43,7 +44,7 @@
                     <div id="authButtons">
                         <a href="/login" class="auth-icon-btn" title="Войти"><i class="fas fa-sign-in-alt"></i></a>
                     </div>
-                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu();">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" data-action="toggle-mobile-menu">
                         <i class="fas fa-bars" id="menuIcon"></i>
                     </button>
                     <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
@@ -73,16 +74,6 @@
 
     <script>
 (function() {
-  const ACCESS_KEY = 'access_token';
-  function getAccessToken() {
-    return localStorage.getItem(ACCESS_KEY) || '';
-  }
-  function getHeaders() {
-    const h = new Headers();
-    const token = getAccessToken();
-    if (token) h.set('Authorization', 'Bearer ' + token);
-    return h;
-  }
   function showError(msg) {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('studentsSection').style.display = 'none';
@@ -119,12 +110,8 @@
     return div.innerHTML;
   }
   async function init() {
-    if (!getAccessToken()) {
-      window.location.href = '/login?redirect=' + encodeURIComponent('/coach-panel');
-      return;
-    }
     try {
-      const meRes = await fetch('/api/users/me', { headers: getHeaders() });
+      const meRes = await fetch('/api/users/me', { credentials: 'include' });
       if (!meRes.ok) {
         if (meRes.status === 401) {
           window.location.href = '/login?redirect=' + encodeURIComponent('/coach-panel');
@@ -141,7 +128,7 @@
         showError('Доступ только для тренеров и администраторов школы.');
         return;
       }
-      const usersRes = await fetch('/api/schools/' + me.school_id + '/users', { headers: getHeaders() });
+      const usersRes = await fetch('/api/schools/' + me.school_id + '/users', { credentials: 'include' });
       if (!usersRes.ok) {
         throw new Error('Ошибка загрузки списка учеников');
       }
@@ -158,5 +145,6 @@
   }
 })();
     </script>
+  <script src="/scripts/template-actions.js" defer></script>
 </body>
 </html>

@@ -7,16 +7,16 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Играть в шахматы онлайн бесплатно без регистрации - ChessMint | Блиц, Рапид</title>
-    
+
     <!-- SEO Meta Tags -->
     <meta name="description" content="Играйте в шахматы онлайн бесплатно без регистрации с живыми игроками. Блиц, рапид, классика. Реальный рейтинг ELO, анализ партий. Начните играть прямо сейчас!">
     <meta name="keywords" content="играть в шахматы онлайн, шахматы с живыми игроками, шахматы онлайн бесплатно, блиц шахматы, рапид шахматы, классические шахматы, рейтинг ELO, онлайн шахматы, играть в шахматы бесплатно, шахматы без регистрации">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://chessmint.ru/games">
-    
+
     <!-- Hreflang -->
     <link rel="alternate" hreflang="ru" href="https://chessmint.ru/games">
-    
+
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://chessmint.ru/games">
@@ -29,7 +29,7 @@
     <meta property="og:locale" content="ru_RU">
     <meta property="og:site_name" content="ChessMint">
     <meta property="article:author" content="ChessMint">
-    
+
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://chessmint.ru/games">
@@ -38,7 +38,7 @@
     <meta name="twitter:image" content="https://chessmint.ru/favicon.svg">
     <meta name="twitter:image:alt" content="ChessMint - Онлайн шахматы с друзьями и соперниками">
     <meta name="twitter:site" content="@chessmint">
-    
+
     <!-- Загрузка темы до отрисовки страницы, чтобы избежать мерцания -->
     <script>
       try {
@@ -48,7 +48,7 @@
         }
       } catch {}
     </script>
-    
+
     <!-- Structured Data - WebApplication -->
     <script type="application/ld+json">
     {
@@ -71,7 +71,7 @@
       }
     }
     </script>
-    
+
     <!-- Structured Data - VideoGame -->
     <script type="application/ld+json">
     {
@@ -111,7 +111,7 @@
       }
     }
     </script>
-    
+
     <!-- Structured Data - BreadcrumbList -->
     <script type="application/ld+json">
     {
@@ -133,7 +133,7 @@
       ]
     }
     </script>
-    
+
     <!-- Structured Data - FAQPage -->
     <script type="application/ld+json">
     {
@@ -183,7 +183,7 @@
       ]
     }
     </script>
-    
+
     <!-- Structured Data - HowTo (Создание партии) -->
     <script type="application/ld+json">
     {
@@ -210,7 +210,7 @@
       ]
     }
     </script>
-    
+
     <!-- Structured Data - ItemList (Режимы игры) -->
     <script type="application/ld+json">
     {
@@ -246,7 +246,7 @@
       ]
     }
     </script>
-    
+
     <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
     <!-- Common Styles -->
     <link rel="stylesheet" href="/styles/base/variables.css?v=2.0">
@@ -255,13 +255,13 @@
     <link rel="stylesheet" href="/styles/components/notifications.css?v=2.0">
     <link rel="stylesheet" href="/styles/components/mini-footer.css?v=2.0">
     <link rel="stylesheet" href="/styles/pages/games/games.css?v=2.0">
-    
+
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="120x120" href="/favicon.png">
     <link rel="apple-touch-icon" sizes="120x120" href="/favicon.png">
-    
+
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
         (function(m,e,t,r,i,k,a){
@@ -273,7 +273,7 @@
         ym(105743222, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
     </script>
     <!-- /Yandex.Metrika counter -->
-    
+
     <!-- Yandex Autoplacement 18293483 -->
     <script src="https://yandex.ru/ads/system/context.js" async></script>
     <script data-page-id="18293483" src="https://yandex.ru/ads/system/ap-loader.js" async></script>
@@ -291,9 +291,9 @@
                     </div>
                 </a>
                 <nav class="nav">
-                    <button type="button" class="nav-link active" onclick="window.location.href='/games'">Играть</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                    <button type="button" class="nav-link active" data-action="navigate" data-route="/games">Играть</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/tasks">Задачи</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/leaderboard">Рейтинг</button>
                 </nav>
                 <div class="header-actions">
                     <div id="userActions">
@@ -309,7 +309,7 @@
                             <i class="fas fa-sign-in-alt"></i>
                         </a>
                     </div>
-                    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu();" aria-label="Открыть меню" aria-expanded="false">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" data-action="toggle-mobile-menu" aria-label="Открыть меню" aria-expanded="false">
                         <i class="fas fa-bars" id="menuIcon" aria-hidden="true"></i>
                     </button>
                     <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
@@ -318,27 +318,27 @@
                 </div>
             </div>
             <!-- Mobile Menu -->
-            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" data-action="close-mobile-menu"></div>
             <div class="mobile-menu" id="mobileMenu">
-                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                <button class="mobile-menu-close" data-action="close-mobile-menu" aria-label="Закрыть меню">
                     <i class="fas fa-times"></i>
                 </button>
                 <div>
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/games">
                         <i class="fas fa-chess"></i>
                         <span>Играть</span>
                     </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/tasks">
                         <i class="fas fa-puzzle-piece"></i>
                         <span>Задачи</span>
                     </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/leaderboard">
                         <i class="fas fa-trophy"></i>
                         <span>Рейтинг</span>
                     </button>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+                        <a href="/login" class="mobile-login-link" data-action="close-mobile-menu">
                             <i class="fas fa-sign-in-alt"></i>
                             <span>Войти / Регистрация</span>
                         </a>
@@ -347,7 +347,7 @@
                         <div id="gamesUserInfoMobile">
                             <span></span>
                         </div>
-                        <a href="/profile" class="mobile-cabinet-link" onclick="closeMobileMenu();">
+                        <a href="/profile" class="mobile-cabinet-link" data-action="close-mobile-menu">
                             <i class="fas fa-user"></i>
                             <span>Личный кабинет</span>
                         </a>
@@ -377,12 +377,12 @@
                         <i class="fas fa-tv"></i> TV
                     </h2>
                 </div>
-                
+
                 <!-- CONTENT AREA (single area that switches) -->
                 <div class="games-content-wrapper">
                     <!-- QUICK GAME TAB -->
                     <section class="tab-content active" id="quick-tab">
-                <div class="quick-game-wrapper">                    
+                <div class="quick-game-wrapper">
                     <div class="quick-game-content">
                         <div class="quick-game-center">
                             <div class="modes-grid modes-grid-3x3" role="group" aria-label="Режимы игры">
@@ -454,13 +454,13 @@
                                     <i class="fas fa-sync-alt" aria-hidden="true"></i>
                                 </button>
                             </div>
-                            
+
                             <!-- Loading indicator -->
                             <div class="loading-indicator" id="lobbyLoading" role="status" aria-live="polite" aria-label="Загрузка списка игр" style="display: none;">
                                 <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
                                 <span>Загрузка партий...</span>
                             </div>
-                            
+
                             <!-- Empty state -->
                             <div class="empty-state" id="lobbyEmpty" style="display: none;" role="status">
                                 <i class="fas fa-inbox" aria-hidden="true"></i>
@@ -470,7 +470,7 @@
                                     Создать игру
                                 </button>
                             </div>
-                            
+
                             <div class="waiting-room" id="waitingRoom" role="list" aria-label="Список ожидающих игроков">
                                 <!-- Динамически загружаемые элементы -->
                             </div>
@@ -481,20 +481,20 @@
                     <section class="tab-content" id="tv-tab">
                         <div class="game-modes">
                             <p class="section-description">Смотрите партии сильнейших игроков в режиме реального времени. Нажмите на любую партию, чтобы начать просмотр.</p>
-                            
+
                             <!-- Loading indicator -->
                             <div class="loading-indicator" id="tvLoading" role="status" aria-live="polite" aria-label="Загрузка живых партий" style="display: none;">
                                 <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
                                 <span>Загрузка партий...</span>
                             </div>
-                            
+
                             <!-- Empty state -->
                             <div class="empty-state" id="tvEmpty" style="display: none;" role="status">
                                 <i class="fas fa-tv" aria-hidden="true"></i>
                                 <h3>Нет активных партий</h3>
                                 <p>Сейчас нет партий для просмотра. Создайте свою игру или подождите немного.</p>
                             </div>
-                            
+
                             <div class="tv-games" id="tvGames" role="list" aria-label="Список живых партий">
                                 <!-- Динамически загружаемые элементы -->
                             </div>
@@ -563,8 +563,8 @@
                 </div>
                 <div class="faq-container" role="list">
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-games-1"
                                 type="button">
                             <span>Можно ли играть в шахматы онлайн бесплатно без регистрации?</span>
@@ -575,8 +575,8 @@
                         </div>
                     </div>
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-games-2"
                                 type="button">
                             <span>Как играть в шахматы с живыми игроками онлайн?</span>
@@ -587,8 +587,8 @@
                         </div>
                     </div>
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-games-3"
                                 type="button">
                             <span>Какие режимы игры доступны?</span>
@@ -599,8 +599,8 @@
                         </div>
                     </div>
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-games-4"
                                 type="button">
                             <span>Как работает рейтинг ELO?</span>
@@ -611,8 +611,8 @@
                         </div>
                     </div>
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-games-5"
                                 type="button">
                             <span>Можно ли играть в шахматы онлайн с друзьями?</span>
@@ -623,8 +623,8 @@
                         </div>
                     </div>
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-games-6"
                                 type="button">
                             <span>Есть ли мобильная версия для игры в шахматы онлайн?</span>
@@ -701,14 +701,14 @@
                 <div class="share-instruction">
                     Чтобы пригласить друга, отправьте ему эту ссылку
                 </div>
-                
+
                 <div class="link-container">
                     <input type="text" id="customGameShareLink" class="link-input" readonly>
                     <button type="button" id="copyCustomGameLinkBtn" class="btn-copy">
                         <i class="fas fa-copy"></i> Копировать
                     </button>
                 </div>
-                
+
                 <div class="qr-container">
                     <div class="qr-title">Или позвольте отсканировать код противнику</div>
                     <div class="qr-code">
@@ -789,7 +789,7 @@
                 <div class="share-instruction">
                     Чтобы пригласить друга, отправьте ему эту ссылку
                 </div>
-                
+
                 <div class="qr-container">
                     <div class="qr-title">Или позвольте отсканировать код противнику</div>
                     <div class="qr-code">
@@ -822,6 +822,8 @@
     </div>
 
     <!-- Common Auth Script (must load first) -->
+    <script src="/scripts/page-lifecycle.js"></script>
+    <script src="/scripts/http-client.js" defer></script>
     <script src="/scripts/auth.js" defer></script>
     <script src="/scripts/mobile-menu.js" defer></script>
     <script src="/scripts/session.js" defer></script>
@@ -855,13 +857,13 @@
             }
           });
         }
-        
+
         // Load theme on page load
         if (window.loadTheme && typeof window.loadTheme === 'function') {
           window.loadTheme();
         }
-        
-        // Mobile menu button - уже обрабатывается через onclick="toggleMobileMenu()"
+
+        // Mobile menu button - уже обрабатывается через data-action="toggle-mobile-menu"
         // Но оставляем для совместимости, если onclick не сработал
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         if (mobileMenuBtn && !mobileMenuBtn.onclick) {
@@ -871,7 +873,7 @@
             }
           });
         }
-        
+
         // Mobile menu links
         document.querySelectorAll('.mobile-nav-link').forEach(function(link) {
           link.addEventListener('click', function() {
@@ -880,7 +882,7 @@
             }
           });
         });
-        
+
         // Create game button from empty state
         const createGameBtn = document.getElementById('createGameFromEmpty');
         if (createGameBtn) {
@@ -915,5 +917,6 @@
             }
         });
     </script>
+  <script src="/scripts/template-actions.js" defer></script>
 </body>
 </html>

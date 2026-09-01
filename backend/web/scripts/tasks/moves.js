@@ -5,194 +5,44 @@
     throw new Error('TasksState module is not loaded. Ensure tasks/state.js is included first.');
   }
 
-  // Используем общий модуль ChessBoardCore
-  const BoardCore = window.ChessBoardCore;
+  function getActiveColor() {
+    const activeColor = TasksState.currentFEN.split(' ')[1];
+    if (activeColor !== 'w' && activeColor !== 'b') {
+      throw new Error('Tasks position has invalid active color');
+    }
+    return activeColor;
+  }
+
+  const getTasksLegalMovesByFrom = window.ChessGameController.createLegalMoveCache({
+    state: TasksState,
+    getFen: () => TasksState.currentFEN,
+    getPlayerColor: () => getActiveColor() === 'w' ? 'white' : 'black',
+  });
+
+  const gameController = window.ChessGameController.create({
+    state: TasksState,
+    getFen: () => TasksState.currentFEN,
+    getLegalMovesByFrom: getTasksLegalMovesByFrom,
+    getPlayerColor: () => getActiveColor() === 'w' ? 'white' : 'black',
+    isInteractive: () => {
+      if (TasksState.isPuzzleSolved || TasksState.isPuzzleFailed || !TasksState.currentFEN) {
+        return false;
+      }
+      return getActiveColor() === TasksState.playerColor;
+    },
+    canSelectPiece: (piece) => window.TasksBoard.getPieceColor(piece) === getActiveColor(),
+    onMove: (from, to, uci) => window.TasksMoves.executeMove(from, to, uci),
+  });
 
   window.TasksMoves = {
-    // Вспомогательная функция для сброса выбора фигуры (с инкрементальным обновлением)
+    controller: gameController,
+
     clearSelection() {
-      if (BoardCore) {
-        BoardCore.resetSelectionIncremental({
-          state: TasksState,
-          getFen: () => TasksState.currentFEN,
-          utils: window.ChessMoveUtils,
-        });
-      } else {
-        // Fallback для обратной совместимости
-        TasksState.selectedSquare = null;
-        TasksState.availableTargets = new Set();
-        window.TasksBoard.renderBoard();
-      }
+      gameController.clearSelection();
     },
 
     handleSquareClick(squareName) {
-      if (TasksState.isPuzzleSolved || TasksState.isPuzzleFailed || !TasksState.currentFEN || !window.ChessMoveUtils) {
-        return;
-      }
-
-      const moveUtils = window.ChessMoveUtils;
-      const fenParts = TasksState.currentFEN.split(' ');
-      const activeColor = fenParts[1] || 'w';
-      
-      const normalizedSquareName = squareName.toLowerCase();
-      const colorForMoveGen = activeColor === 'w' ? 'white' : 'black';
-      
-      // Используем предгенерированные легальные ходы из кеша
-      const cacheKey = `${TasksState.currentFEN}|${colorForMoveGen}|legal`;
-      let cachedResult = TasksState.positionCache?.get(cacheKey);
-      
-      if (!cachedResult || !cachedResult.legalMovesByFrom) {
-        // Генерируем и кешируем легальные ходы
-        if (moveUtils.generateLegalMoves) {
-          cachedResult = moveUtils.generateLegalMoves(TasksState.currentFEN, colorForMoveGen);
-          
-          // Сохраняем в кеш
-          if (TasksState.positionCache) {
-            if (TasksState.positionCache.size >= 50) {
-              const firstKey = TasksState.positionCache.keys().next().value;
-              if (firstKey) TasksState.positionCache.delete(firstKey);
-            }
-            TasksState.positionCache.set(cacheKey, cachedResult);
-            // Также сохраняем с обычным ключом для обратной совместимости
-            TasksState.positionCache.set(`${TasksState.currentFEN}|${colorForMoveGen}`, cachedResult.legalMovesByFrom || cachedResult.movesByFrom || new Map());
-          }
-        } else {
-          // Fallback: генерируем обычные ходы и фильтруем
-          const { movesByFrom } = moveUtils.generateMoves(TasksState.currentFEN, colorForMoveGen) || { movesByFrom: new Map() };
-          const legalMovesByFrom = new Map();
-          movesByFrom.forEach((uciSet, fromSquare) => {
-            const legalMoves = Array.from(uciSet).filter(uci => {
-              return moveUtils.isMoveAllowed(TasksState.currentFEN, colorForMoveGen, uci);
-            });
-            if (legalMoves.length > 0) {
-              legalMovesByFrom.set(fromSquare, legalMoves);
-            }
-          });
-          cachedResult = { legalMovesByFrom, movesByFrom };
-          if (TasksState.positionCache) {
-            if (TasksState.positionCache.size >= 50) {
-              const firstKey = TasksState.positionCache.keys().next().value;
-              if (firstKey) TasksState.positionCache.delete(firstKey);
-            }
-            TasksState.positionCache.set(cacheKey, cachedResult);
-            TasksState.positionCache.set(`${TasksState.currentFEN}|${colorForMoveGen}`, movesByFrom);
-          }
-        }
-      }
-      
-      const movesByFrom = cachedResult.legalMovesByFrom || new Map();
-      
-      // Если выбрана клетка с фигурой пользователя
-      if (TasksState.selectedSquare && TasksState.selectedSquare.toLowerCase() === normalizedSquareName) {
-        window.TasksMoves.clearSelection();
-        return;
-      }
-
-      // Если уже выбрана фигура, пытаемся сделать ход
-      if (TasksState.selectedSquare) {
-        // Проверяем, что кликнули на легальную цель для выбранной фигуры
-        if (!TasksState.availableTargets.has(normalizedSquareName)) {
-          // Кликнули на клетку, которая не является легальной целью - сбрасываем выбор
-          window.TasksMoves.clearSelection();
-          return;
-        }
-        
-        const selectedSquareLower = TasksState.selectedSquare.toLowerCase();
-        const moves = movesByFrom.get(selectedSquareLower);
-        // moves может быть массивом или Set
-        const movesArray = moves ? (Array.isArray(moves) ? moves : Array.from(moves)) : [];
-        
-        if (movesArray.length > 0) {
-          const targetMove = movesArray.find(uci => {
-            const uciStr = typeof uci === 'string' ? uci : (uci.uci || uci.to || '');
-            if (!uciStr || uciStr.length < 4) return false;
-            const target = uciStr.slice(2, 4).toLowerCase();
-            return target === normalizedSquareName;
-          });
-          
-          if (targetMove) {
-            const uciStr = typeof targetMove === 'string' ? targetMove : (targetMove.uci || targetMove.to || '');
-            if (uciStr && uciStr.length >= 4) {
-              window.TasksMoves.executeMove(TasksState.selectedSquare, normalizedSquareName, uciStr);
-            } else {
-              // Некорректный формат UCI
-              window.TasksMoves.clearSelection();
-            }
-          } else {
-            // Ход не найден, хотя клетка в availableTargets - сбрасываем выбор
-            window.TasksMoves.clearSelection();
-          }
-        } else {
-          // Нет ходов для выбранной фигуры
-          window.TasksMoves.clearSelection();
-        }
-        return;
-      }
-
-      // Выбираем фигуру (только если это фигура игрока и у неё есть ходы)
-      const utils = window.ChessMoveUtils;
-      const coords = utils && utils.squareToCoords ? utils.squareToCoords(normalizedSquareName) : null;
-      
-      let piece = null;
-      if (coords && coords.rank >= 0 && coords.rank < 8 && coords.file >= 0 && coords.file < 8) {
-        piece = TasksState.board[coords.rank][coords.file];
-      } else {
-        // Fallback для обратной совместимости
-        const realRowIdx = 8 - parseInt(normalizedSquareName[1], 10);
-        const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-        const realColIdx = files.indexOf(normalizedSquareName[0]);
-        if (realRowIdx >= 0 && realRowIdx < 8 && realColIdx >= 0 && realColIdx < 8) {
-          piece = TasksState.board[realRowIdx][realColIdx];
-        }
-      }
-      
-      // Если на клетке нет фигуры (пустая клетка), сбрасываем выбор если он был
-      if (piece === null || piece === '' || piece === undefined) {
-        if (TasksState.selectedSquare) {
-          window.TasksMoves.clearSelection();
-        }
-        return;
-      }
-      
-      const pieceColor = window.TasksBoard.getPieceColor(piece);
-      
-      // Проверяем, что это фигура игрока (активного цвета)
-      if (pieceColor === activeColor) {
-        // Используем предгенерированные легальные ходы
-        const legalMoves = movesByFrom.get(normalizedSquareName);
-        // legalMoves может быть массивом или Set
-        const legalMovesArray = legalMoves ? (Array.isArray(legalMoves) ? legalMoves : Array.from(legalMoves)) : [];
-        if (legalMovesArray && legalMovesArray.length > 0) {
-          // legalMoves уже отфильтрованы через isMoveAllowed
-          const legalTargets = legalMovesArray.map(uci => {
-            const uciStr = typeof uci === 'string' ? uci : uci.uci || uci.to || '';
-            return uciStr.slice(2, 4).toLowerCase();
-          });
-          
-          if (legalTargets.length > 0) {
-            // Используем общий модуль для обновления выбора
-            if (BoardCore) {
-              BoardCore.updateSelection({
-                state: TasksState,
-                square: normalizedSquareName,
-                targets: new Set(legalTargets),
-                getFen: () => TasksState.currentFEN,
-                utils: moveUtils,
-              });
-            } else {
-              // Fallback
-              TasksState.selectedSquare = normalizedSquareName;
-              TasksState.availableTargets = new Set(legalTargets);
-              window.TasksBoard.renderBoard();
-            }
-          }
-        }
-      } else {
-        // Кликнули на фигуру противника или пустую клетку - сбрасываем выбор если был
-        if (TasksState.selectedSquare) {
-          window.TasksMoves.clearSelection();
-        }
-      }
+      gameController.handleSquareClick(squareName);
     },
 
     applyMoveToBoard(uci, animate = true) {

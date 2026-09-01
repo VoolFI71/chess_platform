@@ -3,6 +3,9 @@
   const playerUsernames = new Map();
   const { normalizeUserId } = window.MatchUtils || {};
   const MatchApi = window.MatchApi;
+  if (!MatchApi || typeof MatchApi.authedFetch !== 'function') {
+    throw new Error('MatchApi is not initialized');
+  }
 
   window.MatchPlayerNames = playerUsernames;
 
@@ -35,9 +38,7 @@
       const cached = utils.usernameFromCache(userId);
       if (cached) return cached;
       try {
-        // Используем buildUrl и authedFetch из MatchApi, если доступны
-        const url = MatchApi?.buildUrl ? MatchApi.buildUrl(`/api/users/${userId}`) : `/api/users/${userId}`;
-        const res = MatchApi?.authedFetch ? await MatchApi.authedFetch(`/api/users/${userId}`) : await fetch(url);
+        const res = await MatchApi.authedFetch(`/api/users/${userId}`);
         if (!res.ok) return null;
         const user = await res.json();
         const username = user?.username || user?.display_name || user?.name || user?.handle || user?.login || null;

@@ -118,7 +118,7 @@
     }
 }
 
-/* Gradient text fallback для маленьких экранов */
+/* Gradient text для маленьких экранов */
 @media (max-width: 480px) {
     .gradient-text {
         background: linear-gradient(135deg, #3b82f6, #8b5cf6);

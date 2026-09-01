@@ -1,21 +1,20 @@
 (() => {
   'use strict';
 
+  const wsApi = window.App?.WS;
+  if (!wsApi) throw new Error('WebSocket API is not initialized');
+
   let wsConnection = null;
 
-  // Получить WebSocket URL с token/session_id для аутентификации
+  // Получить WebSocket URL. Авторизация браузера передаётся cookie автоматически.
   function getWSUrl(gameId) {
     const api = window.ComputerGameApi;
     const params = {};
-    if (api && api.getAccessToken) {
-      const token = api.getAccessToken();
-      if (token) params.token = token;
-    }
     if (api && api.getSessionID) {
       const sessionId = api.getSessionID();
       if (sessionId) params.session_id = sessionId;
     }
-    return window.WebSocketUtils.createWebSocketUrl(`/ws/computer-games/${gameId}`, params);
+    return wsApi.createWebSocketUrl(`/ws/computer-games/${gameId}`, params);
   }
 
   // Подключиться к WebSocket
@@ -32,7 +31,7 @@
 
     const url = getWSUrl(gameId);
 
-    wsConnection = window.WebSocketUtils.createWebSocketConnection({
+    wsConnection = wsApi.createWebSocketConnection({
       url,
       onMessage: handleMessage,
       onConnect: (ws) => {

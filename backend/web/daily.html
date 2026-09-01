@@ -141,9 +141,9 @@
                     </div>
                 </a>
                 <nav class="nav">
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/games">Играть</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/tasks">Задачи</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/leaderboard">Рейтинг</button>
                 </nav>
                 <div class="header-actions">
                     <div id="userActions">
@@ -151,7 +151,7 @@
                             <span></span>
                         </div>
                     </div>
-                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()" aria-label="Переключить тему">
+                    <button class="theme-toggle" title="Переключить тему" data-action="toggle-theme" aria-label="Переключить тему">
                         <i class="fas fa-sun" id="themeIcon" aria-hidden="true"></i>
                     </button>
                     <div id="authButtons">
@@ -167,37 +167,37 @@
                     </button>
                 </div>
             </div>
-            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" data-action="close-mobile-menu"></div>
             <div class="mobile-menu" id="mobileMenu">
-                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                <button class="mobile-menu-close" data-action="close-mobile-menu" aria-label="Закрыть меню">
                     <i class="fas fa-times"></i>
                 </button>
                 <div>
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/games">
                         <i class="fas fa-chess"></i>
                         <span>Играть</span>
                     </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/tasks">
                         <i class="fas fa-puzzle-piece"></i>
                         <span>Задачи</span>
                     </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/leaderboard">
                         <i class="fas fa-trophy"></i>
                         <span>Рейтинг</span>
                     </button>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+                        <a href="/login" class="mobile-login-link" data-action="close-mobile-menu">
                             <i class="fas fa-sign-in-alt"></i>
                             <span>Войти / Регистрация</span>
                         </a>
                     </div>
                     <div id="mobileUserActions">
-                        <a href="/profile" class="mobile-user-link" onclick="closeMobileMenu();">
+                        <a href="/profile" class="mobile-user-link" data-action="close-mobile-menu">
                             <i class="fas fa-user"></i>
                             <span>Профиль</span>
                         </a>
-                        <button class="mobile-logout-link" id="gamesLogoutBtnMobile" onclick="closeMobileMenu();">
+                        <button class="mobile-logout-link" id="gamesLogoutBtnMobile" data-action="close-mobile-menu">
                             <i class="fas fa-sign-out-alt"></i>
                             <span>Выйти</span>
                         </button>
@@ -258,7 +258,7 @@
                     
                     <div class="puzzle-error hidden" id="puzzleError" role="alert" aria-live="assertive">
                         <p>Не удалось загрузить задачу дня. Попробуйте обновить страницу.</p>
-                        <button class="btn btn-primary" onclick="loadDailyPuzzle()" aria-label="Обновить задачу дня">Обновить</button>
+                        <button class="btn btn-primary" id="refreshDailyPuzzle" type="button" aria-label="Обновить задачу дня">Обновить</button>
                     </div>
                 </div>
             </div>
@@ -288,6 +288,7 @@
 
     <!-- Common Auth Script (must load first) -->
     <script src="/scripts/page-lifecycle.js"></script>
+    <script src="/scripts/http-client.js" defer></script>
     <script src="/scripts/auth.js" defer></script>
     <script src="/scripts/mobile-menu.js"></script>
     <script src="/scripts/websocket-utils.js" defer></script>
@@ -299,10 +300,13 @@
     <script src="/scripts/chess-move-utils.js" defer></script>
     <!-- Chess Board Core -->
     <script src="/scripts/chess-board-core.js" defer></script>
+    <!-- Shared Chess Game Controller -->
+    <script src="/scripts/chess-game-controller.js" defer></script>
     <!-- Daily Puzzle Script -->
     <script src="/scripts/daily.js" defer></script>
     <!-- Header Mobile Control -->
     <script src="/scripts/header-mobile-control.js"></script>
+  <script src="/scripts/template-actions.js" defer></script>
 </body>
 </html>
 

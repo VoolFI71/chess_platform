@@ -80,8 +80,8 @@
     window.location.href = '/register';
   };
 
-  function handleLogout() {
-    if (window.clearTokens) window.clearTokens();
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     state.currentUser = null;
     updateAuthPanel();
     toggleCreateForm();

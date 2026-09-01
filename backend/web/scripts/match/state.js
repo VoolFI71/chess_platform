@@ -2,6 +2,7 @@
   const createInitialState = () => ({
     matchId: null,
     game: null,
+    gameRevision: -1,
     moves: [],
     ws: null,
     currentUser: null,
@@ -17,7 +18,6 @@
     wsRetryCount: 0,
     wsReconnectTimerId: null,
     analysisCursor: null,
-    gamePollingInterval: null,
   });
 
   const state = createInitialState();

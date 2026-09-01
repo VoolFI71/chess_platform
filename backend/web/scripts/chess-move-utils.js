@@ -235,33 +235,10 @@
 
   // Кеш для предгенерированных ходов
   // Ключ: `${fen}|${color}`, значение: { moves, movesByFrom, legalMovesByFrom }
-  // Используем LRU кэш если доступен, иначе fallback на простой Map
   const MAX_CACHE_SIZE = 100; // Максимальный размер кеша
-  let movesCache;
-  let clearMovesCache;
-
-  if (window.App?.Utils?.LRUCache) {
-    // Используем LRU кэш - автоматически управляет размером
-    movesCache = new window.App.Utils.LRUCache(MAX_CACHE_SIZE);
-    clearMovesCache = () => {}; // LRU кэш сам управляет размером
-  } else {
-    // Fallback: простой Map с ручной очисткой
-    movesCache = new Map();
-    /**
-     * Очистка кеша ходов (удаляет самые старые записи)
-     * Используется только если LRUCache недоступен
-     */
-    clearMovesCache = function() {
-      if (movesCache.size > MAX_CACHE_SIZE) {
-        // Удаляем 20% самых старых записей
-        const entriesToDelete = Math.floor(MAX_CACHE_SIZE * 0.2);
-        const keys = Array.from(movesCache.keys());
-        for (let i = 0; i < entriesToDelete; i++) {
-          movesCache.delete(keys[i]);
-        }
-      }
-    };
-  }
+  if (!window.App?.Utils?.LRUCache) throw new Error('LRUCache is not initialized');
+  const movesCache = new window.App.Utils.LRUCache(MAX_CACHE_SIZE);
+  const clearMovesCache = () => {};
 
   function generateMoves(fen, color, useCache = true) {
     // Проверяем кеш
@@ -392,50 +369,35 @@
       onReset = null,
     } = config;
 
+    if (typeof getFen !== 'function' || typeof getPlayerColor !== 'function' || !state) {
+      throw new Error('Incomplete legal move generation configuration');
+    }
+
     // Проверяем возможность генерации
     if (canGenerateMoves && !canGenerateMoves()) {
       if (onReset) onReset();
-      if (state) {
-        if (setState) {
-          setState({ legalMovesByFrom: new Map() }, 'updateLegalMoves:reset');
-        } else if (state.legalMovesByFrom !== undefined) {
-          state.legalMovesByFrom = new Map();
-        }
-      }
+      state.legalMovesByFrom = new Map();
+      if (setState) setState({ legalMovesByFrom: state.legalMovesByFrom }, 'updateLegalMoves:reset');
       return null;
     }
 
-    const fen = getFen ? getFen() : null;
-    const playerColor = getPlayerColor ? getPlayerColor() : null;
+    const fen = getFen();
+    const playerColor = getPlayerColor();
 
     if (!fen || !playerColor) {
       if (onReset) onReset();
-      if (state) {
-        if (setState) {
-          setState({ legalMovesByFrom: new Map() }, 'updateLegalMoves:reset');
-        } else if (state.legalMovesByFrom !== undefined) {
-          state.legalMovesByFrom = new Map();
-        }
-      }
+      state.legalMovesByFrom = new Map();
+      if (setState) setState({ legalMovesByFrom: state.legalMovesByFrom }, 'updateLegalMoves:reset');
       return null;
     }
 
     const utils = window.ChessMoveUtils;
-    if (!utils || !utils.generateLegalMoves) {
-      if (onReset) onReset();
-      if (state) {
-        if (setState) {
-          setState({ legalMovesByFrom: new Map() }, 'updateLegalMoves:reset');
-        } else if (state.legalMovesByFrom !== undefined) {
-          state.legalMovesByFrom = new Map();
-        }
-      }
-      return null;
-    }
+    if (!utils?.generateLegalMoves) throw new Error('ChessMoveUtils is not initialized');
 
     // Генерируем легальные ходы
     const result = utils.generateLegalMoves(fen, playerColor);
-    let legalMovesByFrom = result.legalMovesByFrom || new Map();
+    if (!(result.legalMovesByFrom instanceof Map)) throw new Error('Legal move generator returned invalid data');
+    let legalMovesByFrom = result.legalMovesByFrom;
 
     // Форматируем ходы, если нужно (для match модуля)
     if (formatMoves) {
@@ -443,13 +405,8 @@
     }
 
     // Сохраняем в состояние
-    if (state) {
-      if (setState) {
-        setState({ legalMovesByFrom }, 'updateLegalMoves:complete');
-      } else if (state.legalMovesByFrom !== undefined) {
-        state.legalMovesByFrom = legalMovesByFrom;
-      }
-    }
+    state.legalMovesByFrom = legalMovesByFrom;
+    if (setState) setState({ legalMovesByFrom }, 'updateLegalMoves:complete');
 
     // Вызываем callback
     if (onMovesGenerated) {
@@ -666,7 +623,7 @@
     return piece && piece !== EMPTY ? piece : null;
   }
 
-  // Конвертация квадрата в индексы (для обратной совместимости)
+  // Конвертация квадрата в индексы
   function squareToIndices(square) {
     const coords = squareToCoords(square);
     if (!coords) return null;
@@ -696,7 +653,7 @@
     squareToIndices,
   };
 
-  // Для обратной совместимости: сохраняем старый экспорт
+  // Публичный алиас для страниц приложения
   window.ChessMoveUtils = window.App.Chess.Moves;
 })();
 

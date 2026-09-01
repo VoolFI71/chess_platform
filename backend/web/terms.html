@@ -117,44 +117,44 @@
                     </div>
                 </a>
                 <nav class="nav">
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/games">Играть</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/tasks">Задачи</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/leaderboard">Рейтинг</button>
                 </nav>
                 <div class="header-actions">
-                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()">
+                    <button class="theme-toggle" title="Переключить тему" data-action="toggle-theme">
                         <i class="fas fa-sun" id="themeIcon"></i>
                     </button>
                     <a href="/login" class="auth-icon-btn" title="Войти / Регистрация">
                         <i class="fas fa-sign-in-alt"></i>
                     </a>
-                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                    <button class="mobile-menu-btn" data-action="toggle-mobile-menu">
                         <i class="fas fa-bars" id="menuIcon"></i>
                     </button>
                 </div>
             </div>
             <!-- Mobile Menu -->
-            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" data-action="close-mobile-menu"></div>
             <div class="mobile-menu" id="mobileMenu">
-                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                <button class="mobile-menu-close" data-action="close-mobile-menu" aria-label="Закрыть меню">
                     <i class="fas fa-times"></i>
                 </button>
                 <div>
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/games">
                         <i class="fas fa-chess"></i>
                         <span>Играть</span>
                     </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/tasks">
                         <i class="fas fa-puzzle-piece"></i>
                         <span>Задачи</span>
                     </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/leaderboard">
                         <i class="fas fa-trophy"></i>
                         <span>Рейтинг</span>
                     </button>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+                        <a href="/login" class="mobile-login-link" data-action="close-mobile-menu">
                             <i class="fas fa-sign-in-alt"></i>
                             <span>Войти / Регистрация</span>
                         </a>
@@ -434,6 +434,7 @@
             }
         }
     </script>
+  <script src="/scripts/template-actions.js" defer></script>
 </body>
 </html>
 

@@ -63,17 +63,10 @@
           const pieceEl = document.createElement('span');
           pieceEl.className = 'hero-piece';
           
-          // Используем SVG фигуры как на странице задач
-          if (window.getPieceSVG) {
-            pieceEl.innerHTML = window.getPieceSVG(piece);
-          } else {
-            // Fallback на Unicode если SVG не загружен
-            const pieces = {
-              'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
-              'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
-            };
-            pieceEl.textContent = pieces[piece] || '';
+          if (typeof window.getPieceSVG !== 'function') {
+            throw new Error('Piece SVG renderer is not initialized');
           }
+          pieceEl.innerHTML = window.getPieceSVG(piece);
           
           square.appendChild(pieceEl);
         }

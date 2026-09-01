@@ -158,7 +158,7 @@ if (typeof window !== 'undefined') {
     getPieceSVG,
   };
 
-  // Для обратной совместимости: сохраняем старые экспорты
+  // Публичные алиасы для страниц приложения
   window.ChessPiecesSVG = ChessPiecesSVG;
   window.getPieceSVG = getPieceSVG;
 }

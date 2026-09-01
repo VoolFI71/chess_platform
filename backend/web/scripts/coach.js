@@ -4,6 +4,38 @@
 let coachesData = null;
 let currentCoach = null;
 
+function replaceTextList(container, items, createItem) {
+  if (!Array.isArray(items)) {
+    throw new Error('Coach list data must be an array');
+  }
+
+  const fragment = document.createDocumentFragment();
+  items.forEach((item) => fragment.appendChild(createItem(String(item))));
+  container.replaceChildren(fragment);
+}
+
+function renderMethodology(container, source) {
+  const documentFragment = document.createDocumentFragment();
+  const parsed = new DOMParser().parseFromString(String(source), 'text/html');
+  const paragraphs = Array.from(parsed.body.querySelectorAll('p'));
+
+  if (paragraphs.length === 0) {
+    const paragraph = document.createElement('p');
+    paragraph.className = 'about-coach-text';
+    paragraph.textContent = parsed.body.textContent;
+    documentFragment.appendChild(paragraph);
+  } else {
+    paragraphs.forEach((sourceParagraph) => {
+      const paragraph = document.createElement('p');
+      paragraph.className = 'about-coach-text';
+      paragraph.textContent = sourceParagraph.textContent;
+      documentFragment.appendChild(paragraph);
+    });
+  }
+
+  container.replaceChildren(documentFragment);
+}
+
 /**
  * Загрузка данных тренеров из JSON
  */
@@ -190,30 +222,37 @@ function updatePageContent(coach) {
   // Обновить достижения
   const achievementsList = document.querySelector('.achievements-list');
   if (achievementsList && coach.achievements) {
-    achievementsList.innerHTML = coach.achievements
-      .map((achievement, index) => 
-        `<li class="achievement-text-item" itemprop="award">${achievement}</li>`
-      )
-      .join('');
+    replaceTextList(achievementsList, coach.achievements, (achievement) => {
+      const listItem = document.createElement('li');
+      listItem.className = 'achievement-text-item';
+      listItem.setAttribute('itemprop', 'award');
+      listItem.textContent = achievement;
+      return listItem;
+    });
   }
   
   // Обновить методику обучения
   const aboutContent = document.querySelector('.about-coach-content');
   if (aboutContent && coach.methodology) {
-    aboutContent.innerHTML = coach.methodology;
+    renderMethodology(aboutContent, coach.methodology);
   }
   
   // Обновить "Для кого подходит"
   const levelsList = document.querySelector('.levels-list');
   if (levelsList && coach.forWhom) {
-    levelsList.innerHTML = coach.forWhom
-      .map(item => 
-        `<li class="level-item">
-          <i class="fas fa-check-circle"></i>
-          <span>${item}</span>
-        </li>`
-      )
-      .join('');
+    replaceTextList(levelsList, coach.forWhom, (item) => {
+      const listItem = document.createElement('li');
+      listItem.className = 'level-item';
+
+      const icon = document.createElement('i');
+      icon.className = 'fas fa-check-circle';
+      icon.setAttribute('aria-hidden', 'true');
+
+      const text = document.createElement('span');
+      text.textContent = item;
+      listItem.append(icon, text);
+      return listItem;
+    });
   }
   
   // Обновить ссылку на Telegram

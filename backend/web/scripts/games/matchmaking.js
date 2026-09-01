@@ -1,6 +1,9 @@
 // Matchmaking - WebSocket-based opponent search
 (() => {
-  let ws = null;
+  const lifecycle = window.App?.Utils?.PageLifecycle;
+  if (!lifecycle) throw new Error('PageLifecycle is not initialized');
+
+  let wsConnection = null;
   let isSearching = false;
 
   function getMatchmakingUI() {
@@ -22,7 +25,8 @@
   function findOpponent(initialMs, incrementMs, rated) {
     if (isSearching) return;
 
-    const isAuth = typeof window.isAuthenticated === 'function' && window.isAuthenticated();
+    if (typeof window.isAuthenticated !== 'function') throw new Error('Auth API is not initialized');
+    const isAuth = window.isAuthenticated();
     if (!isAuth) {
       if (typeof window.showToast === 'function') {
         window.showToast('Для поиска соперника необходимо войти в аккаунт', 'error');
@@ -39,35 +43,28 @@
 
     startTimer();
 
-    const token = typeof window.getAccessToken === 'function' ? window.getAccessToken() : '';
-    const wsUrl = window.App && window.App.WS
-      ? window.App.WS.createWebSocketUrl('/ws/matchmaking', { token })
-      : buildWsUrl(token);
+		if (!window.App?.WS?.createWebSocketUrl || !window.App.WS.createWebSocketConnection) {
+		  throw new Error('WebSocket API is not initialized');
+		}
+		const wsUrl = window.App.WS.createWebSocketUrl('/ws/matchmaking');
 
-    ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
+    const sendJoin = () => {
       const ui = getMatchmakingUI();
       if (ui.statusText) ui.statusText.textContent = 'Ищем соперника...';
-
-      ws.send(JSON.stringify({
+      wsConnection?.send({
         type: 'join',
         time_control: {
           initial_ms: initialMs,
           increment_ms: incrementMs,
         },
         rated: !!rated,
-      }));
+      });
     };
 
-    ws.onmessage = (event) => {
-      let data;
-      try {
-        data = JSON.parse(event.data);
-      } catch {
-        return;
-      }
-
+    wsConnection = window.App.WS.createWebSocketConnection({
+      url: wsUrl,
+      onConnect: sendJoin,
+      onMessage: (data) => {
       if (data.type === 'matched' && data.game_id) {
         onMatchFound(data.game_id);
       } else if (data.type === 'searching') {
@@ -79,35 +76,32 @@
           window.showToast(data.message || 'Ошибка поиска', 'error');
         }
       }
-    };
-
-    ws.onerror = () => {
-      // Connection error will trigger onclose
-    };
-
-    ws.onclose = (event) => {
-      if (isSearching && event.code !== 1000) {
-        stopSearch();
-        if (typeof window.showToast === 'function') {
-          window.showToast('Соединение потеряно. Попробуйте ещё раз.', 'error');
+      },
+      onDisconnect: (event) => {
+        if (isSearching && event.code !== 1000) {
+          const ui = getMatchmakingUI();
+          if (ui.statusText) ui.statusText.textContent = 'Восстанавливаем соединение...';
         }
-      }
-      ws = null;
-    };
+      },
+      onError: () => {},
+      maxReconnectAttempts: Infinity,
+      baseDelay: 1000,
+      maxDelay: 30000,
+    });
   }
 
   function onMatchFound(gameId) {
     const ui = getMatchmakingUI();
     if (ui.statusText) ui.statusText.textContent = 'Соперник найден!';
     stopSearch(false);
-    setTimeout(() => {
+    lifecycle.setTimeout(() => {
       window.location.href = '/match/' + gameId;
     }, 500);
   }
 
   function cancelSearch() {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'leave' }));
+    if (wsConnection?.isConnected()) {
+      wsConnection.send({ type: 'leave' });
     }
     stopSearch();
   }
@@ -116,21 +110,15 @@
     isSearching = false;
     stopTimer();
 
-    if (ws) {
-      ws.close(1000, 'cancel');
-      ws = null;
+    if (wsConnection) {
+      wsConnection.disconnect();
+      wsConnection = null;
     }
 
     if (hideOverlay) {
       const ui = getMatchmakingUI();
       if (ui.overlay) ui.overlay.classList.remove('active');
     }
-  }
-
-  function buildWsUrl(token) {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    return `${protocol}//${host}/ws/matchmaking?token=${encodeURIComponent(token)}`;
   }
 
   // Search timer display
@@ -141,7 +129,7 @@
     timerStart = Date.now();
     stopTimer();
     const ui = getMatchmakingUI();
-    timerInterval = setInterval(() => {
+    timerInterval = lifecycle.setInterval(() => {
       const elapsed = Math.floor((Date.now() - timerStart) / 1000);
       const min = Math.floor(elapsed / 60);
       const sec = elapsed % 60;
@@ -153,7 +141,7 @@
 
   function stopTimer() {
     if (timerInterval) {
-      clearInterval(timerInterval);
+      lifecycle.clearInterval(timerInterval);
       timerInterval = null;
     }
   }

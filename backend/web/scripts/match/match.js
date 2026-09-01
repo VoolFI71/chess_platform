@@ -55,10 +55,7 @@
     throw new Error('MatchApi module is not loaded. Ensure match.api.js is included before match.js');
   }
   const {
-    buildUrl,
     authedFetch,
-    getAccessToken,
-    clearTokens,
     refreshAccessToken,
   } = matchApiModule;
 
@@ -378,25 +375,11 @@
   }
 
   async function fetchCurrentUser() {
-    // Проверяем, есть ли токен доступа - если нет, пропускаем запрос
-    const token = getAccessToken();
-    if (!token) {
-      setState({ currentUser: null }, 'fetchCurrentUser:noToken');
-      updateAuthPanel();
-      updatePlayerLabelsAndTitle();
-      if (state.game) {
-        updateLegalMoves();
-        renderBoard();
-      }
-      return;
-    }
-    
     try {
       const res = await authedFetch('/api/auth/me');
       const currentUser = res && res.ok ? await res.json() : null;
       setState({ currentUser }, 'fetchCurrentUser:success');
     } catch {
-      // Игнорируем ошибки для анонимных пользователей
       setState({ currentUser: null }, 'fetchCurrentUser:error');
     }
     updateAuthPanel();
@@ -466,13 +449,8 @@
 
   const getOrientedMatrix = () => {
     const matrix = getBoardMatrix();
-    // Используем общую функцию из ChessBoardCore, если доступна
-    if (BoardCore && BoardCore.getOrientedMatrix) {
-      return BoardCore.getOrientedMatrix(matrix, boardOrientation);
-    }
-    // Fallback для обратной совместимости
-    if (boardOrientation === 'white') return matrix;
-    return matrix.slice().reverse().map((row) => row.slice().reverse());
+    if (!BoardCore?.getOrientedMatrix) throw new Error('ChessBoardCore is not initialized');
+    return BoardCore.getOrientedMatrix(matrix, boardOrientation);
   };
 
   const getHighlightSquares = () => {
@@ -500,7 +478,8 @@
     const files = boardOrientation === 'white' ? FILES : [...FILES].reverse();
     const ranks = boardOrientation === 'white' ? RANKS : [...RANKS].reverse();
     const utils = window.ChessMoveUtils;
-    const baseBoard = utils ? utils.parseFen(displayedFen).board : null;
+    if (!utils) throw new Error('ChessMoveUtils is not initialized');
+    const baseBoard = utils.parseFen(displayedFen).board;
     const analysisLocked = isAnalysisMode();
     const selectedSquare = analysisLocked ? null : state.selectedSquare;
     const targetSquares =
@@ -509,15 +488,15 @@
     const expectedTurnRole = state.game?.next_turn === 'w' ? 'white' : 'black';
     const isPlayersTurn = !analysisLocked && role && role === expectedTurnRole;
 
-    // Используем базовую функцию рендеринга
-    if (BoardCore && BoardCore.renderBoardBase) {
+    if (!BoardCore?.renderBoardBase) throw new Error('ChessBoardCore is not initialized');
+    {
       BoardCore.renderBoardBase({
         boardEl,
         matrix,
         files,
         ranks,
         state,
-        getPieceSVG: (pieceStr) => window.getPieceSVG?.(pieceStr) || null,
+        getPieceSVG: window.getPieceSVG,
         onSquareClick: handleSquareClick,
         options: {
           selectedSquare,
@@ -561,98 +540,6 @@
           }
         }
       });
-    } else {
-      // Fallback: старая логика
-      boardEl.innerHTML = '';
-      if (BoardCore) {
-        BoardCore.clearSquareElementsCache(state);
-      }
-
-    matrix.forEach((row, rIdx) => {
-      row.forEach((piece, cIdx) => {
-        const square = document.createElement('div');
-        const isLight = (rIdx + cIdx) % 2 === 0;
-        square.className = `square ${isLight ? 'light' : 'dark'}`;
-        const squareName = `${files[cIdx]}${ranks[rIdx]}`;
-          
-          if (BoardCore) {
-            BoardCore.registerSquareElement(state, squareName, square);
-          }
-        if (highlightSet.has(squareName)) {
-          square.classList.add('highlighted');
-          const overlay = document.createElement('div');
-          overlay.className = 'highlight-overlay';
-          square.appendChild(overlay);
-        }
-          // НЕ подсвечиваем выбранную фигуру - подсвечиваем только возможные ходы
-          // if (selectedSquare && squareName === selectedSquare) {
-          //   square.classList.add('selected-user');
-          // }
-        let isCaptureTarget = false;
-        if (targetSquares.has(squareName)) {
-          square.classList.add('legal-target');
-          if (baseBoard) {
-            const fileIdx = squareName.charCodeAt(0) - 97;
-            const rankIdx = 8 - Number.parseInt(squareName[1], 10);
-            const occupant = baseBoard?.[rankIdx]?.[fileIdx];
-            if (occupant && occupant !== '') {
-              isCaptureTarget = true;
-            }
-          }
-          if (isCaptureTarget) {
-            square.classList.add('legal-target-capture');
-          }
-          const marker = document.createElement('div');
-          marker.className = 'legal-move-indicator';
-          if (isCaptureTarget) marker.classList.add('capture');
-          square.appendChild(marker);
-        }
-        if (piece) {
-          const pieceEl = document.createElement('span');
-          pieceEl.className = 'piece';
-          if (window.getPieceSVG) {
-            pieceEl.innerHTML = window.getPieceSVG(piece);
-          } else {
-            pieceEl.textContent = PIECES[piece] || '';
-          }
-
-          const pieceBelongsToPlayer = role && pieceBelongsToRole(piece, role);
-          if (isPlayersTurn && pieceBelongsToPlayer) {
-            pieceEl.classList.add('piece-own');
-            const movesForPiece = state.legalMovesByFrom.get(squareName);
-            if (movesForPiece && movesForPiece.length > 0) {
-              pieceEl.classList.add('piece-movable');
-            }
-          }
-
-          square.appendChild(pieceEl);
-        }
-        if (rIdx === matrix.length - 1) {
-          const fileCoord = document.createElement('span');
-          fileCoord.className = 'coordinate file-coord';
-          fileCoord.textContent = files[cIdx];
-          square.appendChild(fileCoord);
-        }
-        if (cIdx === 0) {
-          const rankCoord = document.createElement('span');
-          rankCoord.className = 'coordinate rank-coord';
-          rankCoord.textContent = ranks[rIdx];
-          square.appendChild(rankCoord);
-        }
-        square.dataset.square = squareName;
-        square.addEventListener('click', () => handleSquareClick(squareName));
-
-        if (isPlayersTurn && piece && role && pieceBelongsToRole(piece, role)) {
-          const movesForPiece = state.legalMovesByFrom.get(squareName);
-          if (movesForPiece && movesForPiece.length > 0) {
-            square.classList.add('square-hoverable');
-            square.title = 'Кликните, чтобы выбрать фигуру и увидеть возможные ходы';
-          }
-        }
-
-        boardEl.appendChild(square);
-      });
-    });
     }
   }
 
@@ -864,282 +751,47 @@
     return getFenForIndex(getDisplayedMoveIndex());
   }
 
-  // Инкрементальный сброс выбора (использует общий модуль)
-  function resetSelectionIncremental() {
-    if (!BoardCore) {
-      // Fallback для обратной совместимости
-      setState({
-        selectedSquare: null,
-        availableTargets: new Set(),
-      }, 'resetSelection');
-      return;
-    }
+  function pieceBelongsToRole(piece, role) {
+    const utils = window.ChessMoveUtils;
+    if (!utils?.pieceBelongsToPlayer) throw new Error('ChessMoveUtils is not initialized');
+    return utils.pieceBelongsToPlayer(piece, role);
+  }
+  const MatchBoardInteraction = window.MatchBoardInteraction;
+  if (!MatchBoardInteraction || typeof MatchBoardInteraction.create !== 'function') {
+    throw new Error('MatchBoardInteraction module is not initialized');
+  }
+  if (!BoardCore || !window.ChessMoveUtils) {
+    throw new Error('Chess modules are not initialized');
+  }
 
-    BoardCore.resetSelectionIncremental({
-      state,
-      setState,
-      getFen: getCurrentFen,
-      utils: window.ChessMoveUtils,
-    });
+  const boardInteraction = MatchBoardInteraction.create({
+    state,
+    setState,
+    getCurrentFen,
+    getCurrentUserRole,
+    haveBothPlayersJoined,
+    isAnalysisMode,
+    showToast,
+    attemptMove,
+    isPieceOwnedByRole: pieceBelongsToRole,
+    boardCore: BoardCore,
+    moveUtils: window.ChessMoveUtils,
+  });
+
+  function resetSelectionIncremental() {
+    boardInteraction.resetSelection();
   }
 
   function resetSelection() {
-    resetSelectionIncremental();
-  }
-
-  // Обертки для обратной совместимости
-  function updateSelectedSquareHighlight(squareName, isSelected) {
-    if (BoardCore) {
-      BoardCore.updateSelectedSquareHighlight(state, squareName, isSelected);
-    }
-  }
-
-  function updateAvailableTargetsHighlight(targets) {
-    if (BoardCore) {
-      BoardCore.updateAvailableTargetsHighlight(
-        state,
-        targets,
-        getCurrentFen(),
-        window.ChessMoveUtils
-      );
-    }
-  }
-
-  function pieceBelongsToRole(piece, role) {
-    const utils = window.ChessMoveUtils;
-    if (utils && utils.pieceBelongsToPlayer) {
-      return utils.pieceBelongsToPlayer(piece, role);
-    }
-    // Fallback для обратной совместимости
-    if (!piece) return false;
-    const isWhite = piece === piece.toUpperCase();
-    return role === (isWhite ? 'white' : 'black');
-  }
-
-  function getPieceAtSquare(fen, square) {
-    const utils = window.ChessMoveUtils;
-    if (utils && utils.getPieceAtSquare) {
-      return utils.getPieceAtSquare(fen, square);
-    }
-    // Fallback для обратной совместимости
-    if (!utils || !fen || !square) return null;
-    const { board } = utils.parseFen(fen);
-    const fileIdx = square.charCodeAt(0) - 97;
-    const rankIdx = 8 - Number.parseInt(square[1], 10);
-    if (Number.isNaN(fileIdx) || Number.isNaN(rankIdx)) return null;
-    return board?.[rankIdx]?.[fileIdx] ?? null;
+    boardInteraction.resetSelection();
   }
 
   function updateLegalMoves() {
-    const utils = window.ChessMoveUtils;
-    
-    if (!utils || !utils.updateLegalMovesForState) {
-      // Fallback: старая логика
-    setState({ legalMovesByFrom: new Map() }, 'updateLegalMoves:reset');
-    resetSelection();
-
-    if (!state.game) {
-      return;
-    }
-
-    const bothPlayersJoined = haveBothPlayersJoined();
-    if (state.game.status !== 'ACTIVE' && !bothPlayersJoined) {
-      return;
-    }
-
-    if (!utils) {
-      return;
-    }
-    const role = getCurrentUserRole();
-    if (!role) {
-      return;
-    }
-    const expectedTurn = state.game.next_turn === 'w' ? 'white' : 'black';
-    if (role !== expectedTurn) {
-      return;
-    }
-
-      let legalMovesByFrom = null;
-      if (utils.generateLegalMoves) {
-        const result = utils.generateLegalMoves(state.game.current_pos, role);
-        legalMovesByFrom = result.legalMovesByFrom;
-      } else {
-    const { movesByFrom } = utils.generateMoves(state.game.current_pos, role);
-        legalMovesByFrom = new Map();
-    movesByFrom.forEach((uciSet, fromSquare) => {
-          const legalMoves = Array.from(uciSet).filter(uci => {
-            return utils.isMoveAllowed(state.game.current_pos, role, uci);
-          });
-          if (legalMoves.length > 0) {
-            legalMovesByFrom.set(fromSquare, legalMoves);
-          }
-        });
-      }
-
-      const formattedMoves = new Map();
-      if (legalMovesByFrom) {
-        legalMovesByFrom.forEach((uciArray, fromSquare) => {
-      const entries = [];
-          uciArray.forEach((uci) => {
-            const uciStr = typeof uci === 'string' ? uci : uci.uci || '';
-            const base = uciStr.slice(0, 4);
-            const to = uciStr.slice(2, 4);
-            const promotion = uciStr.length > 4 ? uciStr.slice(4) : null;
-        entries.push({ from: fromSquare, to, base, promotion });
-      });
-      if (entries.length) {
-            formattedMoves.set(fromSquare, entries);
-          }
-        });
-      }
-
-      setState({ legalMovesByFrom: formattedMoves }, 'updateLegalMoves:complete');
-      return;
-    }
-
-    // Используем общую функцию предгенерации
-    utils.updateLegalMovesForState({
-      getFen: () => state.game?.current_pos || null,
-      getPlayerColor: () => {
-        const role = getCurrentUserRole();
-        return role;
-      },
-      canGenerateMoves: () => {
-        if (!state.game) return false;
-        const bothPlayersJoined = haveBothPlayersJoined();
-        if (state.game.status !== 'ACTIVE' && !bothPlayersJoined) {
-          return false;
-        }
-        const role = getCurrentUserRole();
-        if (!role) return false;
-        const expectedTurn = state.game.next_turn === 'w' ? 'white' : 'black';
-        return role === expectedTurn;
-      },
-      onReset: () => {
-        resetSelection();
-      },
-      state,
-      setState,
-      formatMoves: (legalMovesByFrom) => {
-        // Преобразуем в формат, который ожидает match модуль
-        const formattedMoves = new Map();
-        if (legalMovesByFrom) {
-          legalMovesByFrom.forEach((uciArray, fromSquare) => {
-            const entries = [];
-            uciArray.forEach((uci) => {
-              const uciStr = typeof uci === 'string' ? uci : uci.uci || '';
-              const base = uciStr.slice(0, 4);
-              const to = uciStr.slice(2, 4);
-              const promotion = uciStr.length > 4 ? uciStr.slice(4) : null;
-              entries.push({ from: fromSquare, to, base, promotion });
-            });
-            if (entries.length) {
-              formattedMoves.set(fromSquare, entries);
-      }
-          });
-        }
-        return formattedMoves;
-      },
-    });
-  }
-
-  function executeMove(fromSquare, toSquare) {
-    const moves = state.legalMovesByFrom.get(fromSquare);
-    if (!moves || !moves.length) return;
-    const options = moves.filter((entry) => entry.to === toSquare);
-    if (!options.length) return;
-    let chosen = options[0];
-    if (options.length > 1) {
-      let promotion = prompt('Выберите фигуру для промоции (q, r, b, n)', 'q');
-      if (!promotion) return;
-      promotion = promotion.toLowerCase();
-      chosen = options.find((entry) => entry.promotion === promotion);
-      if (!chosen) {
-        showToast('Неверная фигура промоции', 'error');
-        return;
-      }
-    }
-    const success = attemptMove(chosen.base, chosen.promotion);
-    if (success) {
-      resetSelectionIncremental();
-    }
+    boardInteraction.updateLegalMoves();
   }
 
   function handleSquareClick(squareName) {
-    if (!state.game) {
-      return;
-    }
-    if (isAnalysisMode()) {
-      showToast('Вы просматриваете предыдущий ход. Выберите последний ход, чтобы продолжить партию.', 'info');
-      return;
-    }
-    const bothPlayersJoined = haveBothPlayersJoined();
-
-    if (state.game.status !== 'ACTIVE' && !bothPlayersJoined) {
-      if (state.game.status === 'CREATED') {
-        showToast('Дождитесь присоединения соперника, чтобы начать игру', 'info');
-      }
-      return;
-    }
-    if (state.pendingMove) {
-      return;
-    }
-    const role = getCurrentUserRole();
-    if (!role) {
-      return;
-    }
-    const expectedTurn = state.game.next_turn === 'w' ? 'white' : 'black';
-    if (role !== expectedTurn) {
-      return;
-    }
-    const square = squareName.toLowerCase();
-
-    if (state.selectedSquare && state.availableTargets.has(square)) {
-      executeMove(state.selectedSquare, square);
-      return;
-    }
-
-    if (state.selectedSquare === square) {
-      resetSelection();
-      return;
-    }
-
-    const moves = state.legalMovesByFrom.get(square);
-
-    if (!moves || !moves.length) {
-      resetSelection();
-      return;
-    }
-
-    const piece = getPieceAtSquare(state.game.current_pos, square);
-
-    if (!piece || !pieceBelongsToRole(piece, role)) {
-      resetSelection();
-      return;
-    }
-    const newTargets = new Set(moves.map((entry) => entry.to));
-    
-    // Используем общий модуль для обновления выбора
-    if (BoardCore) {
-      BoardCore.updateSelection({
-        state,
-        setState,
-        square,
-        targets: newTargets,
-        getFen: getCurrentFen,
-        utils: window.ChessMoveUtils,
-      });
-    } else {
-      // Fallback
-    setState(
-      {
-        selectedSquare: square,
-          availableTargets: newTargets,
-      },
-      'handleSquareClick:select'
-    );
-    renderBoard();
-    }
+    boardInteraction.handleSquareClick(squareName);
   }
 
   const canJoinGame = () => {
@@ -1147,7 +799,7 @@
     if (state.game.status !== 'CREATED') return false;
     
     // Проверяем, авторизован ли пользователь или есть session_id
-    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    const isAuth = window.isAuthenticated();
     const hasSession = typeof window.getSessionId === 'function' && window.getSessionId() !== null;
     
     // Проверяем, является ли партия рейтинговой
@@ -1176,7 +828,7 @@
     if (state.game.status !== 'CREATED') return false;
     
     // Проверяем, авторизован ли пользователь или есть session_id
-    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    const isAuth = window.isAuthenticated();
     const hasSession = typeof window.getSessionId === 'function' && window.getSessionId() !== null;
     
     if (!isAuth && !hasSession) return false;
@@ -1260,23 +912,20 @@
 
   function maybeAutoJoin() {
     // Проверяем авторизацию или наличие session_id
-    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    const isAuth = window.isAuthenticated();
     const hasSession = typeof window.getSessionId === 'function' && window.getSessionId() !== null;
     
     if (!isAuth && !hasSession && !state.loginPromptShown) {
-      const token = getAccessToken();
-      if (token) {
-        setTimeout(() => {
-          if (shouldAutoJoin()) {
-            setState({ autoJoinAttempted: true }, 'maybeAutoJoin:autoAttempt');
-            joinGame(true);
-          } else if (!isAuth && !hasSession && !state.loginPromptShown) {
-            setState({ loginPromptShown: true }, 'maybeAutoJoin:prompt');
-            showToast('Войдите, чтобы занять место соперника', 'error');
-          }
-        }, 200);
-        return;
-      }
+      setTimeout(() => {
+        if (shouldAutoJoin()) {
+          setState({ autoJoinAttempted: true }, 'maybeAutoJoin:autoAttempt');
+          joinGame(true);
+        } else if (!isAuth && !hasSession && !state.loginPromptShown) {
+          setState({ loginPromptShown: true }, 'maybeAutoJoin:prompt');
+          showToast('Войдите, чтобы занять место соперника', 'error');
+        }
+      }, 200);
+      return;
     }
 
     if (shouldAutoJoin()) {
@@ -1330,7 +979,11 @@
     // Connection status indicator removed
   }
 
-  function applyGameDetail(detail, { isRealtimeMove = false, moveTimestamp = null } = {}) {
+  function applyGameDetail(detail, { isRealtimeMove = false, moveTimestamp = null, revision = null } = {}) {
+    const incomingRevision = Number.isInteger(revision) ? revision : detail?.move_count;
+    if (Number.isInteger(incomingRevision) && incomingRevision < state.gameRevision) {
+      return false;
+    }
     const previousGame = state.game;
     const previousRole = getCurrentUserRole();
     
@@ -1378,7 +1031,8 @@
     
     setState(
       {
-        game: detail,
+        game: { ...detail, moves: finalMoves },
+        gameRevision: Number.isInteger(incomingRevision) ? incomingRevision : state.gameRevision,
         moves: finalMoves,
       },
       'applyGameDetail:updateGame'
@@ -1389,35 +1043,31 @@
       setState({ analysisCursor: null }, 'applyGameDetail:clampAnalysis');
     }
 
-    const now = Date.now();
     const isFirstMove = detail.move_count === 0 || detail.move_count === 1;
     const hasNoMoves = !detail.moves || detail.moves.length === 0;
     let clockAnchorTime;
     
-    // Если игра только что стала активной и еще не было ходов, используем время из сервера или текущее время
+    // Если игра только что стала активной и еще не было ходов, требуется серверное время
     if (detail.status === 'ACTIVE' && hasNoMoves) {
-      // Если есть время начала игры из сервера, используем его
       if (detail.started_at) {
         clockAnchorTime = new Date(detail.started_at).getTime();
       } else if (detail.updated_at) {
-        // Используем время последнего обновления как приблизительное время начала
         clockAnchorTime = new Date(detail.updated_at).getTime();
       } else {
-        // Fallback: используем текущее время только если это новый переход в ACTIVE
-        const wasCreated = previousGame?.status === 'CREATED';
-        clockAnchorTime = wasCreated ? now : (state.clockAnchorTime || now);
+        throw new Error('Active match has no server timestamp');
       }
     } else if (isFirstMove && detail.moves && detail.moves.length > 0) {
-      // Первый ход уже сделан - используем время первого хода
       const firstMove = detail.moves[0];
-      clockAnchorTime = firstMove.created_at ? new Date(firstMove.created_at).getTime() : now;
+      if (!firstMove.created_at) throw new Error('First match move has no server timestamp');
+      clockAnchorTime = new Date(firstMove.created_at).getTime();
     } else if (isRealtimeMove && moveTimestamp !== null) {
       clockAnchorTime = moveTimestamp;
     } else if (detail.moves && detail.moves.length > 0) {
       const lastMove = detail.moves[detail.moves.length - 1];
-      clockAnchorTime = lastMove.created_at ? new Date(lastMove.created_at).getTime() : now;
+      if (!lastMove.created_at) throw new Error('Last match move has no server timestamp');
+      clockAnchorTime = new Date(lastMove.created_at).getTime();
     } else {
-      clockAnchorTime = state.clockAnchorTime || now;
+      clockAnchorTime = state.clockAnchorTime;
     }
     
     setState({ clockAnchorTime }, 'applyGameDetail:timestamp');
@@ -1474,6 +1124,7 @@
     };
 
     notifyOpponentJoined();
+    return true;
   }
 
   function updateUI() {
@@ -1549,13 +1200,13 @@
       return;
     }
     try {
-      const res = await fetch(buildUrl(`/api/games/${state.matchId}?moves_limit=200`));
+      const res = await fetch(`/api/games/${state.matchId}?moves_limit=200`);
       if (!res.ok) throw new Error(await res.text());
       const detail = await res.json();
       
       // Проверяем, является ли партия рейтинговой и аноним ли пользователь
       const isRated = detail.metadata?.rated === true;
-      const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+      const isAuth = window.isAuthenticated();
       
       if (isRated && !isAuth) {
         // Анонимный пользователь пытается зайти на рейтинговую партию - перенаправляем на логин
@@ -1569,96 +1220,11 @@
       applyGameDetail(detail);
       connectWebSocket(state.matchId);
       
-      // Останавливаем polling, если игра уже активна или завершена
-      if (detail.status === 'ACTIVE' || detail.status === 'FINISHED' || detail.status === 'CANCELLED' || detail.status === 'ABANDONED' || haveBothPlayersJoined(detail)) {
-        stopGamePolling();
-      }
-      // Запускаем polling, только если игра в статусе CREATED и оба игрока еще не присоединились
-      else if (detail.status === 'CREATED' && !haveBothPlayersJoined(detail)) {
-        startGamePolling();
-      }
     } catch (err) {
       showToast('Не удалось загрузить партию', 'error');
       setState({ game: null, moves: [] }, 'loadMatch:error');
       updateUI();
     }
-  }
-
-  function stopGamePolling() {
-    if (state.gamePollingInterval) {
-      // Используем PageLifecycle если доступен
-      if (window.App?.Utils?.PageLifecycle) {
-        window.App.Utils.PageLifecycle.clearInterval(state.gamePollingInterval);
-      } else {
-        clearInterval(state.gamePollingInterval);
-      }
-      setState({ gamePollingInterval: null }, 'stopGamePolling');
-    }
-  }
-
-  async function pollGameState() {
-    if (!state.matchId) return;
-    
-    try {
-      const res = await fetch(buildUrl(`/api/games/${state.matchId}?moves_limit=200`));
-      if (!res.ok) {
-        if (res.status === 404) {
-          stopGamePolling();
-          showToast('Партия не найдена', 'error');
-        }
-        return;
-      }
-      
-      const detail = await res.json();
-      const previousGame = state.game;
-      const previousBothJoined = haveBothPlayersJoined(previousGame);
-      const previousStatus = previousGame?.status;
-      const currentBothJoined = haveBothPlayersJoined(detail);
-      
-      // Применяем обновления
-      applyGameDetail(detail);
-      
-      // Если оба игрока присоединились впервые
-      if (!previousBothJoined && currentBothJoined) {
-        updateLegalMoves();
-        renderBoard();
-        showToast('Соперник присоединился! Теперь можно начинать игру', 'success');
-        // Начинаем отсчет времени, если игра активна
-        if (detail.status === 'ACTIVE') {
-          updateClockDisplays(true);
-        }
-      }
-      
-      // Если игра стала активной
-      if (previousStatus === 'CREATED' && detail.status === 'ACTIVE') {
-        showToast('Игра началась! Теперь вы можете делать ходы', 'success');
-        updateClockDisplays(true);
-      }
-      
-      // Останавливаем polling, если оба игрока присоединились, игра активна или завершена/отменена
-      if (currentBothJoined || detail.status === 'ACTIVE' || detail.status === 'FINISHED' || detail.status === 'CANCELLED' || detail.status === 'ABANDONED') {
-        stopGamePolling();
-      }
-    } catch (err) {
-      // Error polling game state
-    }
-  }
-
-  function startGamePolling() {
-    stopGamePolling();
-    // Poll каждые 2 секунды, если игра еще в статусе CREATED и оба игрока не присоединились
-    const callback = () => {
-      if (!state.game || state.game.status !== 'CREATED' || state.game.status === 'ACTIVE' || haveBothPlayersJoined()) {
-        stopGamePolling();
-        return;
-      }
-      pollGameState();
-    };
-    // Используем PageLifecycle если доступен для автоматической очистки
-    const interval = window.App?.Utils?.PageLifecycle
-      ? window.App.Utils.PageLifecycle.setInterval(callback, 2000)
-      : setInterval(callback, 2000);
-    setState({ gamePollingInterval: interval }, 'startGamePolling');
   }
 
   function wsLog(level, message, data = null) {
@@ -1667,7 +1233,7 @@
 
   function connectWebSocket(gameId, options = {}) {
     // Поддержка анонимных игр через session_id
-    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    const isAuth = window.isAuthenticated();
     if (!gameId) return;
     const { isReconnect = false } = options;
     if (!isReconnect) {
@@ -1682,65 +1248,25 @@
     }
     
     updateWsIndicator('connecting');
-    const token = getAccessToken();
-    
-    // Формируем параметры для WebSocket URL
-    const params = {};
-    if (token) {
-      params.token = token;
-    } else if (typeof window.getSessionId === 'function') {
+		// Формируем параметры для WebSocket URL
+		const params = {};
+		if (typeof window.getSessionId === 'function') {
       const sessionId = window.getSessionId();
       if (sessionId) {
         params.session_id = sessionId;
       }
     }
     
-    // Используем WebSocketUtils для создания подключения
-    if (!window.WebSocketUtils || !window.WebSocketUtils.createWebSocketConnection) {
-      console.error('WebSocketUtils not available, falling back to manual WebSocket');
-      // Fallback на старую реализацию если WebSocketUtils не загружен
-      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      let url = `${protocol}://${window.location.host}/ws/games/${gameId}`;
-      const urlParams = new URLSearchParams();
-      if (token) urlParams.append('token', token);
-      else if (typeof window.getSessionId === 'function') {
-        const sessionId = window.getSessionId();
-        if (sessionId) urlParams.append('session_id', sessionId);
-      }
-      if (urlParams.toString()) url += '?' + urlParams.toString();
-      try {
-        const ws = new WebSocket(url);
-        setState({ ws }, 'connectWebSocket:init');
-        ws.onopen = () => {
-          updateWsIndicator('online');
-          resetWsRetryState();
-        };
-        ws.onclose = (event) => {
-          updateWsIndicator('offline');
-          handleWsClose(event);
-        };
-        ws.onerror = () => {
-          updateWsIndicator('offline');
-        };
-        ws.onmessage = (event) => {
-          try {
-            const payload = JSON.parse(event.data);
-            handleWsPayload(payload);
-          } catch (err) {
-            // Ignore parse errors
-          }
-        };
-      } catch (err) {
-        updateWsIndicator('offline');
-      }
-      return;
+    const wsApi = window.App?.WS;
+    if (!wsApi || typeof wsApi.createWebSocketConnection !== 'function') {
+      throw new Error('WebSocket API is not initialized');
     }
     
     // Используем WebSocketUtils для создания подключения
     // Отключаем автоматическое переподключение, так как у нас есть своя логика с refresh токена
-    const wsUrl = window.WebSocketUtils.createWebSocketUrl(`/ws/games/${gameId}`, params);
+    const wsUrl = wsApi.createWebSocketUrl(`/ws/games/${gameId}`, params);
     
-    const wsConnection = window.WebSocketUtils.createWebSocketConnection({
+    const wsConnection = wsApi.createWebSocketConnection({
       url: wsUrl,
       onMessage: (message) => {
         handleWsPayload(message);
@@ -1795,63 +1321,46 @@
       return;
     }
     if (payload.type === 'state' || payload.type === 'game_finished' || payload.type === 'move_made') {
+      if (!payload.game) return;
       const previousStatus = state.game?.status;
       const previousGame = state.game;
       const previousBothJoined = haveBothPlayersJoined(previousGame);
-      const isRealtimeMove = payload.type === 'move_made';
-      const moveTimestamp = isRealtimeMove && payload.move?.created_at 
+      const isRealtimeUpdate = payload.type !== 'state';
+      const moveTimestamp = payload.type === 'move_made' && payload.move?.created_at
         ? new Date(payload.move.created_at).getTime() 
         : null;
-      applyGameDetail(payload.game, { isRealtimeMove, moveTimestamp });
-      ensurePlayerUsernames(payload.game).then(() => {
-        updatePlayerLabelsAndTitle();
-        updateWinnerDisplay();
+      const detail = {
+        ...payload.game,
+        moves: payload.type === 'state'
+          ? payload.game.moves
+          : payload.move
+            ? [payload.move]
+            : state.moves,
+      };
+      const applied = applyGameDetail(detail, {
+        isRealtimeMove: isRealtimeUpdate,
+        moveTimestamp,
+        revision: payload.revision,
       });
+      if (!applied) return;
       
-      const currentBothJoined = haveBothPlayersJoined(payload.game);
+      const currentBothJoined = haveBothPlayersJoined(detail);
       const wasWaiting = !previousBothJoined;
       
       // Если оба игрока присоединились впервые
       if (wasWaiting && currentBothJoined) {
-        stopGamePolling(); // Останавливаем polling, так как оба игрока присоединились
-        updateLegalMoves();
-        renderBoard();
         showToast('Соперник присоединился! Теперь можно начинать игру', 'success');
-        // Начинаем отсчет времени, если игра активна
-        if (payload.game.status === 'ACTIVE') {
-          updateClockDisplays(true);
-        }
       }
       
-      if (previousStatus === 'CREATED' && payload.game.status === 'ACTIVE') {
-        stopGamePolling(); // Останавливаем polling, так как игра началась
+      if (previousStatus === 'CREATED' && detail.status === 'ACTIVE') {
         showToast('Игра началась! Теперь вы можете делать ходы', 'success');
-        updateClockDisplays(true);
-      }
-      
-      if (payload.type === 'move_made') {
-        requestAnimationFrame(() => {
-          updateLegalMoves();
-          renderBoard();
-          renderMoves();
-          updateClockDisplays();
-        });
       }
       
       // Если игра завершена, обновляем UI
-      if (payload.type === 'game_finished' || (previousStatus !== 'FINISHED' && payload.game.status === 'FINISHED')) {
-        requestAnimationFrame(() => {
-          updateLegalMoves(); // Очищаем возможные ходы
-          renderBoard();
-          renderMoves();
-          updateClockDisplays();
-          updateActivePlayerIndicator(); // Убираем индикатор активного игрока
-          renderActions(); // Обновляем кнопки (убираем кнопку сдачи)
-        });
-        
+      if (payload.type === 'game_finished' || (previousStatus !== 'FINISHED' && detail.status === 'FINISHED')) {
         // Показываем уведомление о завершении игры
         if (previousStatus !== 'FINISHED') {
-          const winnerText = window.MatchUtils?.describeWinner?.(payload.game) || 'Игра завершена';
+          const winnerText = window.MatchUtils?.describeWinner?.(detail) || 'Игра завершена';
           showToast(winnerText, 'info');
         }
       }
@@ -1862,7 +1371,7 @@
     if (!state.matchId) return;
     
     // Проверяем авторизацию или используем анонимную сессию
-    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    const isAuth = window.isAuthenticated();
     
     // Проверяем, является ли партия рейтинговой
     const isRated = state.game?.metadata?.rated === true;
@@ -1954,16 +1463,15 @@
     }
     if (!confirm('Подтвердите сдачу партии')) return;
     try {
-      const isAuth =
-        typeof window.isAuthenticated === 'function'
-          ? window.isAuthenticated()
-          : window.getAccessToken && window.getAccessToken();
+      const isAuth = window.isAuthenticated();
       let res;
       if (isAuth) {
         res = await authedFetch(`/api/games/${state.matchId}/resign`, { method: 'POST' });
       } else {
-        const headers =
-          typeof window.getAnonymousHeaders === 'function' ? window.getAnonymousHeaders() : {};
+        if (typeof window.getAnonymousHeaders !== 'function') {
+          throw new Error('Anonymous session module is not initialized');
+        }
+        const headers = window.getAnonymousHeaders();
         res = await fetch(`/api/games/${state.matchId}/resign`, { method: 'POST', headers });
       }
       if (!res.ok) throw new Error(await res.text());
@@ -2074,7 +1582,7 @@
     }
     const payload = {
       type: 'make_move',
-      uci: normalizedUci,
+      uci: uciForValidation,
       promotion: normalizedPromotion,
       client_move_id: `web-${Date.now()}`,
     };
@@ -2133,24 +1641,16 @@
   }
 
   function handleLogout() {
-    clearTokens();
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     setState({ currentUser: null }, 'handleLogout');
     updateAuthPanel();
     showToast('Вы вышли из аккаунта');
   }
 
   function loadTheme() {
-    if (window.loadTheme && typeof window.loadTheme === 'function') {
-      window.loadTheme();
-      isDarkTheme = document.body.classList.contains('dark');
-    } else {
-      const saved = localStorage.getItem('theme');
-      isDarkTheme = saved === 'dark';
-      document.body.classList.toggle('dark', isDarkTheme);
-      document.documentElement.classList.toggle('dark', isDarkTheme);
-      const icon = document.getElementById('themeIcon');
-      if (icon) icon.className = isDarkTheme ? 'fas fa-moon' : 'fas fa-sun';
-    }
+    if (typeof window.loadTheme !== 'function') throw new Error('Auth UI is not initialized');
+    window.loadTheme();
+    isDarkTheme = document.body.classList.contains('dark');
   }
 
   function toggleTheme() {
@@ -2272,10 +1772,6 @@
 
   // Mobile menu functions теперь в mobile-menu.js
 
-  // Очистка polling при закрытии страницы
-  window.addEventListener('beforeunload', () => {
-    stopGamePolling();
-  });
 
   document.addEventListener('DOMContentLoaded', init);
 })();

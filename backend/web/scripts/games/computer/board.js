@@ -21,44 +21,11 @@
   function getOrientedMatrix(boardOrientation, fen) {
     const utils = window.ChessMoveUtils;
     const BoardCore = window.ChessBoardCore;
-    
-    if (!utils) return [];
-    
-    // Используем общую функцию из ChessBoardCore, если доступна
-    if (BoardCore && BoardCore.fenToMatrix && BoardCore.getOrientedMatrix) {
-      const matrix = BoardCore.fenToMatrix(fen, utils);
-      return BoardCore.getOrientedMatrix(matrix, boardOrientation);
+    if (!utils?.parseFen || !BoardCore?.fenToMatrix || !BoardCore?.getOrientedMatrix) {
+      throw new Error('ChessMoveUtils and ChessBoardCore are not initialized');
     }
-    
-    // Fallback для обратной совместимости
-    const parsed = utils.parseFen(fen);
-    const board = parsed.board || [];
-    
-    const matrix = [];
-    for (let rank = 0; rank < 8; rank++) {
-      const row = [];
-      if (board[rank]) {
-        for (let file = 0; file < 8; file++) {
-          const piece = board[rank][file];
-          if (piece && piece !== '' && piece !== ' ') {
-            row.push(piece);
-          } else {
-            row.push(null);
-          }
-        }
-      } else {
-        for (let file = 0; file < 8; file++) {
-          row.push(null);
-        }
-      }
-      matrix.push(row);
-    }
-
-    if (boardOrientation === 'black') {
-      return matrix.slice().reverse().map((row) => row.slice().reverse());
-    }
-
-    return matrix;
+    const matrix = BoardCore.fenToMatrix(fen, utils);
+    return BoardCore.getOrientedMatrix(matrix, boardOrientation);
   }
 
   // Получить квадраты для подсветки
@@ -74,14 +41,8 @@
   // Проверка, принадлежит ли фигура игроку (используем общую функцию)
   function pieceBelongsToPlayer(piece, playerColor) {
     const utils = window.ChessMoveUtils;
-    if (utils && utils.pieceBelongsToPlayer) {
-      return utils.pieceBelongsToPlayer(piece, playerColor);
-    }
-    // Fallback для обратной совместимости
-    if (!piece) return false;
-    const pieceStr = typeof piece === 'string' ? piece : String(piece);
-    const isWhite = pieceStr === pieceStr.toUpperCase();
-    return (playerColor === 'white' && isWhite) || (playerColor === 'black' && !isWhite);
+    if (!utils?.pieceBelongsToPlayer) throw new Error('ChessMoveUtils is not initialized');
+    return utils.pieceBelongsToPlayer(piece, playerColor);
   }
 
   // Используем общий модуль ChessBoardCore для работы с выбором
@@ -97,54 +58,54 @@
     return getFenForIndex(moveIndex, game, moves);
   }
 
-  // Инкрементальный сброс выбора (использует общий модуль)
-  function resetSelectionIncremental() {
-    const state = window.ComputerGameState;
-    if (!state) return;
-
-    if (BoardCore) {
-      // Получаем прямой доступ к состоянию для правильного чтения oldTargets
-      const directState = state.getDirectState ? state.getDirectState() : null;
-      if (directState) {
-        BoardCore.resetSelectionIncremental({
-          state: directState, // Передаем прямой объект состояния
-          getFen: getCurrentFen,
-          utils: window.ChessMoveUtils,
-        });
-      } else {
-        // Fallback: используем объект с геттерами
-        BoardCore.resetSelectionIncremental({
-          state,
-          getFen: getCurrentFen,
-          utils: window.ChessMoveUtils,
-        });
-      }
-    } else {
-      // Fallback для обратной совместимости
-      state.setSelectedSquare(null);
-      state.setAvailableTargets(new Set());
-      renderBoard();
-    }
+  const computerState = window.ComputerGameState;
+  if (!computerState || typeof computerState.getDirectState !== 'function') {
+    throw new Error('Computer game state is not initialized');
+  }
+  const computerDirectState = computerState.getDirectState();
+  if (!computerDirectState) {
+    throw new Error('Computer game state is not initialized');
   }
 
-  // Обертки для обратной совместимости
+  const computerController = window.ChessGameController.create({
+    state: computerDirectState,
+    getFen: getCurrentFen,
+    getLegalMovesByFrom: () => {
+      if (!(computerDirectState.legalMovesByFrom instanceof Map)) {
+        throw new Error('Computer legal moves are not initialized');
+      }
+      return computerDirectState.legalMovesByFrom;
+    },
+    isInteractive: () => computerState.isPlayerTurn() && computerState.getGameStatus() === 'active',
+    canSelectPiece: (piece) => pieceBelongsToPlayer(piece, computerState.getPlayerColor()),
+    onMove: (_from, _to, uci) => makeMove(uci),
+  });
+
+  // Инкрементальный сброс выбора (использует общий модуль)
+  function resetSelectionIncremental() {
+    computerController.clearSelection();
+  }
+
+  // Адаптеры общего модуля доски
   function updateSelectedSquareHighlight(squareName, isSelected) {
     const state = window.ComputerGameState;
-    if (BoardCore && state) {
-      BoardCore.updateSelectedSquareHighlight(state, squareName, isSelected);
+    if (!state || !BoardCore?.updateSelectedSquareHighlight) {
+      throw new Error('Computer game state and ChessBoardCore are not initialized');
     }
+    BoardCore.updateSelectedSquareHighlight(state.getDirectState(), squareName, isSelected);
   }
 
   function updateAvailableTargetsHighlight(targets) {
     const state = window.ComputerGameState;
-    if (BoardCore && state) {
-      BoardCore.updateAvailableTargetsHighlight(
-        state, 
-        targets, 
-        getCurrentFen(), 
-        window.ChessMoveUtils
-      );
+    if (!state || !BoardCore?.updateAvailableTargetsHighlight) {
+      throw new Error('Computer game state and ChessBoardCore are not initialized');
     }
+    BoardCore.updateAvailableTargetsHighlight(
+      state.getDirectState(),
+      targets,
+      getCurrentFen(),
+      window.ChessMoveUtils
+    );
   }
 
   // Предгенерация легальных ходов для текущей позиции (использует общую функцию)
@@ -153,57 +114,14 @@
     if (!state) return;
 
     const utils = window.ChessMoveUtils;
-    if (!utils || !utils.updateLegalMovesForState) {
-      // Fallback: старая логика
-      const game = state.getGame();
-      const moves = state.getMoves();
-      const moveIndex = state.getCurrentMoveIndex();
-      const isPlayerTurn = state.isPlayerTurn();
-
-      if (!game || !isPlayerTurn || state.getGameStatus() !== 'active') {
-        state.legalMovesByFrom = new Map();
-        return;
-      }
-
-      const fen = getFenForIndex(moveIndex, game, moves);
-      const playerColor = state.getPlayerColor();
-      
-      if (utils && utils.generateLegalMoves) {
-        const { legalMovesByFrom } = utils.generateLegalMoves(fen, playerColor);
-        state.legalMovesByFrom = legalMovesByFrom || new Map();
-      } else {
-        state.legalMovesByFrom = new Map();
-      }
-      return;
-    }
+    if (!utils?.updateLegalMovesForState) throw new Error('ChessMoveUtils is not initialized');
 
     // Используем общую функцию предгенерации
     // Получаем прямой доступ к объекту состояния для записи legalMovesByFrom
-    const directState = state.getDirectState ? state.getDirectState() : null;
+    if (!state.getDirectState) throw new Error('Computer game state is not initialized');
+    const directState = state.getDirectState();
     
-    if (!directState) {
-      // Fallback: старая логика
-      const game = state.getGame();
-      const moves = state.getMoves();
-      const moveIndex = state.getCurrentMoveIndex();
-      const isPlayerTurn = state.isPlayerTurn();
-
-      if (!game || !isPlayerTurn || state.getGameStatus() !== 'active') {
-        return;
-      }
-
-      const fen = getFenForIndex(moveIndex, game, moves);
-      const playerColor = state.getPlayerColor();
-      
-      if (utils && utils.generateLegalMoves) {
-        const { legalMovesByFrom } = utils.generateLegalMoves(fen, playerColor);
-        // Пытаемся записать напрямую в state (если это возможно)
-        if (state.legalMovesByFrom !== undefined) {
-          state.legalMovesByFrom = legalMovesByFrom || new Map();
-        }
-      }
-      return;
-    }
+    if (!directState) throw new Error('Computer game state is not initialized');
     
     utils.updateLegalMovesForState({
       getFen: () => {
@@ -252,21 +170,24 @@
     const files = boardOrientation === 'white' ? FILES : [...FILES].reverse();
     const ranks = boardOrientation === 'white' ? RANKS : [...RANKS].reverse();
     const utils = window.ChessMoveUtils;
-    const baseBoard = utils ? utils.parseFen(displayedFen).board : null;
+    if (!utils?.parseFen || !BoardCore?.renderBoardBase) {
+      throw new Error('ChessMoveUtils and ChessBoardCore are not initialized');
+    }
+    const baseBoard = utils.parseFen(displayedFen).board;
     
     // Для координат используем стандартные RANKS (как в tasks)
     const ranksForCoords = RANKS; // ['8', '7', '6', '5', '4', '3', '2', '1']
     const isFlipped = boardOrientation === 'black';
 
     // Используем базовую функцию рендеринга
-    if (BoardCore && BoardCore.renderBoardBase) {
+    {
       BoardCore.renderBoardBase({
         boardEl,
         matrix,
         files,
         ranks,
-        state,
-        getPieceSVG: (pieceStr) => window.ChessPiecesSVG?.[pieceStr] || null,
+        state: state.getDirectState(),
+        getPieceSVG: window.getPieceSVG,
         onSquareClick: (isPlayerTurn && state.getGameStatus() === 'active') 
           ? handleSquareClick 
           : null,
@@ -293,7 +214,7 @@
               classes.own = 'piece-own';
               
               // Используем предгенерированные ходы (быстро, без генерации)
-              const directState = state.getDirectState ? state.getDirectState() : null;
+      const directState = state.getDirectState();
               const legalMoves = directState?.legalMovesByFrom?.get(squareName.toLowerCase());
               if (legalMoves && legalMoves.length > 0) {
                 classes.movable = 'piece-movable';
@@ -312,161 +233,12 @@
           square.style.cursor = 'pointer';
         });
       }
-    } else {
-      // Fallback: старая логика
-      boardEl.innerHTML = '';
-      if (BoardCore && state) {
-        BoardCore.clearSquareElementsCache(state);
-      }
-
-      matrix.forEach((row, rIdx) => {
-        row.forEach((piece, cIdx) => {
-          const square = document.createElement('div');
-          const isLight = (rIdx + cIdx) % 2 === 0;
-          square.className = `square ${isLight ? 'light' : 'dark'}`;
-          const squareName = `${files[cIdx]}${ranks[rIdx]}`;
-          
-          if (BoardCore && state) {
-            BoardCore.registerSquareElement(state, squareName, square);
-          }
-          
-          if (highlightSet.has(squareName)) {
-            square.classList.add('highlighted');
-            const overlay = document.createElement('div');
-            overlay.className = 'highlight-overlay';
-            square.appendChild(overlay);
-          }
-          
-          // НЕ подсвечиваем выбранную фигуру - подсвечиваем только возможные ходы
-          // if (selectedSquare && squareName === selectedSquare) {
-          //   square.classList.add('selected-user');
-          // }
-          
-          if (availableTargets.has(squareName)) {
-            square.classList.add('legal-target');
-            if (baseBoard) {
-              const fileIdx = squareName.charCodeAt(0) - 97;
-              const rankIdx = 8 - Number.parseInt(squareName[1], 10);
-              if (baseBoard[rankIdx] && baseBoard[rankIdx][fileIdx] && baseBoard[rankIdx][fileIdx] !== '') {
-                square.classList.add('legal-target-capture');
-              }
-            }
-            const marker = document.createElement('div');
-            marker.className = 'legal-move-indicator';
-            if (square.classList.contains('legal-target-capture')) {
-              marker.classList.add('capture');
-            }
-            square.appendChild(marker);
-          }
-
-          if (piece) {
-            const pieceStr = typeof piece === 'string' ? piece : String(piece);
-            const pieceEl = document.createElement('div');
-            pieceEl.className = `piece ${pieceStr.toLowerCase()}`;
-            pieceEl.style.pointerEvents = 'none';
-            
-            const playerColor = state.getPlayerColor();
-            if (isPlayerTurn && pieceBelongsToPlayer(pieceStr, playerColor)) {
-              pieceEl.classList.add('piece-own');
-              if (utils) {
-                const validMoves = utils.getMovesForSquare(displayedFen, playerColor, squareName);
-                if (validMoves && validMoves.length > 0) {
-                  pieceEl.classList.add('piece-movable');
-                }
-              }
-            }
-            
-            const pieceSVG = window.ChessPiecesSVG?.[pieceStr];
-            if (pieceSVG) {
-              pieceEl.innerHTML = pieceSVG;
-            }
-            square.appendChild(pieceEl);
-          }
-
-          if (isPlayerTurn && state.getGameStatus() === 'active') {
-            square.style.cursor = 'pointer';
-            square.addEventListener('click', (e) => {
-              e.stopPropagation();
-              handleSquareClick(squareName);
-            });
-          }
-
-          boardEl.appendChild(square);
-        });
-      });
     }
   }
 
   // Обработка клика на квадрат (оптимизированная версия)
   function handleSquareClick(squareName) {
-    const state = window.ComputerGameState;
-    if (!state) return;
-
-    // Быстрая проверка без парсинга FEN
-    if (!state.isPlayerTurn() || state.getGameStatus() !== 'active') {
-      return;
-    }
-
-    // Используем предгенерированные ходы - они уже проверены и готовы
-    const normalizedSquare = squareName.toLowerCase();
-    const selectedSquare = state.getSelectedSquare();
-    const availableTargets = state.getAvailableTargets();
-
-    // Сценарий A: Уже выбрана фигура, клик на целевую клетку
-    if (selectedSquare && availableTargets.has(normalizedSquare)) {
-      const uci = `${selectedSquare}${normalizedSquare}`;
-      makeMove(uci);
-      return;
-    }
-
-    // Сценарий B: Клик на уже выбранную фигуру (отмена выбора)
-    if (selectedSquare === normalizedSquare) {
-      resetSelectionIncremental();
-      return;
-    }
-
-    // Сценарий C: Выбор новой фигуры - используем предгенерированные ходы
-    // Получаем прямой доступ к состоянию для чтения legalMovesByFrom
-    const directState = state.getDirectState ? state.getDirectState() : null;
-    const legalMoves = directState?.legalMovesByFrom?.get(normalizedSquare);
-    
-    if (!legalMoves || legalMoves.length === 0) {
-      // Нет ходов - сбрасываем выбор
-      resetSelectionIncremental();
-      return;
-    }
-
-    // Сценарий D: Обновляем выбор с предгенерированными ходами
-    const newTargets = new Set(legalMoves.map(m => {
-      const uci = typeof m === 'string' ? m : m.uci || '';
-      return uci.slice(2, 4).toLowerCase();
-    }));
-
-    // Немедленно обновляем состояние для визуальной обратной связи
-    state.setSelectedSquare(normalizedSquare);
-    state.setAvailableTargets(newTargets);
-    
-    // Используем оптимизированное обновление (синхронно для быстрой обратной связи)
-    if (BoardCore && BoardCore.updateSelection) {
-      const game = state.getGame();
-      const moves = state.getMoves();
-      const moveIndex = state.getCurrentMoveIndex();
-      const fen = getFenForIndex(moveIndex, game, moves);
-      const utils = window.ChessMoveUtils;
-      
-      BoardCore.updateSelection({
-        state,
-        square: normalizedSquare,
-        targets: newTargets,
-        getFen: () => fen,
-        utils,
-      });
-    } else {
-      // Fallback (не должен выполняться, т.к. предгенерация всегда активна)
-      state.setSelectedSquare(normalizedSquare);
-      state.setAvailableTargets(newTargets);
-      renderBoard();
-    }
+    computerController.handleSquareClick(squareName);
   }
 
   // Сделать ход

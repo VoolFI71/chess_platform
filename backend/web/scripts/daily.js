@@ -119,12 +119,17 @@
 // Submit daily puzzle solution
 async function submitDailySolution() {
   try {
-    const res = await window.TasksAPI?.authorizedFetch?.('/api/puzzles/daily/solve', {
+    const http = window.App?.Http;
+    if (!http || typeof http.apiFetch !== 'function') {
+      throw new Error('App.Http is not initialized');
+    }
+
+    const res = await http.apiFetch('/api/puzzles/daily/solve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
     
-    if (res && res.ok) {
+    if (res.ok) {
       const data = await res.json();
       state.isPuzzleSolvedByUser = true;
       
@@ -136,16 +141,16 @@ async function submitDailySolution() {
       }
       
       debugLog('Daily puzzle solution submitted successfully');
-    } else if (res && res.status === 409) {
+    } else if (res.status === 409) {
       // Задача уже решена
       const data = await res.json().catch(() => ({}));
       debugLog('Daily puzzle already solved:', data.detail);
       state.isPuzzleSolvedByUser = true;
-    } else if (res && res.status === 401) {
+    } else if (res.status === 401) {
       // Пользователь не авторизован - это нормально для гостей
       debugLog('User not authenticated, skipping solution submission');
     } else {
-      console.error('Failed to submit daily solution:', res?.status);
+      console.error('Failed to submit daily solution:', res.status);
     }
   } catch (e) {
     console.error('Error submitting daily solution:', e);
@@ -175,9 +180,7 @@ async function submitUserAttempt(success) {
     if (lastMoveIndex >= 0 && lastMoveIndex < correctMoves.length) {
       movesPlayed = correctMoves.slice(0, lastMoveIndex + 1);
     } else {
-      // Fallback: если индекс некорректный, берем первый ход противника + ходы пользователя
-      movesPlayed = correctMoves.length > 0 ? [correctMoves[0]] : [];
-      movesPlayed = movesPlayed.concat(state.userMoves);
+      throw new Error('Daily puzzle move index is inconsistent with the solution');
     }
   } else {
     // Если задача не решена, отправляем первый ход противника + ходы пользователя
@@ -443,272 +446,59 @@ async function submitUserAttempt(success) {
   }
 
   // Обработка клика на клетку доски
+  const getDailyLegalMovesByFrom = window.ChessGameController.createLegalMoveCache({
+    state,
+    getFen: () => state.currentFEN,
+    getPlayerColor: () => {
+      if (!state.playerColor) throw new Error('Daily player color is not initialized');
+      return state.playerColor;
+    },
+  });
+
+  const dailyController = window.ChessGameController.create({
+    state,
+    getFen: () => state.currentFEN,
+    getLegalMovesByFrom: getDailyLegalMovesByFrom,
+    getPlayerColor: () => {
+      if (!state.playerColor) throw new Error('Daily player color is not initialized');
+      return state.playerColor;
+    },
+    isInteractive: () => {
+      if (state.isPuzzleSolved || state.isPuzzleFailed || !state.currentFEN) {
+        return false;
+      }
+      const activeColor = state.currentFEN.split(' ')[1];
+      if (!state.playerColorForMoveGen) {
+        throw new Error('Daily player move color is not initialized');
+      }
+      return activeColor === state.playerColorForMoveGen;
+    },
+    canSelectPiece: (piece) => {
+      if (!state.playerColor) throw new Error('Daily player color is not initialized');
+      return window.ChessMoveUtils.pieceColor(piece) === state.playerColor;
+    },
+    onMove: (from, to, uci) => executeMove(from, to, uci),
+  });
+
   function handleSquareClick(squareName) {
     debugLog('handleSquareClick called:', squareName);
-    
-    if (state.isPuzzleSolved || state.isPuzzleFailed || !state.currentFEN || !window.ChessMoveUtils) {
-      debugLog('Early return:', { isPuzzleSolved: state.isPuzzleSolved, isPuzzleFailed: state.isPuzzleFailed, currentFEN: state.currentFEN });
-      return;
-    }
-
-    const moveUtils = window.ChessMoveUtils;
-    const fenParts = state.currentFEN.split(' ');
-    const activeColor = fenParts[1] || 'w';
-    const normalizedSquare = squareName.toLowerCase();
-    const colorForMoveGen = activeColor === 'w' ? 'white' : 'black';
-
-    // Используем сохраненный цвет игрока из state
-    let playerColor = state.playerColor;
-    let playerColorForMoveGen = state.playerColorForMoveGen;
-    
-    if (!playerColor || !playerColorForMoveGen) {
-      // Если цвет игрока не определен, определяем его
-      const initialFenParts = (state.initialFEN || state.currentFEN).split(' ');
-      const initialActiveColor = initialFenParts[1] || 'w';
-      playerColor = initialActiveColor === 'w' ? 'black' : 'white';
-      playerColorForMoveGen = initialActiveColor === 'w' ? 'b' : 'w';
-      state.playerColor = playerColor;
-      state.playerColorForMoveGen = playerColorForMoveGen;
-    }
-
-    debugLog('Player color:', { playerColor, playerColorForMoveGen, activeColor, colorForMoveGen });
-
-    // ВАЖНО: Сначала проверяем, не кликнули ли на целевую клетку для уже выбранной фигуры
-    // Это нужно делать ДО проверки цвета фигуры, так как целевая клетка может быть пустой
-    if (state.selectedSquare && state.availableTargets.has(normalizedSquare)) {
-      debugLog('Executing move from', state.selectedSquare, 'to', normalizedSquare);
-      // Проверяем, что сейчас очередь игрока
-      if (activeColor !== playerColorForMoveGen) {
-        debugLog('Not player turn for move execution');
-        clearSelection();
-        return;
-      }
-      // Генерируем ходы для выполнения хода
-      const cacheKey = `${state.currentFEN}|${colorForMoveGen}|legal`;
-      let cachedResult = state.positionCache?.get(cacheKey);
-      
-      if (!cachedResult || !cachedResult.legalMovesByFrom) {
-        if (moveUtils.generateLegalMoves) {
-          cachedResult = moveUtils.generateLegalMoves(state.currentFEN, colorForMoveGen);
-          if (state.positionCache) {
-            if (state.positionCache.size >= 50) {
-              const firstKey = state.positionCache.keys().next().value;
-              if (firstKey) state.positionCache.delete(firstKey);
-            }
-            state.positionCache.set(cacheKey, cachedResult);
-          }
-        } else {
-          const { movesByFrom } = moveUtils.generateMoves(state.currentFEN, colorForMoveGen) || { movesByFrom: new Map() };
-          const legalMovesByFrom = new Map();
-          movesByFrom.forEach((uciSet, fromSquare) => {
-            const legalMoves = Array.from(uciSet).filter(uci => {
-              return moveUtils.isMoveAllowed(state.currentFEN, colorForMoveGen, uci);
-            });
-            if (legalMoves.length > 0) {
-              legalMovesByFrom.set(fromSquare, legalMoves);
-            }
-          });
-          cachedResult = { legalMovesByFrom, movesByFrom };
-          if (state.positionCache) {
-            if (state.positionCache.size >= 50) {
-              const firstKey = state.positionCache.keys().next().value;
-              if (firstKey) state.positionCache.delete(firstKey);
-            }
-            state.positionCache.set(cacheKey, cachedResult);
-          }
-        }
-      }
-      
-      const movesByFrom = cachedResult.legalMovesByFrom || new Map();
-      executeMove(state.selectedSquare, normalizedSquare, movesByFrom);
-      return;
-    }
-
-    // Проверяем, что сейчас очередь игрока
-    if (activeColor !== playerColorForMoveGen) {
-      // Не очередь игрока - сбрасываем выбор
-      debugLog('Not player turn:', { 
-        activeColor, 
-        playerColorForMoveGen, 
-        playerColor,
-        currentFEN: state.currentFEN,
-        initialFEN: state.initialFEN
-      });
-      clearSelection();
-      return;
-    }
-
-    // Проверяем, принадлежит ли фигура игроку
-    const parsed = moveUtils.parseFen(state.currentFEN);
-    if (!parsed || !parsed.board) {
-      debugLog('Failed to parse FEN');
-      return;
-    }
-
-    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const fileIdx = files.indexOf(normalizedSquare[0]);
-    const rankIdx = 8 - parseInt(normalizedSquare[1], 10);
-    
-    if (fileIdx === -1 || rankIdx < 0 || rankIdx > 7) {
-      debugLog('Invalid square coordinates');
-      return;
-    }
-
-    const piece = parsed.board[rankIdx][fileIdx];
-    const pieceColor = moveUtils.pieceColor(piece);
-    
-    debugLog('Piece info:', { square: normalizedSquare, piece, pieceColor, playerColor });
-    
-    // Сценарий B: Клик на уже выбранную фигуру (отмена выбора)
-    if (state.selectedSquare === normalizedSquare) {
-      debugLog('Deselecting piece');
-      clearSelection();
-      return;
-    }
-    
-    // Игрок может ходить только своими фигурами
-    // Проверяем, что фигура принадлежит игроку
-    if (pieceColor !== playerColor) {
-      // Клик на фигуру противника или пустую клетку - сбрасываем выбор
-      debugLog('Click on opponent piece or empty square');
-      clearSelection();
-      return;
-    }
-    
-    debugLog('Player turn confirmed, proceeding with move generation');
-    debugLog('Player piece clicked, generating moves...');
-
-    // Используем кеш для легальных ходов
-    const cacheKey = `${state.currentFEN}|${colorForMoveGen}|legal`;
-    let cachedResult = state.positionCache?.get(cacheKey);
-
-    if (!cachedResult || !cachedResult.legalMovesByFrom) {
-      // Генерируем и кешируем легальные ходы
-      if (moveUtils.generateLegalMoves) {
-        cachedResult = moveUtils.generateLegalMoves(state.currentFEN, colorForMoveGen);
-        if (state.positionCache) {
-          if (state.positionCache.size >= 50) {
-            const firstKey = state.positionCache.keys().next().value;
-            if (firstKey) state.positionCache.delete(firstKey);
-          }
-          state.positionCache.set(cacheKey, cachedResult);
-        }
-      } else {
-        const { movesByFrom } = moveUtils.generateMoves(state.currentFEN, colorForMoveGen) || { movesByFrom: new Map() };
-        const legalMovesByFrom = new Map();
-        movesByFrom.forEach((uciSet, fromSquare) => {
-          const legalMoves = Array.from(uciSet).filter(uci => {
-            return moveUtils.isMoveAllowed(state.currentFEN, colorForMoveGen, uci);
-          });
-          if (legalMoves.length > 0) {
-            legalMovesByFrom.set(fromSquare, legalMoves);
-          }
-        });
-        cachedResult = { legalMovesByFrom, movesByFrom };
-        if (state.positionCache) {
-          if (state.positionCache.size >= 50) {
-            const firstKey = state.positionCache.keys().next().value;
-            if (firstKey) state.positionCache.delete(firstKey);
-          }
-          state.positionCache.set(cacheKey, cachedResult);
-        }
-      }
-    }
-
-    const movesByFrom = cachedResult.legalMovesByFrom || new Map();
-
-    // Сценарий C: Выбор новой фигуры
-    const legalMoves = movesByFrom.get(normalizedSquare);
-    debugLog('Legal moves for square:', normalizedSquare, legalMoves);
-    
-    if (!legalMoves || (Array.isArray(legalMoves) ? legalMoves.length === 0 : legalMoves.size === 0)) {
-      debugLog('No legal moves for this piece');
-      clearSelection();
-      return;
-    }
-
-    // Сценарий D: Обновляем выбор с предгенерированными ходами
-    const legalMovesArray = Array.isArray(legalMoves) ? legalMoves : Array.from(legalMoves);
-    const newTargets = new Set(legalMovesArray.map(m => {
-      const uci = typeof m === 'string' ? m : m.uci || '';
-      return uci.slice(2, 4).toLowerCase();
-    }));
-
-    debugLog('Updating selection:', { square: normalizedSquare, targets: Array.from(newTargets) });
-
-    // Используем общий модуль для обновления выбора
-    const BoardCore = window.ChessBoardCore;
-    if (BoardCore && BoardCore.updateSelection) {
-      BoardCore.updateSelection({
-        state: state,
-        square: normalizedSquare,
-        targets: newTargets,
-        getFen: () => state.currentFEN,
-        utils: moveUtils,
-      });
-      debugLog('Selection updated via BoardCore');
-    } else {
-      // Fallback
-      debugLog('Using fallback selection update');
-      state.selectedSquare = normalizedSquare;
-      state.availableTargets = newTargets;
-      renderBoard();
-    }
+    dailyController.handleSquareClick(squareName);
   }
 
-  // Очистка выбора фигуры
   function clearSelection() {
-    const BoardCore = window.ChessBoardCore;
-    if (BoardCore && BoardCore.resetSelectionIncremental) {
-      BoardCore.resetSelectionIncremental({
-        state: state,
-        getFen: () => state.currentFEN,
-        utils: window.ChessMoveUtils,
-      });
-    } else {
-      state.selectedSquare = null;
-      state.availableTargets = new Set();
-      renderBoard();
-    }
+    dailyController.clearSelection();
   }
 
   // Выполнение хода
-  function executeMove(fromSquare, toSquare, movesByFrom) {
-    debugLog('executeMove called:', { fromSquare, toSquare });
-    
+  function executeMove(fromSquare, toSquare, uciStr) {
+    debugLog('executeMove called:', { fromSquare, toSquare, uci: uciStr });
+
     const fromLower = fromSquare.toLowerCase();
     const toLower = toSquare.toLowerCase();
-    const moves = movesByFrom.get(fromLower);
-    
-    debugLog('Moves for from square:', moves);
-    
-    if (!moves) {
-      debugLog('No moves found for square');
-      clearSelection();
-      return;
-    }
-
-    const movesArray = Array.isArray(moves) ? moves : Array.from(moves);
-    const targetMove = movesArray.find(uci => {
-      const uciStr = typeof uci === 'string' ? uci : (uci.uci || uci.to || '');
-      if (!uciStr || uciStr.length < 4) return false;
-      const target = uciStr.slice(2, 4).toLowerCase();
-      return target === toLower;
-    });
-
-    debugLog('Target move found:', targetMove);
-
-    if (!targetMove) {
-      debugLog('Target move not found');
-      clearSelection();
-      return;
-    }
-
-    const uciStr = typeof targetMove === 'string' ? targetMove : (targetMove.uci || targetMove.to || '');
-    if (!uciStr || uciStr.length < 4) {
-      debugLog('Invalid UCI string');
-      clearSelection();
-      return;
+    if (typeof uciStr !== 'string' || uciStr.length < 4 ||
+        uciStr.slice(0, 2).toLowerCase() !== fromLower ||
+        uciStr.slice(2, 4).toLowerCase() !== toLower) {
+      throw new Error('Controller returned an invalid move');
     }
 
     debugLog('Applying move:', uciStr);
@@ -863,10 +653,7 @@ async function submitUserAttempt(success) {
 
     debugLog('renderBoard: rendering with FEN', state.currentFEN);
     const utils = window.ChessMoveUtils;
-    if (!utils) {
-      console.error('ChessMoveUtils not loaded');
-      return;
-    }
+    if (!utils?.parseFen) throw new Error('ChessMoveUtils is not initialized');
 
     const parsed = utils.parseFen(state.currentFEN);
     if (!parsed || !parsed.board) {
@@ -885,14 +672,15 @@ async function submitUserAttempt(success) {
 
     // Используем базовую функцию рендеринга из chess-board-core.js
     const BoardCore = window.ChessBoardCore;
-    if (BoardCore && BoardCore.renderBoardBase) {
+    if (!BoardCore?.renderBoardBase) throw new Error('ChessBoardCore is not initialized');
+    {
       BoardCore.renderBoardBase({
         boardEl,
         matrix,
         files,
         ranks,
         state: state,
-        getPieceSVG: (pieceStr) => window.getPieceSVG?.(pieceStr) || null,
+        getPieceSVG: window.getPieceSVG,
         onSquareClick: (!state.isPuzzleSolved && !state.isPuzzleFailed) ? handleSquareClick : null,
         options: {
           selectedSquare: state.selectedSquare,
@@ -917,14 +705,12 @@ async function submitUserAttempt(success) {
         // Проверяем, что обработчик кликов установлен
         debugLog('Board rendered, onSquareClick handler:', handleSquareClick ? 'set' : 'null');
       }
-    } else {
-      console.error('ChessBoardCore not loaded');
     }
   }
 
 
   // Загрузка задачи дня
-  window.loadDailyPuzzle = async function() {
+  async function loadDailyPuzzle() {
     const loadingEl = document.getElementById('puzzleLoading');
     const contentEl = document.getElementById('puzzleContent');
     const errorEl = document.getElementById('puzzleError');
@@ -1000,19 +786,9 @@ async function submitUserAttempt(success) {
       // Запускаем счетчик
       updateCountdown();
       if (state.countdownTimer) {
-        // Используем PageLifecycle если доступен, иначе обычный clearInterval
-        if (window.App?.Utils?.PageLifecycle) {
-          window.App.Utils.PageLifecycle.clearInterval(state.countdownTimer);
-        } else {
-          clearInterval(state.countdownTimer);
-        }
+        window.App.Utils.PageLifecycle.clearInterval(state.countdownTimer);
       }
-      // Используем PageLifecycle если доступен для автоматической очистки
-      if (window.App?.Utils?.PageLifecycle) {
-        state.countdownTimer = window.App.Utils.PageLifecycle.setInterval(updateCountdown, 1000);
-      } else {
-        state.countdownTimer = setInterval(updateCountdown, 1000);
-      }
+      state.countdownTimer = window.App.Utils.PageLifecycle.setInterval(updateCountdown, 1000);
       // Сброс пользовательских ходов для новой задачи
       state.userMoves = [];
       state.currentMoveIndex = 0;
@@ -1037,24 +813,16 @@ async function submitUserAttempt(success) {
       if (loadingEl) loadingEl.classList.add('hidden');
       if (errorEl) errorEl.classList.remove('hidden');
     }
-  };
+  }
 
   // Инициализация при загрузке страницы
   document.addEventListener('DOMContentLoaded', () => {
     loadTheme();
+    const refreshButton = document.getElementById('refreshDailyPuzzle');
+    if (!refreshButton) throw new Error('Daily puzzle refresh button is not initialized');
+    refreshButton.addEventListener('click', loadDailyPuzzle);
     loadDailyPuzzle();
   });
 
-  // Очистка при закрытии страницы
-  // PageLifecycle автоматически очистит таймеры, но оставляем явную очистку для надежности
-  window.addEventListener('beforeunload', () => {
-    if (state.countdownTimer) {
-      if (window.App?.Utils?.PageLifecycle) {
-        window.App.Utils.PageLifecycle.clearInterval(state.countdownTimer);
-      } else {
-        clearInterval(state.countdownTimer);
-      }
-    }
-  });
 })();
 

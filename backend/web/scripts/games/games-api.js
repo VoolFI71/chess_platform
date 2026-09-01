@@ -1,63 +1,14 @@
 // Games API - API requests and authentication
 (() => {
   const state = window.getGamesState();
-
-  // Build URL helper
-  const buildUrl = (path) => {
-    if (!path) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    return path;
-  };
-
-  // Auth helpers
-  const originalGetAccessToken = window.getAccessToken;
-  const getAccessToken = () => {
-    if (originalGetAccessToken && typeof originalGetAccessToken === 'function') {
-      return originalGetAccessToken();
-    }
-    try {
-      return localStorage.getItem('access_token') || '';
-    } catch {
-      return '';
-    }
-  };
-  
-  const getRefreshToken = () => {
-    try {
-      return localStorage.getItem('refresh_token') || '';
-    } catch {
-      return '';
-    }
-  };
-  
-  const originalSetTokens = window.setTokens;
-  const originalClearTokens = window.clearTokens;
-  
-  const setTokens = (access, refresh) => {
-    if (originalSetTokens && typeof originalSetTokens === 'function') {
-      originalSetTokens(access, refresh);
-      return;
-    }
-    try {
-      if (access) localStorage.setItem('access_token', access);
-      if (refresh) localStorage.setItem('refresh_token', refresh);
-    } catch {}
-  };
-  
-  const clearTokens = () => {
-    if (originalClearTokens && typeof originalClearTokens === 'function') {
-      originalClearTokens();
-      return;
-    }
-    try {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-    } catch {}
-  };
+  const http = window.App?.Http;
+  if (!http) throw new Error('HTTP API is not initialized');
 
   const isAuthenticated = () => {
-    const token = getAccessToken();
-    return !!token && token.trim().length > 0;
+    if (typeof window.App?.Auth?.isAuthenticated !== 'function') {
+      throw new Error('Auth API is not initialized');
+    }
+    return window.App.Auth.isAuthenticated();
   };
 
   const requireAuth = (redirectTo = '/login') => {
@@ -65,7 +16,7 @@
       if (typeof window.showToast === 'function') {
         window.showToast('Войдите в аккаунт, чтобы создать партию', 'error');
       } else {
-        alert('Войдите в аккаунт, чтобы создать партию');
+        throw new Error('Войдите в аккаунт, чтобы создать партию');
       }
       window.location.href = redirectTo;
       return false;
@@ -73,18 +24,8 @@
     return true;
   };
 
-  // Используем единую apiFetch из auth.js с кастомным buildUrl
   async function authedFetch(path, options = {}) {
-    if (window.apiFetch && typeof window.apiFetch === 'function') {
-      return window.apiFetch(path, { ...options, buildUrl });
-    }
-    // Fallback если apiFetch не загружен (не должен происходить в нормальных условиях)
-    console.warn('apiFetch not available, using direct fetch');
-    const headers = new Headers(options.headers || {});
-    const token = getAccessToken();
-    if (token) headers.set('Authorization', `Bearer ${token}`);
-    if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-    return fetch(buildUrl(path), { ...options, headers });
+    return http.apiFetch(path, options);
   }
 
   const getSelectedGameType = () => {
@@ -92,7 +33,7 @@
     if (selected) {
       return selected.value === 'rated';
     }
-    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    const isAuth = isAuthenticated();
     return isAuth;
   };
 
@@ -107,7 +48,7 @@
       onError = null,
     } = options;
 
-    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (getAccessToken() !== null && getAccessToken() !== '');
+    const isAuth = isAuthenticated();
     
     if (!isAuth && isRated) {
       const errorMessage = 'Для создания рейтинговой партии необходимо войти в аккаунт';
@@ -169,7 +110,6 @@
           'Content-Type': 'application/json'
         };
         
-        const url = buildUrl('/api/games/');
         const sessionId = sessionHeaders['X-Session-ID'];
         
         if (!sessionId) {
@@ -182,7 +122,7 @@
           return null;
         }
         
-        res = await fetch(url, {
+        res = await fetch('/api/games/', {
           method: 'POST',
           headers,
           body: JSON.stringify(payload),
@@ -224,7 +164,7 @@
   async function fetchCurrentUser() {
     try {
       const res = await authedFetch('/api/auth/me');
-      state.currentUser = res && res.ok ? await res.json() : null;
+      state.currentUser = res.ok ? await res.json() : null;
     } catch {
       state.currentUser = null;
     }
@@ -240,8 +180,7 @@
       if (live) live.innerHTML = '<div class="empty-state">Загружаем матчи...</div>';
     }
     try {
-      const url = buildUrl('/api/games/');
-      const res = await authedFetch(url);
+      const res = await authedFetch('/api/games/');
       if (!res.ok) throw new Error(await res.text());
       state.games = await res.json();
       if (window.ensureUsernamesForGames) await window.ensureUsernamesForGames(state.games);
@@ -264,14 +203,12 @@
   };
 
   // Export functions
-  window.authedFetch = authedFetch;
+  window.GamesApi = { authedFetch };
   window.isAuthenticated = isAuthenticated;
-  window.getAccessToken = getAccessToken;
   window.requireAuth = requireAuth;
   window.createGame = createGame;
   window.getSelectedGameType = getSelectedGameType;
   window.fetchCurrentUser = fetchCurrentUser;
   window.loadGames = loadGames;
   window.segmentGames = segmentGames;
-  window.clearTokens = clearTokens;
 })();

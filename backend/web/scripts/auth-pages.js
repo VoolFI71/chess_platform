@@ -1,8 +1,6 @@
 (() => {
   'use strict';
 
-  const ACCESS_KEY = 'access_token';
-  const REFRESH_KEY = 'refresh_token';
   const THEME_KEY = 'theme';
 
   const redirectTarget = resolveNextRoute();
@@ -14,15 +12,6 @@
       return { url: raw, isCustom: raw !== '/' };
     }
     return { url: '/', isCustom: false };
-  }
-
-  function setTokens(access, refresh) {
-    try {
-      if (access) localStorage.setItem(ACCESS_KEY, access);
-      if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
-    } catch {
-      // localStorage might be disabled
-    }
   }
 
   function setThemePreference(isDark) {
@@ -60,6 +49,7 @@
   async function postJson(path, payload) {
     const response = await fetch(path, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
@@ -91,103 +81,20 @@
       : `Ошибка ${response.status}`;
   }
 
-  // Используем FormUtils для обратной совместимости с [data-feedback]
+  // Единый рендеринг сообщений формы
   function showFeedback(form, message, type = 'error') {
-    // Пробуем использовать FormUtils, если доступен
-    if (window.FormUtils) {
-      window.FormUtils.showFormFeedback(form, message, type);
-      // Также обновляем [data-feedback] для обратной совместимости
-      const target = form.querySelector('[data-feedback]');
-      if (target) {
-        target.textContent = message;
-        target.classList.remove('error', 'success', 'is-visible');
-        target.classList.add(type, 'is-visible');
-        target.hidden = false;
-        target.setAttribute('role', type === 'success' ? 'status' : 'alert');
-      }
-    } else {
-      // Fallback для обратной совместимости
-      const target = form.querySelector('[data-feedback]');
-      if (!target) return;
-      target.textContent = message;
-      target.classList.remove('error', 'success', 'is-visible');
-      target.classList.add(type, 'is-visible');
-      target.hidden = false;
-      target.setAttribute('role', type === 'success' ? 'status' : 'alert');
-    }
+    if (!window.FormUtils?.showFormFeedback) throw new Error('FormUtils is not initialized');
+    window.FormUtils.showFormFeedback(form, message, type);
   }
 
   function clearFeedback(form) {
-    if (window.FormUtils) {
-      window.FormUtils.clearFormFeedback(form);
-    }
-    // Также очищаем [data-feedback] для обратной совместимости
-    const target = form.querySelector('[data-feedback]');
-    if (target) {
-      target.textContent = '';
-      target.classList.remove('error', 'success', 'is-visible');
-      target.hidden = true;
-      target.removeAttribute('role');
-    }
+    if (!window.FormUtils?.clearFormFeedback) throw new Error('FormUtils is not initialized');
+    window.FormUtils.clearFormFeedback(form);
   }
 
   function setFormLoading(form, isLoading, loadingText) {
-    if (window.FormUtils) {
-      window.FormUtils.setFormLoading(form, isLoading, loadingText);
-      // Дополнительно отключаем все поля для совместимости
-      if (isLoading) {
-        const fields = form.querySelectorAll('input, button, textarea, select');
-        fields.forEach((field) => {
-          if (field.type !== 'submit') {
-            field.dataset._previouslyDisabled = field.disabled ? 'true' : 'false';
-            field.disabled = true;
-          }
-        });
-      } else {
-        const fields = form.querySelectorAll('input, button, textarea, select');
-        fields.forEach((field) => {
-          if (field.dataset._previouslyDisabled !== 'true') {
-            field.disabled = false;
-          }
-          delete field.dataset._previouslyDisabled;
-        });
-      }
-    } else {
-      // Fallback для обратной совместимости
-      const submit = form.querySelector('[type="submit"]');
-      const fields = form.querySelectorAll('input, button, textarea, select');
-      fields.forEach((field) => {
-        if (isLoading) {
-          field.dataset._previouslyDisabled = field.disabled ? 'true' : 'false';
-          field.disabled = true;
-        } else if (field.dataset._previouslyDisabled !== 'true') {
-          field.disabled = false;
-        }
-        if (!isLoading) delete field.dataset._previouslyDisabled;
-      });
-      if (submit) {
-        if (!submit.dataset.originalContent) {
-          submit.dataset.originalContent = submit.innerHTML;
-        }
-        submit.dataset.loading = isLoading ? 'true' : 'false';
-        if (isLoading) {
-          const text = loadingText || submit.getAttribute('data-loading-text') || submit.textContent;
-          submit.textContent = '';
-          const spinner = document.createElement('span');
-          spinner.className = 'spinner';
-          spinner.setAttribute('aria-hidden', 'true');
-          const textSpan = document.createElement('span');
-          textSpan.textContent = text || '';
-          submit.appendChild(spinner);
-          submit.appendChild(textSpan);
-        } else {
-          submit.textContent = '';
-          if (submit.dataset.originalContent) {
-            submit.innerHTML = submit.dataset.originalContent;
-          }
-        }
-      }
-    }
+    if (!window.FormUtils?.setFormLoading) throw new Error('FormUtils is not initialized');
+    window.FormUtils.setFormLoading(form, isLoading, loadingText);
   }
 
   async function handleLoginSubmit(form) {
@@ -204,6 +111,7 @@
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ login, password }),
       });
@@ -213,14 +121,6 @@
         throw new Error(errorMsg);
       }
 
-      const data = await response.json();
-      
-      // Проверяем, что ответ содержит нужные поля
-      if (!data || !data.access_token || !data.refresh_token) {
-        throw new Error('Неверный формат ответа от сервера');
-      }
-
-      setTokens(data.access_token, data.refresh_token);
       showFeedback(form, 'Готово! Перенаправляем…', 'success');
       redirectAfterSuccess();
     } catch (error) {

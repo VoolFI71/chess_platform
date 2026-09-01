@@ -2,25 +2,22 @@
 (function () {
   'use strict';
 
+  const http = window.App?.Http;
+  const wsApi = window.App?.WS;
+  const lifecycle = window.App?.Utils?.PageLifecycle;
+  if (!http || !wsApi || !lifecycle) {
+    throw new Error('Notifications dependencies are not initialized');
+  }
+
   let wsConnection = null;
   const toastTimers = new Map(); // Храним таймеры для toast-уведомлений
 
-  // Получаем токен из auth.js или localStorage
-  function getAccessToken() {
-    if (window.getAccessToken && typeof window.getAccessToken === 'function') {
-      return window.getAccessToken();
-    }
-    try {
-      return localStorage.getItem('access_token') || '';
-    } catch {
-      return '';
-    }
-  }
-
   // Проверяем, авторизован ли пользователь
   function isAuthenticated() {
-    const token = getAccessToken();
-    return !!token;
+    if (typeof window.isAuthenticated !== 'function') {
+      throw new Error('Auth API is not initialized');
+    }
+    return window.isAuthenticated();
   }
 
   // Подключение к WebSocket
@@ -29,30 +26,14 @@
       return;
     }
 
-    // Проверяем наличие WebSocketUtils
-    if (!window.WebSocketUtils || typeof window.WebSocketUtils.createWebSocketUrl !== 'function') {
-      console.warn('WebSocketUtils не загружен, уведомления недоступны');
-      return;
-    }
-
     // Отключаемся от предыдущего подключения, если есть
     if (wsConnection) {
       disconnect();
     }
 
-    const token = getAccessToken();
-    if (!token) {
-      return;
-    }
+    const url = wsApi.createWebSocketUrl('/ws/notifications');
 
-    const url = window.WebSocketUtils.createWebSocketUrl('/ws/notifications', { token });
-
-    if (!window.WebSocketUtils.createWebSocketConnection) {
-      console.warn('createWebSocketConnection не доступен');
-      return;
-    }
-
-    wsConnection = window.WebSocketUtils.createWebSocketConnection({
+    wsConnection = wsApi.createWebSocketConnection({
       url,
       onMessage: (message) => {
         if (message.type === 'notification') {
@@ -70,7 +51,7 @@
       onError: () => {
         updateConnectionStatus(false);
       },
-      maxReconnectAttempts: 5,
+      maxReconnectAttempts: Infinity,
       baseDelay: 3000,
       maxDelay: 30000,
     });
@@ -84,7 +65,7 @@
     }
     // Очищаем все таймеры toast-уведомлений
     toastTimers.forEach((timer) => {
-      clearTimeout(timer);
+      lifecycle.clearTimeout(timer);
     });
     toastTimers.clear();
     updateConnectionStatus(false);
@@ -168,7 +149,7 @@
     container.appendChild(toast);
 
     // Анимация появления
-    const showTimer = setTimeout(() => {
+    const showTimer = lifecycle.setTimeout(() => {
       toast.classList.add('show');
       toastTimers.delete(`show_${notification.id}`);
     }, 10);
@@ -176,10 +157,10 @@
 
     // Автоматическое удаление через 5 секунд
     const autoHideDelay = 5000;
-    const hideTimer = setTimeout(() => {
+    const hideTimer = lifecycle.setTimeout(() => {
       if (toast.parentElement) {
         toast.classList.remove('show');
-        const removeTimer = setTimeout(() => {
+        const removeTimer = lifecycle.setTimeout(() => {
           if (toast.parentElement) {
             toast.remove();
           }
@@ -215,17 +196,8 @@
 
   // Обновление счетчика непрочитанных
   async function updateUnreadCount() {
-    if (!window.apiFetch) return;
-    
-    // Проверяем, авторизован ли пользователь
-    const token = getAccessToken();
-    if (!token) {
-      // Для анонимных пользователей не обновляем счетчик
-      return;
-    }
-
     try {
-      const res = await window.apiFetch('/api/notifications/me/unread-count');
+      const res = await http.apiFetch('/api/notifications/me/unread-count');
       if (res.ok) {
         const data = await res.json();
         updateUnreadBadge(data.unread_count || 0);
@@ -262,10 +234,8 @@
 
   // Пометить уведомление как прочитанное
   async function markAsRead(notificationId) {
-    if (!window.apiFetch) return;
-
     try {
-      await window.apiFetch(`/api/notifications/${notificationId}`, {
+      await http.apiFetch(`/api/notifications/${notificationId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ read: true }),
@@ -297,15 +267,10 @@
       connect();
     }
 
-    // Слушаем события авторизации/выхода
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'access_token') {
-        if (e.newValue) {
-          connect();
-        } else {
-          disconnect();
-        }
-      }
+    // Слушаем изменения auth-сессии в текущем окне.
+    window.addEventListener('auth-state-changed', (event) => {
+      if (event.detail?.user) connect();
+      else disconnect();
     });
 
     // Обновляем счетчик при загрузке

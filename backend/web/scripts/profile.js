@@ -2,6 +2,10 @@
 
 const usernameCache = new Map();
 const pendingUsernameRequests = new Map();
+const http = window.App?.Http;
+if (!http || typeof http.apiFetch !== 'function') {
+  throw new Error('App.Http is not initialized');
+}
 // Кеш истории партий по username (чтобы не перезагружать при переключении вкладок)
 const historyCache = new Map();
 const historyState = {
@@ -26,9 +30,7 @@ async function loadPuzzlesProgress(userId = null) {
     
     // Для чужого профиля используем обычный fetch (без авторизации)
     // Для своего профиля используем apiFetch (с авторизацией)
-    const res = userId 
-      ? await fetch(statsPath)
-      : (typeof window.apiFetch === 'function' ? await window.apiFetch(statsPath) : null);
+    const res = userId ? await fetch(statsPath) : await http.apiFetch(statsPath);
     
     if (!res || !res.ok) {
       throw new Error('Failed to load puzzle stats');
@@ -72,9 +74,7 @@ async function loadPuzzleThemesStats(userId = null) {
   try {
     const themesPath = userId ? `/api/puzzles/stats/${userId}/themes` : '/api/puzzles/stats/me/themes';
     
-    const res = userId 
-      ? await fetch(themesPath)
-      : (typeof window.apiFetch === 'function' ? await window.apiFetch(themesPath) : null);
+    const res = userId ? await fetch(themesPath) : await http.apiFetch(themesPath);
     
     if (!res || !res.ok) {
       throw new Error('Failed to load theme stats');
@@ -737,16 +737,11 @@ async function loadMatchHistory(username = null, loadMore = false) {
   }
 
   try {
-    // Проверяем наличие apiFetch
-    if (typeof window.apiFetch !== 'function') {
-      throw new Error('apiFetch не доступен. Убедитесь, что auth.js загружен.');
-    }
-    
     // Загружаем только завершенные игры (FINISHED) для конкретного пользователя с пагинацией
     const userParam = targetUsername === 'me' ? 'me' : encodeURIComponent(targetUsername);
     const offset = historyState.currentPage * historyState.pageSize;
     const limit = historyState.pageSize;
-    const res = await window.apiFetch(`/api/games/?user_id=${userParam}&status=FINISHED&limit=${limit}&offset=${offset}`);
+    const res = await http.apiFetch(`/api/games/?user_id=${userParam}&status=FINISHED&limit=${limit}&offset=${offset}`);
     if (!res.ok) throw new Error(await res.text());
     const newGames = await res.json();
     
@@ -1003,7 +998,7 @@ function renderRatingHistory(entries) {
 
 async function loadRatingHistory(formatType = null) {
   const container = document.getElementById('ratingHistoryList');
-  if (!container || !window.apiFetch) return;
+  if (!container) return;
   
   const userId = window.profileUserId || null;
   const format = formatType || ratingHistoryState.currentFormat;
@@ -1027,7 +1022,7 @@ async function loadRatingHistory(formatType = null) {
       ? `/api/ratings/history/${userId}${format !== 'all' ? `?format_type=${format}` : ''}`
       : `/api/ratings/history/me${format !== 'all' ? `?format_type=${format}` : ''}`;
     
-    const res = await window.apiFetch(url);
+    const res = await http.apiFetch(url);
     if (!res.ok) {
       throw new Error('Failed to load rating history');
     }
@@ -1095,14 +1090,9 @@ const formatIcons = {
 
 async function loadGameStats(username = null) {
   try {
-    // Проверяем наличие apiFetch
-    if (typeof window.apiFetch !== 'function') {
-      throw new Error('apiFetch не доступен. Убедитесь, что auth.js загружен.');
-    }
-    
     // Если передан username, загружаем статистику этого пользователя, иначе текущего
     const statsPath = username ? `/api/users/${encodeURIComponent(username)}/stats` : '/api/users/me/stats';
-    const statsRes = await window.apiFetch(statsPath);
+    const statsRes = await http.apiFetch(statsPath);
     if (!statsRes.ok) {
       throw new Error('Failed to load stats');
     }
@@ -1401,15 +1391,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       
       // Загружаем текущего пользователя
-      if (typeof window.apiFetch === 'function') {
-        try {
-          const meRes = await window.apiFetch('/api/auth/me');
-          if (meRes.ok) {
-            currentUser = await meRes.json();
-          }
-        } catch (e) {
-          // Если ошибка авторизации
+      try {
+        const meRes = await http.apiFetch('/api/auth/me');
+        if (meRes.ok) {
+          currentUser = await meRes.json();
         }
+      } catch (e) {
+        // Если ошибка авторизации
       }
       
       // НЕ загружаем историю партий при инициализации - только при клике на вкладку
@@ -1420,14 +1408,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     
-    // Проверяем наличие apiFetch
-    if (typeof window.apiFetch !== 'function') {
-      renderHistoryAuthPrompt();
-      return;
-    }
-    
     // Иначе загружаем свой профиль
-    const meRes = await window.apiFetch('/api/auth/me');
+    const meRes = await http.apiFetch('/api/auth/me');
     if (!meRes.ok) {
       renderHistoryAuthPrompt();
       return;

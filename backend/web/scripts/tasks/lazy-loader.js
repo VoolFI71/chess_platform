@@ -58,6 +58,7 @@
       '/scripts/lru-cache.js', // LRU кэш для оптимизации генерации ходов
       '/scripts/chess-move-utils.js',
       '/scripts/chess-board-core.js',
+      '/scripts/chess-game-controller.js',
       '/scripts/chess-pieces-svg.js',
       '/scripts/tasks/board.js',
       '/scripts/tasks/moves.js',

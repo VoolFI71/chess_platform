@@ -98,9 +98,9 @@
                     </div>
                 </a>
                 <nav class="nav">
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/games">Играть</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/tasks">Задачи</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/leaderboard">Рейтинг</button>
                 </nav>
                 <div class="header-actions">
                     <div id="userActions">
@@ -108,7 +108,7 @@
                             <span></span>
                         </div>
                     </div>
-                    <button class="theme-toggle" title="Переключить тему" onclick="toggleTheme()">
+                    <button class="theme-toggle" title="Переключить тему" data-action="toggle-theme">
                         <i class="fas fa-sun" id="themeIcon"></i>
                     </button>
                     <div id="authButtons">
@@ -116,7 +116,7 @@
                             <i class="fas fa-sign-in-alt"></i>
                         </a>
                     </div>
-                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                    <button class="mobile-menu-btn" data-action="toggle-mobile-menu">
                         <i class="fas fa-bars" id="menuIcon"></i>
                     </button>
                     <button class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
@@ -125,27 +125,27 @@
                 </div>
             </div>
             <!-- Mobile Menu -->
-            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" data-action="close-mobile-menu"></div>
             <div class="mobile-menu" id="mobileMenu">
-                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                <button class="mobile-menu-close" data-action="close-mobile-menu" aria-label="Закрыть меню">
                     <i class="fas fa-times"></i>
                 </button>
                 <div>
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/games">
                         <i class="fas fa-chess"></i>
                         <span>Играть</span>
                     </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/tasks">
                         <i class="fas fa-puzzle-piece"></i>
                         <span>Задачи</span>
                     </button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'; closeMobileMenu();">
+                    <button type="button" class="nav-link" data-action="navigate-close-menu" data-route="/leaderboard">
                         <i class="fas fa-trophy"></i>
                         <span>Рейтинг</span>
                     </button>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+                        <a href="/login" class="mobile-login-link" data-action="close-mobile-menu">
                             <i class="fas fa-sign-in-alt"></i>
                             <span>Войти / Регистрация</span>
                         </a>
@@ -154,7 +154,7 @@
                         <div id="gamesUserInfoMobile">
                             <span></span>
                         </div>
-                        <a href="/profile" class="mobile-cabinet-link" onclick="closeMobileMenu();">
+                        <a href="/profile" class="mobile-cabinet-link" data-action="close-mobile-menu">
                             <i class="fas fa-user"></i>
                             <span>Личный кабинет</span>
                         </a>
@@ -319,16 +319,6 @@
                             throw new Error(errorData.detail || 'Ошибка при авторизации через Mail.ru');
                         }
                         
-                        const data = await response.json();
-                        
-                        // Сохраняем токены
-                        if (typeof window.setTokens === 'function') {
-                            window.setTokens(data.access_token, data.refresh_token);
-                        } else {
-                            localStorage.setItem('access_token', data.access_token);
-                            localStorage.setItem('refresh_token', data.refresh_token);
-                        }
-                        
                         // Обновляем UI и редиректим
                         if (typeof window.me === 'function') {
                             const user = await window.me();
@@ -346,13 +336,7 @@
                 },
                 onlogout: function (state) {
                     console.info('MR.logout:', state);
-                    // Очищаем токены при выходе
-                    if (typeof window.clearTokens === 'function') {
-                        window.clearTokens();
-                    } else {
-                        localStorage.removeItem('access_token');
-                        localStorage.removeItem('refresh_token');
-                    }
+                    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
                 }
             });
         }
@@ -471,18 +455,8 @@
                         }),
                     });
                     
-                    const loginData = await loginResponse.json();
-                    
                     if (!loginResponse.ok) {
                         throw new Error('Аккаунт создан, но не удалось войти. Попробуйте войти вручную.');
-                    }
-                    
-                    // Сохраняем токены
-                    if (typeof setTokens === 'function') {
-                        setTokens(loginData.access_token, loginData.refresh_token);
-                    } else {
-                        localStorage.setItem('access_token', loginData.access_token);
-                        localStorage.setItem('refresh_token', loginData.refresh_token);
                     }
                     
                     showFeedback('Регистрация завершена! Перенаправляем...', 'success', 'data-feedback-code');
@@ -592,6 +566,7 @@
             });
         }
     </script>
+  <script src="/scripts/template-actions.js" defer></script>
 </body>
 </html>
 

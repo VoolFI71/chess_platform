@@ -1,16 +1,16 @@
 // Backend-driven authentication for all pages that include this file
 
 (function () {
-  // Constants for localStorage keys
-  const ACCESS_KEY = 'access_token';
-  const REFRESH_KEY = 'refresh_token';
   const THEME_KEY = 'theme';
+  const http = window.App?.Http;
+  if (!http || typeof http.apiFetch !== 'function' || typeof http.errorMessage !== 'function') {
+    throw new Error('App.Http is not initialized');
+  }
   
   // Constants for API endpoints
   const API_ENDPOINTS = {
     LOGIN: '/api/auth/login',
     REGISTER: '/api/auth/register',
-    REFRESH: '/api/auth/refresh',
     ME: '/api/auth/me'
   };
   
@@ -35,111 +35,10 @@
   // Constants for breakpoints
   const DESKTOP_BREAKPOINT = 1024;
 
-  function getAccessToken() {
-    return localStorage.getItem(ACCESS_KEY) || '';
-  }
-
-  function getRefreshToken() {
-    return localStorage.getItem(REFRESH_KEY) || '';
-  }
-
-  function setTokens(access, refresh) {
-    if (access) localStorage.setItem(ACCESS_KEY, access);
-    if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
-  }
-
-  function clearTokens() {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-  }
-
-  // Build URL helper - поддерживает относительные и абсолютные пути
-  function buildUrl(path) {
-    if (!path) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    // Относительные пути работают через gateway на том же порту
-    return path;
-  }
-
-  // Create headers with authorization token and optional session ID
-  function createHeaders(options = {}) {
-    const headers = new Headers(options.headers || {});
-    if (!headers.has('Content-Type') && options.body) {
-      headers.set('Content-Type', 'application/json');
-    }
-    
-    // Добавляем токен авторизации, если доступен
-    const token = getAccessToken();
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    } else {
-      // Если нет токена, пробуем добавить session ID для анонимных запросов
-      // Проверяем наличие функции getSessionId из session.js
-      if (typeof window.getSessionId === 'function') {
-        const sessionId = window.getSessionId();
-        if (sessionId) {
-          headers.set('X-Session-ID', sessionId);
-        }
-      }
-    }
-    
-    return headers;
-  }
-
-  /**
-   * Унифицированная функция для авторизованных запросов с автоматическим refresh токена
-   * @param {string} path - Путь запроса (может быть относительным или абсолютным)
-   * @param {Object} options - Опции fetch (headers, body, method, etc.)
-   * @param {Function} [options.buildUrl] - Опциональная функция для построения URL (если нужна кастомная логика)
-   * @returns {Promise<Response>}
-   */
-  async function apiFetch(path, options = {}) {
-    // Используем кастомный buildUrl если передан, иначе стандартный
-    const urlBuilder = options.buildUrl || buildUrl;
-    const finalPath = urlBuilder(path);
-    
-    const headers = createHeaders(options);
-    const res = await fetch(finalPath, { ...options, headers });
-    
-    // Если не 401/403, возвращаем ответ как есть
-    if (res.status !== 401 && res.status !== 403) return res;
-
-    // Try refresh once
-    const refreshed = await tryRefresh();
-    if (!refreshed) return res;
-
-    // Create new headers with refreshed token
-    const headers2 = createHeaders(options);
-    return fetch(finalPath, { ...options, headers: headers2 });
-  }
-
-  async function tryRefresh() {
-    const rt = getRefreshToken();
-    if (!rt) return false;
-    try {
-      const res = await fetch(API_ENDPOINTS.REFRESH, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: rt }),
-      });
-      if (res.status === 401 || res.status === 403) {
-        clearTokens();
-        return false;
-      }
-      if (!res.ok) {
-        return false;
-      }
-      const data = await res.json();
-      setTokens(data.access_token, data.refresh_token);
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
-
   async function login(loginValue, password) {
     const res = await fetch(API_ENDPOINTS.LOGIN, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ login: loginValue, password }),
     });
@@ -147,14 +46,13 @@
       const msg = await safeError(res);
       throw new Error(msg || 'Login failed');
     }
-    const data = await res.json();
-    setTokens(data.access_token, data.refresh_token);
-    return data;
+    return res.json();
   }
 
   async function register(username, email, password) {
     const res = await fetch(API_ENDPOINTS.REGISTER, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, email, password }),
     });
@@ -166,24 +64,16 @@
   }
 
   async function me() {
-    const res = await apiFetch(API_ENDPOINTS.ME);
+    const res = await http.apiFetch(API_ENDPOINTS.ME);
     if (!res.ok) return null;
     return res.json();
   }
 
   function isAuthenticated() {
-    const token = getAccessToken();
-    return !!token && token.trim().length > 0;
+    return !!cachedUser;
   }
 
-  async function safeError(res) {
-    try {
-      const d = await res.json();
-      return d && (d.detail || d.message) ? (d.detail || d.message) : res.statusText;
-    } catch {
-      return res.statusText;
-    }
-  }
+  const safeError = http.errorMessage;
 
   // Helper function to check if container is in mobile context
   function isMobileContext(container) {
@@ -578,59 +468,16 @@
     ensureLogoutButtonsPosition();
   }
 
-  // Обработка токенов из URL hash (OAuth callback)
-  function handleOAuthTokensFromHash() {
-    const hash = window.location.hash;
-    if (!hash || !hash.includes('access_token=')) {
-      return false;
-    }
-    
-    try {
-      // Извлекаем параметры из hash (формат: #access_token=...&refresh_token=...)
-      const params = new URLSearchParams(hash.substring(1)); // убираем #
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      
-      if (accessToken) {
-        setTokens(accessToken, refreshToken || '');
-        
-        // Очищаем hash из URL для безопасности и чистоты
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        
-        return true;
-      }
-    } catch (error) {
-      console.error('Error parsing OAuth tokens from hash:', error);
-    }
-    
-    return false;
-  }
-
   async function initAuth() {
-    // Сначала проверяем, есть ли токены в URL hash (OAuth callback)
-    const hasTokensFromHash = handleOAuthTokensFromHash();
-    
     try {
-      let user = null;
-      if (getAccessToken() || getRefreshToken()) {
-        user = await me();
-        if (!user && !(await tryRefresh())) {
-          // keep tokens if refresh failed due to transient issues
-          if (!getRefreshToken()) clearTokens();
-        } else if (!user && (getAccessToken() || getRefreshToken())) {
-          user = await me();
-        }
-      }
+      let user = await me();
       lastAuthState = !!user;
       updateAuthUI(user);
-      
-      // Если токены были получены из hash, обновляем UI после успешной авторизации
-      if (hasTokensFromHash && user) {
-        // UI уже обновлен выше, можно добавить дополнительную логику если нужно
-      }
+      window.dispatchEvent(new CustomEvent('auth-state-changed', { detail: { user } }));
     } catch (error) {
       lastAuthState = false;
       updateAuthUI(null);
+      window.dispatchEvent(new CustomEvent('auth-state-changed', { detail: { user: null } }));
     }
   }
 
@@ -638,48 +485,18 @@
   if (!window.App) {
     window.App = {};
   }
-  if (!window.App.Http) {
-    window.App.Http = {};
-  }
   if (!window.App.Auth) {
     window.App.Auth = {};
   }
 
-  // Export в новые неймспейсы
-  window.App.Http = {
-    apiFetch,
-    authedFetch: apiFetch, // Для обратной совместимости
-  };
-
   window.App.Auth = {
     me,
-    getAccessToken,
-    getRefreshToken,
-    setTokens,
-    clearTokens,
     isAuthenticated,
     login,
     register,
   };
 
-  // Expose fetch and helpers globally for page scripts (обратная совместимость)
-  // Экспортируем apiFetch как основную функцию для авторизованных запросов
-  window.apiFetch = apiFetch;
-  // Для обратной совместимости: authedFetch = apiFetch
-  window.authedFetch = apiFetch;
   window.authMe = me;
-  if (typeof window.getAccessToken !== 'function') {
-    window.getAccessToken = getAccessToken;
-  }
-  if (typeof window.getRefreshToken !== 'function') {
-    window.getRefreshToken = getRefreshToken;
-  }
-  if (typeof window.setTokens !== 'function') {
-    window.setTokens = setTokens;
-  }
-  if (typeof window.clearTokens !== 'function') {
-    window.clearTokens = clearTokens;
-  }
   if (typeof window.isAuthenticated !== 'function') {
     window.isAuthenticated = isAuthenticated;
   }
@@ -765,9 +582,14 @@
   };
 
   window.handleLogout = async function () {
-    clearTokens();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {
+      // Local state is still cleared if the server is temporarily unavailable.
+    }
     cachedUser = null;
     updateAuthUI(null);
+    window.dispatchEvent(new CustomEvent('auth-state-changed', { detail: { user: null } }));
     window.location.reload();
   };
 

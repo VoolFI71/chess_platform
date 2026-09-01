@@ -129,14 +129,15 @@
       this.intervals.clear();
 
       // Вызываем все callback'и очистки
-      this.cleanupCallbacks.forEach(callback => {
+      const callbacks = this.cleanupCallbacks;
+      this.cleanupCallbacks = [];
+      callbacks.forEach(callback => {
         try {
           callback();
         } catch (e) {
           console.error('Error in cleanup callback:', e);
         }
       });
-      this.cleanupCallbacks = [];
     }
 
     /**
@@ -226,7 +227,7 @@
 
   window.App.Utils.PageLifecycle = lifecycle;
 
-  // Для обратной совместимости
+  // Публичный алиас для страниц приложения
   window.PageLifecycle = lifecycle;
 })();
 

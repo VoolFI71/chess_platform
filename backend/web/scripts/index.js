@@ -1,32 +1,7 @@
 // Extracted from index.html inline scripts
 
-// Auth helpers
-function getAccessToken() {
-  try { return localStorage.getItem('access_token') || ''; } catch { return ''; }
-}
-function getRefreshToken() {
-  try { return localStorage.getItem('refresh_token') || ''; } catch { return ''; }
-}
-function setTokens(access, refresh) {
-  try {
-    if (access) localStorage.setItem('access_token', access);
-    if (refresh) localStorage.setItem('refresh_token', refresh);
-  } catch {}
-}
-
-// Используем единую apiFetch из auth.js (если доступна)
-async function authedFetch(path, options = {}) {
-  if (window.apiFetch && typeof window.apiFetch === 'function') {
-    return window.apiFetch(path, options);
-  }
-  // Fallback если apiFetch не загружен (не должен происходить в нормальных условиях)
-  console.warn('apiFetch not available, using direct fetch');
-  const headers = new Headers(options.headers || {});
-  const token = getAccessToken();
-  if (token) headers.set('Authorization', `Bearer ${token}`);
-  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  return fetch(path, { ...options, headers });
-}
+const http = window.App?.Http;
+if (!http) throw new Error('HTTP API is not initialized');
 
 // Mobile menu functions теперь в mobile-menu.js
 
@@ -136,8 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       // If logged in -> go to cabinet, else open login/register
       try {
-        const res = await authedFetch('/api/auth/me');
-        if (res && res.ok) {
+        const res = await http.apiFetch('/api/auth/me');
+        if (res.ok) {
           const user = await res.json();
           const username = user?.username;
           window.location.href = username ? `/profile/${encodeURIComponent(username)}` : '/profile';
@@ -159,5 +134,3 @@ window.showPurchaseModal = showPurchaseModal;
 window.closePurchaseModal = closePurchaseModal;
 window.completePurchase = completePurchase;
 window.createChessBoard = createChessBoard;
-
-

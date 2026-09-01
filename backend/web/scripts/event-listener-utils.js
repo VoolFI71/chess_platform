@@ -185,6 +185,6 @@
     size: () => globalManager.size(),
   };
 
-  // Для обратной совместимости: сохраняем старый экспорт
+  // Публичный алиас для страниц приложения
   window.EventListenerUtils = window.App.Events;
 })();

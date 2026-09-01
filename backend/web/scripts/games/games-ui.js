@@ -300,7 +300,8 @@
   };
 
   const canDeclareTimeout = (role) => {
-    const clocks = window.getDisplayedClocks ? window.getDisplayedClocks(false) : null;
+    if (typeof window.getDisplayedClocks !== 'function') throw new Error('Games clock module is not initialized');
+    const clocks = window.getDisplayedClocks(false);
     if (!clocks) return false;
     if (role === 'white') return clocks.black <= 0;
     if (role === 'black') return clocks.white <= 0;

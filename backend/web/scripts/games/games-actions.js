@@ -38,21 +38,18 @@
   async function joinGame() {
     if (!state.selectedGameId) return;
     
-    const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (window.getAccessToken && window.getAccessToken() !== null && window.getAccessToken() !== '');
+    const isAuth = window.isAuthenticated();
     
-    if (!isAuth && typeof window.getOrCreateSessionId !== 'function') {
-      if (window.showToast) window.showToast('Войдите в аккаунт, чтобы присоединиться', 'error');
-      return;
+    if (!isAuth && typeof window.getAnonymousHeaders !== 'function') {
+      throw new Error('Anonymous session module is not initialized');
     }
     
     try {
       let res;
       if (isAuth) {
-        res = await window.authedFetch(`/api/games/${state.selectedGameId}/join`, { method: 'POST' });
+        res = await window.GamesApi.authedFetch(`/api/games/${state.selectedGameId}/join`, { method: 'POST' });
       } else {
-        const headers = typeof window.getAnonymousHeaders === 'function' 
-          ? window.getAnonymousHeaders() 
-          : {};
+        const headers = window.getAnonymousHeaders();
         
         res = await fetch(`/api/games/${state.selectedGameId}/join`, {
           method: 'POST',
@@ -74,23 +71,23 @@
 
   async function resignGame() {
     if (!state.selectedGameId) return;
-    const role = window.getCurrentUserRole ? window.getCurrentUserRole() : null;
+    if (typeof window.getCurrentUserRole !== 'function') throw new Error('Games UI is not initialized');
+    const role = window.getCurrentUserRole();
     if (!role) {
       if (window.showToast) window.showToast('Вы не участник этой партии', 'error');
       return;
     }
     if (!confirm('Точно сдаться?')) return;
     try {
-      const isAuth =
-        typeof window.isAuthenticated === 'function'
-          ? window.isAuthenticated()
-          : window.getAccessToken && window.getAccessToken();
+      const isAuth = window.isAuthenticated();
       let res;
       if (isAuth) {
-        res = await window.authedFetch(`/api/games/${state.selectedGameId}/resign`, { method: 'POST' });
+        res = await window.GamesApi.authedFetch(`/api/games/${state.selectedGameId}/resign`, { method: 'POST' });
       } else {
-        const headers =
-          typeof window.getAnonymousHeaders === 'function' ? window.getAnonymousHeaders() : {};
+        if (typeof window.getAnonymousHeaders !== 'function') {
+          throw new Error('Anonymous session module is not initialized');
+        }
+        const headers = window.getAnonymousHeaders();
         res = await fetch(`/api/games/${state.selectedGameId}/resign`, { method: 'POST', headers });
       }
       if (!res.ok) throw new Error(await res.text());
@@ -109,14 +106,15 @@
 
   async function declareTimeout() {
     if (!state.selectedGameId) return;
-    const role = window.getCurrentUserRole ? window.getCurrentUserRole() : null;
+    if (typeof window.getCurrentUserRole !== 'function') throw new Error('Games UI is not initialized');
+    const role = window.getCurrentUserRole();
     if (!role) {
       if (window.showToast) window.showToast('Только участники партии могут заявлять тайм-аут', 'error');
       return;
     }
     const loser = role === 'white' ? 'black' : 'white';
     try {
-      const res = await window.authedFetch(`/api/games/${state.selectedGameId}/timeout`, {
+      const res = await window.GamesApi.authedFetch(`/api/games/${state.selectedGameId}/timeout`, {
         method: 'POST',
         body: JSON.stringify({ loser_color: loser }),
       });

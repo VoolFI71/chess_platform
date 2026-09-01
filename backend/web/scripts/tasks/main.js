@@ -8,25 +8,9 @@
 
   window.TasksMain = {
     async bootstrapTasksPage() {
-      // Пытаемся получить пользователя, но не перенаправляем, если не авторизован
       try {
-        if (typeof window.authMe === 'function') {
-          TasksState.currentUser = await window.authMe();
-        } else {
-          // Если функция authMe недоступна, проверяем токен напрямую
-          const token = localStorage.getItem('access_token');
-          if (token) {
-            // Пытаемся получить пользователя через API
-            const res = await fetch('/api/auth/me', {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            });
-            if (res.ok) {
-              TasksState.currentUser = await res.json();
-            }
-          }
-        }
+        if (typeof window.authMe !== 'function') throw new Error('Auth API is not initialized');
+        TasksState.currentUser = await window.authMe();
       } catch (err) {
         // Тихо игнорируем ошибки авторизации - пользователь может быть неавторизован
         TasksState.currentUser = null;
@@ -215,20 +199,8 @@
   // Инициализация при загрузке DOM
   document.addEventListener('DOMContentLoaded', () => {
     // Загружаем тему из localStorage и обновляем иконку
-    if (window.loadTheme && typeof window.loadTheme === 'function') {
-      window.loadTheme();
-    } else {
-      // Fallback если auth.js еще не загружен
-      try {
-        const saved = localStorage.getItem('theme');
-        const isDark = saved === 'dark';
-        document.body.classList.toggle('dark', isDark);
-        document.documentElement.classList.toggle('dark', isDark);
-        const icon = document.getElementById('themeIcon');
-        if (icon) icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
-      } catch (e) {
-        }
-    }
+    if (typeof window.loadTheme !== 'function') throw new Error('Auth UI is not initialized');
+    window.loadTheme();
     
     window.TasksMain.bootstrapTasksPage();
     window.TasksMain.initBoardControls();

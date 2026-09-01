@@ -178,16 +178,6 @@
       state.setMoves(game.moves || []);
       state.setGameStatus('active');
 
-      // Для анонимных игр сохраняем session_id из metadata (нужен для resign и др.)
-      if (!api.getAccessToken() && game.metadata) {
-        const sid = game.metadata.white_session_id || game.metadata.black_session_id;
-        if (sid) {
-          try {
-            localStorage.setItem('session_id', sid);
-          } catch (_) {}
-        }
-      }
-
       // Подключаемся к WebSocket
       ws.connect(game.id);
 

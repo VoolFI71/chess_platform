@@ -239,9 +239,9 @@
                     </div>
                 </a>
                 <nav class="nav" aria-label="Основная навигация">
-                    <button type="button" class="nav-link" onclick="window.location.href='/games'">Играть</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
-                    <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/games">Играть</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/tasks">Задачи</button>
+                    <button type="button" class="nav-link" data-action="navigate" data-route="/leaderboard">Рейтинг</button>
                 </nav>
                 <div class="header-actions">
                     <div id="userActions">
@@ -249,7 +249,7 @@
                             <span></span>
                         </div>
                     </div>
-                    <button type="button" class="theme-toggle" title="Переключить тему" onclick="toggleTheme()" aria-label="Переключить тему">
+                    <button type="button" class="theme-toggle" title="Переключить тему" data-action="toggle-theme" aria-label="Переключить тему">
                         <i class="fas fa-sun" id="themeIcon" aria-hidden="true"></i>
                     </button>
                     <div id="authButtons">
@@ -257,7 +257,7 @@
                             <i class="fas fa-sign-in-alt"></i>
                         </a>
                     </div>
-                    <button type="button" class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Открыть меню" aria-expanded="false">
+                    <button type="button" class="mobile-menu-btn" data-action="toggle-mobile-menu" aria-label="Открыть меню" aria-expanded="false">
                         <i class="fas fa-bars" id="menuIcon" aria-hidden="true"></i>
                     </button>
                     <button type="button" class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти" aria-label="Выйти из аккаунта">
@@ -266,27 +266,27 @@
                 </div>
             </div>
             <!-- Mobile Menu -->
-            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" data-action="close-mobile-menu"></div>
             <div class="mobile-menu" id="mobileMenu">
-                <button type="button" class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                <button type="button" class="mobile-menu-close" data-action="close-mobile-menu" aria-label="Закрыть меню">
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
                 <div>
-                    <a href="/games" class="nav-link" onclick="closeMobileMenu();">
+                    <a href="/games" class="nav-link" data-action="close-mobile-menu">
                         <i class="fas fa-chess"></i>
                         <span>Играть</span>
                     </a>
-                    <a href="/tasks" class="nav-link" onclick="closeMobileMenu();">
+                    <a href="/tasks" class="nav-link" data-action="close-mobile-menu">
                         <i class="fas fa-puzzle-piece"></i>
                         <span>Задачи</span>
                     </a>
-                    <a href="/leaderboard" class="nav-link" onclick="closeMobileMenu();">
+                    <a href="/leaderboard" class="nav-link" data-action="close-mobile-menu">
                         <i class="fas fa-trophy"></i>
                         <span>Рейтинг</span>
                     </a>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+                        <a href="/login" class="mobile-login-link" data-action="close-mobile-menu">
                             <i class="fas fa-sign-in-alt"></i>
                             <span>Войти / Регистрация</span>
                         </a>
@@ -295,7 +295,7 @@
                         <div id="gamesUserInfoMobile">
                             <span></span>
                         </div>
-                        <a href="/profile" class="mobile-cabinet-link" onclick="closeMobileMenu();">
+                        <a href="/profile" class="mobile-cabinet-link" data-action="close-mobile-menu">
                             <i class="fas fa-user"></i>
                             <span>Личный кабинет</span>
                         </a>
@@ -606,11 +606,13 @@
     </script>
 
     <!-- Common Auth Script -->
+    <script src="/scripts/http-client.js"></script>
     <script src="/scripts/auth.js"></script>
     <script src="/scripts/mobile-menu.js"></script>
     <!-- Coach page script - динамическая загрузка данных тренера -->
     <script src="/scripts/coach.js" defer></script>
     <!-- Header Mobile Control - должен загружаться ПОСЛЕ всех скриптов, которые управляют хедером -->
     <script src="/scripts/header-mobile-control.js"></script>
+  <script src="/scripts/template-actions.js" defer></script>
 </body>
 </html>

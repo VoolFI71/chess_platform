@@ -278,9 +278,9 @@
           </div>
         </a>
         <nav class="nav">
-          <button type="button" class="nav-link active" onclick="window.location.href='/games'">Играть</button>
-          <button type="button" class="nav-link" onclick="window.location.href='/tasks'">Задачи</button>
-          <button type="button" class="nav-link" onclick="window.location.href='/leaderboard'">Рейтинг</button>
+          <button type="button" class="nav-link active" data-action="navigate" data-route="/games">Играть</button>
+          <button type="button" class="nav-link" data-action="navigate" data-route="/tasks">Задачи</button>
+          <button type="button" class="nav-link" data-action="navigate" data-route="/leaderboard">Рейтинг</button>
         </nav>
         <div class="header-actions">
           <div id="userActions">
@@ -559,6 +559,8 @@
 
   <!-- Scripts -->
   <!-- Common Auth Script (must load first) -->
+  <script src="/scripts/page-lifecycle.js"></script>
+  <script src="/scripts/http-client.js" defer></script>
   <script src="/scripts/auth.js" defer></script>
   <script src="/scripts/mobile-menu.js" defer></script>
   <script src="/scripts/session.js" defer></script>
@@ -567,6 +569,7 @@
   <script src="/scripts/lru-cache.js"></script>
   <script src="/scripts/chess-move-utils.js" defer></script>
   <script src="/scripts/chess-board-core.js" defer></script>
+  <script src="/scripts/chess-game-controller.js" defer></script>
   <script src="/scripts/chess-pieces-svg.js" defer></script>
   <!-- Computer Game Modules -->
   <script src="/scripts/games/computer/state.js" defer></script>
@@ -642,6 +645,7 @@
       }
     });
   </script>
+  <script src="/scripts/template-actions.js" defer></script>
 </body>
 </html>
 

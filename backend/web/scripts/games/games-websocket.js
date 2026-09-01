@@ -1,5 +1,8 @@
 // Games WebSocket - WebSocket connection and handling
 (() => {
+  const wsApi = window.App?.WS;
+  if (!wsApi) throw new Error('WebSocket API is not initialized');
+
   const state = window.getGamesState();
   let wsConnection = null;
 
@@ -11,17 +14,14 @@
     }
 
     updateWsIndicator('offline');
-    const token = window.getAccessToken ? window.getAccessToken() : '';
-    const params = {};
-    if (token) {
-      params.token = token;
-    } else if (typeof window.getSessionId === 'function') {
-      const sid = window.getSessionId();
-      if (sid) params.session_id = sid;
+		const params = {};
+		if (typeof window.getSessionId === 'function') {
+			const sid = window.getSessionId();
+			if (sid) params.session_id = sid;
     }
-    const url = window.WebSocketUtils.createWebSocketUrl(`/ws/games/${gameId}`, params);
+    const url = wsApi.createWebSocketUrl(`/ws/games/${gameId}`, params);
 
-    wsConnection = window.WebSocketUtils.createWebSocketConnection({
+    wsConnection = wsApi.createWebSocketConnection({
       url,
       onMessage: async (message) => {
         await handleWsPayload(message);
@@ -39,7 +39,7 @@
       onError: () => {
         updateWsIndicator('offline');
       },
-      maxReconnectAttempts: 5,
+      maxReconnectAttempts: Infinity,
       baseDelay: 1000,
       maxDelay: 30000,
     });
@@ -52,28 +52,66 @@
       return;
     }
     if (payload.type === 'state' || payload.type === 'game_finished' || payload.type === 'move_made') {
-      state.selectedGame = payload.game;
-      state.moves = payload.game.moves || [];
+      const incomingGame = payload.game;
+      if (!incomingGame) return;
+      const revision = Number.isInteger(payload.revision) ? payload.revision : incomingGame.move_count;
+      if (
+        state.selectedGameId === incomingGame.id &&
+        Number.isInteger(revision) &&
+        Number.isInteger(state.selectedGame?.move_count) &&
+        revision < state.selectedGame.move_count
+      ) {
+        return;
+      }
+
+      const incomingMoves = payload.type === 'state'
+        ? (incomingGame.moves || [])
+        : payload.move
+          ? [payload.move]
+          : [];
+      const shouldMerge = payload.type !== 'state' && state.moves?.length;
+      const moves = shouldMerge
+        ? mergeMoves(state.moves, incomingMoves)
+        : incomingMoves;
+      state.selectedGame = { ...incomingGame, moves };
+      state.moves = moves;
+
+      const gameIndex = state.games.findIndex((game) => game.id === incomingGame.id);
+      if (gameIndex >= 0) {
+        state.games[gameIndex] = { ...state.games[gameIndex], ...incomingGame };
+      }
       
       let lastStateTimestamp = Date.now();
-      if (payload.game.status === 'ACTIVE' && payload.game.moves && payload.game.moves.length > 0) {
+      if (state.selectedGame.status === 'ACTIVE' && moves.length > 0) {
         lastStateTimestamp = Date.now();
-      } else if (payload.game.moves && payload.game.moves.length > 0) {
-        const lastMove = payload.game.moves[payload.game.moves.length - 1];
+      } else if (moves.length > 0) {
+        const lastMove = moves[moves.length - 1];
         if (lastMove.created_at) {
           lastStateTimestamp = new Date(lastMove.created_at).getTime();
         }
-      } else if (payload.game.started_at) {
-        lastStateTimestamp = new Date(payload.game.started_at).getTime();
-      } else if (payload.game.created_at) {
-        lastStateTimestamp = new Date(payload.game.created_at).getTime();
+      } else if (state.selectedGame.started_at) {
+        lastStateTimestamp = new Date(state.selectedGame.started_at).getTime();
+      } else if (state.selectedGame.created_at) {
+        lastStateTimestamp = new Date(state.selectedGame.created_at).getTime();
       }
       state.lastStateTimestamp = lastStateTimestamp;
       
-      if (window.ensureUsernamesForGames) await window.ensureUsernamesForGames([payload.game]);
+      if (window.ensureUsernamesForGames) await window.ensureUsernamesForGames([state.selectedGame]);
       if (window.renderGameDetail) window.renderGameDetail();
-      if (window.loadGames) window.loadGames(false);
+      if (window.segmentGames) window.segmentGames();
+      if (window.renderCollections) window.renderCollections();
+      if (window.updateHeroStats) window.updateHeroStats();
     }
+  }
+
+  function mergeMoves(previousMoves = [], incomingMoves = []) {
+    const byIndex = new Map();
+    [...previousMoves, ...incomingMoves].forEach((move) => {
+      if (move && Number.isInteger(move.move_index)) {
+        byIndex.set(move.move_index, move);
+      }
+    });
+    return [...byIndex.values()].sort((a, b) => a.move_index - b.move_index);
   }
 
   function updateWsIndicator(status) {

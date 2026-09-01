@@ -1,12 +1,14 @@
 // Управление таймерами (auto-cancel, WS reconnect)
 (() => {
+  const lifecycle = window.App?.Utils?.PageLifecycle;
+  if (!lifecycle) throw new Error('PageLifecycle is not initialized');
   const matchStateModule = window.MatchState;
   const { state, setState, haveBothPlayersJoined } = matchStateModule;
   const { AUTO_CANCEL_TIMEOUT_MS, WS_BASE_DELAY_MS, WS_MAX_DELAY_MS, WS_MAX_RETRY_ATTEMPTS } = window.MatchConstants || {};
 
   function clearAutoCancelTimer(updateClockDisplays) {
     if (state.autoCancelTimerId) {
-      clearInterval(state.autoCancelTimerId);
+      lifecycle.clearInterval(state.autoCancelTimerId);
     }
     setState({ autoCancelTimerId: null, autoCancelDeadline: null }, 'clearAutoCancelTimer');
     if (updateClockDisplays) updateClockDisplays(false);
@@ -41,11 +43,11 @@
       return;
     }
     if (state.autoCancelTimerId) {
-      clearInterval(state.autoCancelTimerId);
+      lifecycle.clearInterval(state.autoCancelTimerId);
       setState({ autoCancelTimerId: null }, 'setAutoCancelDeadline:clearTimer');
     }
     updateAutoCancelTimerDisplay(updateClockDisplays);
-    const timerId = setInterval(() => {
+    const timerId = lifecycle.setInterval(() => {
       if (!state.autoCancelDeadline) {
         clearAutoCancelTimer(updateClockDisplays);
         return;
@@ -77,7 +79,7 @@
 
   function clearWsReconnectTimer() {
     if (state.wsReconnectTimerId) {
-      clearTimeout(state.wsReconnectTimerId);
+      lifecycle.clearTimeout(state.wsReconnectTimerId);
       setState({ wsReconnectTimerId: null }, 'clearWsReconnectTimer');
     }
   }
@@ -95,11 +97,12 @@
       return;
     }
     const delay = Math.min(WS_MAX_DELAY_MS || 30000, (WS_BASE_DELAY_MS || 1000) * 2 ** attempt);
+    const jitteredDelay = Math.round(delay * (0.75 + Math.random() * 0.5));
     clearWsReconnectTimer();
-    const timerId = setTimeout(() => {
+    const timerId = lifecycle.setTimeout(() => {
       setState({ wsReconnectTimerId: null }, 'wsReconnect:timerFired');
       if (connectWebSocket) connectWebSocket(state.matchId, { isReconnect: true });
-    }, delay);
+    }, jitteredDelay);
     setState(
       {
         wsRetryCount: attempt + 1,

@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ChessMint">
     <title>Шахматы онлайн — платформа для школ | ChessMint | Игра, задачи, курсы</title>
-    
+
     <!-- SEO Meta Tags -->
     <meta name="description" content="ChessMint — платформа для онлайн-школ. Игра, задачи, курсы и занятия с тренерами под управлением каждой школы. Ученики занимаются, тренеры видят прогресс.">
     <meta name="keywords" content="шахматы онлайн, шахматы бесплатно, шахматы без регистрации, играть в шахматы, шахматы с компьютером, шахматы с живыми игроками, шахматные задачи, обучение шахматам, шахматные курсы, шахматы для начинающих">
@@ -19,14 +19,14 @@
     <meta name="robots" content="index, follow">
     <meta name="language" content="Russian">
     <meta name="revisit-after" content="7 days">
-    
+
     <!-- Canonical URL -->
     <link rel="canonical" href="https://chessmint.ru/">
-    
+
     <!-- Hreflang -->
     <link rel="alternate" hreflang="ru" href="https://chessmint.ru/">
     <link rel="alternate" hreflang="x-default" href="https://chessmint.ru/">
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://chessmint.ru/">
@@ -40,7 +40,7 @@
     <meta property="og:site_name" content="ChessMint">
     <meta property="og:updated_time" content="2025-01-21T00:00:00+03:00">
     <meta property="article:author" content="ChessMint">
-    
+
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://chessmint.ru/">
@@ -50,7 +50,7 @@
     <meta name="twitter:image:alt" content="ChessMint - Шахматная платформа для обучения и игры онлайн">
     <meta name="twitter:site" content="@chessmint">
     <meta name="twitter:creator" content="@chessmint">
-    
+
     <!-- Загрузка темы до отрисовки страницы, чтобы избежать мерцания -->
     <script>
       (function() {
@@ -63,7 +63,7 @@
         } catch {}
       })();
     </script>
-    
+
     <!-- Structured Data (JSON-LD) - WebSite with SearchAction -->
     <script type="application/ld+json">
     {
@@ -83,7 +83,7 @@
       }
     }
     </script>
-    
+
     <!-- Structured Data (JSON-LD) - Organization -->
     <script type="application/ld+json">
     {
@@ -107,7 +107,7 @@
       ]
     }
     </script>
-    
+
     <!-- Structured Data (JSON-LD) - EducationalOrganization -->
     <script type="application/ld+json">
     {
@@ -134,7 +134,7 @@
       }
     }
     </script>
-    
+
     <!-- Structured Data (JSON-LD) - FAQ Schema -->
     <script type="application/ld+json">
     {
@@ -200,18 +200,18 @@
       ]
     }
     </script>
-    
+
     <!-- DNS Prefetch & Preconnect для производительности -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
+
     <!-- Fonts - асинхронная загрузка для предотвращения блокировки рендеринга -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"></noscript>
-    
+
     <!-- Font Awesome - кастомный CSS только с нужными иконками -->
     <link rel="stylesheet" href="/styles/vendor/fontawesome-custom.css?v=2.0">
 
@@ -237,11 +237,11 @@
     <link rel="icon" type="image/png" sizes="120x120" href="/favicon.png">
     <link rel="apple-touch-icon" sizes="120x120" href="/favicon.png">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    
+
     <!-- Performance: Preload critical resources -->
     <link rel="preload" href="/styles/base/variables.css?v=2.0" as="style">
     <link rel="preload" href="/styles/base/common.css?v=2.0" as="style">
-    
+
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
         (function(m,e,t,r,i,k,a){
@@ -253,7 +253,7 @@
         ym(105743222, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
     </script>
     <!-- /Yandex.Metrika counter -->
-    
+
     <!-- Yandex Autoplacement 18293483 -->
     <script src="https://yandex.ru/ads/system/context.js" async></script>
     <script data-page-id="18293483" src="https://yandex.ru/ads/system/ap-loader.js" async></script>
@@ -294,7 +294,7 @@
                             <span></span>
                         </div>
                     </div>
-                    <button type="button" class="theme-toggle" title="Переключить тему" onclick="toggleTheme()">
+                    <button type="button" class="theme-toggle" title="Переключить тему" data-action="toggle-theme">
                         <i class="fas fa-sun" id="themeIcon"></i>
                     </button>
                     <div id="authButtons">
@@ -302,7 +302,7 @@
                             <i class="fas fa-sign-in-alt"></i>
                         </a>
                     </div>
-                    <button type="button" class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                    <button type="button" class="mobile-menu-btn" data-action="toggle-mobile-menu">
                         <i class="fas fa-bars" id="menuIcon"></i>
                     </button>
                     <button type="button" class="btn btn-outline logout-btn" id="gamesLogoutBtn" title="Выйти">
@@ -311,27 +311,27 @@
                 </div>
             </div>
             <!-- Mobile Menu -->
-            <div class="mobile-menu-overlay" id="mobileMenuOverlay" onclick="closeMobileMenu();"></div>
+            <div class="mobile-menu-overlay" id="mobileMenuOverlay" data-action="close-mobile-menu"></div>
             <div class="mobile-menu" id="mobileMenu">
-                <button class="mobile-menu-close" onclick="closeMobileMenu();" aria-label="Закрыть меню">
+                <button class="mobile-menu-close" data-action="close-mobile-menu" aria-label="Закрыть меню">
                     <i class="fas fa-times"></i>
                 </button>
                 <div>
-                    <a href="/games" class="nav-link" onclick="closeMobileMenu();">
+                    <a href="/games" class="nav-link" data-action="close-mobile-menu">
                         <i class="fas fa-chess"></i>
                         <span>Играть</span>
                     </a>
-                    <a href="/tasks" class="nav-link" onclick="closeMobileMenu();">
+                    <a href="/tasks" class="nav-link" data-action="close-mobile-menu">
                         <i class="fas fa-puzzle-piece"></i>
                         <span>Задачи</span>
                     </a>
-                    <a href="/leaderboard" class="nav-link" onclick="closeMobileMenu();">
+                    <a href="/leaderboard" class="nav-link" data-action="close-mobile-menu">
                         <i class="fas fa-trophy"></i>
                         <span>Рейтинг</span>
                     </a>
                     <hr>
                     <div id="mobileAuthButtons">
-                        <a href="/login" class="mobile-login-link" onclick="closeMobileMenu();">
+                        <a href="/login" class="mobile-login-link" data-action="close-mobile-menu">
                             <i class="fas fa-sign-in-alt"></i>
                             <span>Войти / Регистрация</span>
                         </a>
@@ -340,7 +340,7 @@
                         <div id="gamesUserInfoMobile">
                             <span></span>
                         </div>
-                        <a href="/profile" class="mobile-cabinet-link" onclick="closeMobileMenu();">
+                        <a href="/profile" class="mobile-cabinet-link" data-action="close-mobile-menu">
                             <i class="fas fa-user"></i>
                             <span>Личный кабинет</span>
                         </a>
@@ -647,8 +647,8 @@
 
                 <div class="faq-container" role="list">
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-answer-schools"
                                 type="button">
                             <span>Как подключить нашу школу к платформе?</span>
@@ -660,8 +660,8 @@
                     </div>
 
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-answer-1"
                                 type="button">
                             <span>Можно ли играть и решать задачи без регистрации?</span>
@@ -673,8 +673,8 @@
                     </div>
 
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-answer-2"
                                 type="button">
                             <span>Есть ли мобильное приложение?</span>
@@ -686,8 +686,8 @@
                     </div>
 
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-answer-3"
                                 type="button">
                             <span>Откуда берутся шахматные задачи?</span>
@@ -699,8 +699,8 @@
                     </div>
 
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-answer-4"
                                 type="button">
                             <span>Кто создает курсы?</span>
@@ -712,8 +712,8 @@
                     </div>
 
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-answer-8"
                                 type="button">
                             <span>Можно ли заниматься с тренером?</span>
@@ -725,8 +725,8 @@
                     </div>
 
                     <div class="faq-item" role="listitem">
-                        <button class="faq-question" onclick="this.parentElement.classList.toggle('active')" 
-                                aria-expanded="false" 
+                        <button class="faq-question" data-action="toggle-parent" data-toggle-class="active"
+                                aria-expanded="false"
                                 aria-controls="faq-answer-6"
                                 type="button">
                             <span>Как связаться с поддержкой?</span>
@@ -837,7 +837,7 @@
     <!-- Login Modal -->
     <div class="modal auth-modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" aria-hidden="true">
         <div class="modal-content">
-            <button class="modal-close" type="button" onclick="closeLoginModal()" aria-label="Закрыть окно входа">
+            <button class="modal-close" type="button" data-action="close-login-modal" aria-label="Закрыть окно входа">
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>
             <div class="modal-header">
@@ -848,7 +848,7 @@
                 <h3 id="login-modal-title" class="modal-title">Войти в аккаунт</h3>
                 <p class="modal-subtitle">Продолжайте обучение и возвращайтесь к сохранённым курсам.</p>
             </div>
-            <form class="modal-form" onsubmit="handleLogin(event)">
+            <form class="modal-form" data-submit-action="login">
                 <div class="form-group">
                     <label class="form-label" for="loginEmail">Email</label>
                     <input id="loginEmail" type="email" class="form-input" placeholder="name@email.ru" required>
@@ -867,7 +867,7 @@
             </form>
             <p class="modal-switch">
                 Нет аккаунта?
-                <a href="#" onclick="closeLoginModal(); showRegisterModal(); return false;">Зарегистрироваться</a>
+                <a href="#" data-action="open-register-modal">Зарегистрироваться</a>
             </p>
         </div>
     </div>
@@ -875,7 +875,7 @@
     <!-- Register Modal -->
     <div class="modal auth-modal" id="registerModal" role="dialog" aria-modal="true" aria-labelledby="register-modal-title" aria-hidden="true">
         <div class="modal-content">
-            <button class="modal-close" type="button" onclick="closeRegisterModal()" aria-label="Закрыть окно регистрации">
+            <button class="modal-close" type="button" data-action="close-register-modal" aria-label="Закрыть окно регистрации">
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>
             <div class="modal-header">
@@ -886,7 +886,7 @@
                 <h3 id="register-modal-title" class="modal-title">Создать аккаунт</h3>
                 <p class="modal-subtitle">Получите доступ к закрытым курсам и персональным рекомендациям.</p>
             </div>
-            <form class="modal-form" onsubmit="handleRegister(event)">
+            <form class="modal-form" data-submit-action="register">
                 <div class="form-group">
                     <label class="form-label" for="registerUsername">Имя пользователя</label>
                     <input id="registerUsername" name="username" type="text" class="form-input" placeholder="например knight_master" pattern="^[A-Za-z0-9_.-]{3,32}$" title="3-32 символа: латиница, цифры, _ . -" autocomplete="username" required>
@@ -910,7 +910,7 @@
             </p>
             <p class="modal-switch">
                 Уже есть аккаунт?
-                <a href="#" onclick="closeRegisterModal(); showLoginModal(); return false;">Войти</a>
+                <a href="#" data-action="open-login-modal">Войти</a>
             </p>
         </div>
     </div>
@@ -918,7 +918,7 @@
     <!-- Purchase Modal -->
     <div class="modal" id="purchaseModal" role="dialog" aria-modal="true" aria-labelledby="purchase-modal-title" aria-hidden="true">
         <div class="modal-content">
-            <button class="modal-close" onclick="closePurchaseModal()" type="button" aria-label="Закрыть окно покупки">
+            <button class="modal-close" data-action="close-purchase-modal" type="button" aria-label="Закрыть окно покупки">
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>
             <h3 id="purchase-modal-title" class="modal-title-large">Оформление покупки</h3>
@@ -927,10 +927,10 @@
                 Ход белых... Обдумывание лучшего решения...
             </p>
             <div class="modal-actions">
-                <button class="btn btn-primary" onclick="completePurchase()">
+                <button class="btn btn-primary" data-action="complete-purchase">
                     Завершить покупку
                 </button>
-                <button class="btn btn-outline" onclick="closePurchaseModal()">
+                <button class="btn btn-outline" data-action="close-purchase-modal">
                     Отмена
                 </button>
             </div>
@@ -959,9 +959,9 @@
             const content = document.getElementById(id);
             const icon = document.getElementById('toggleIcon');
             const text = document.getElementById('toggleText');
-            
+
             content.classList.toggle('active');
-            
+
             if (content.classList.contains('active')) {
                 icon.style.transform = 'rotate(180deg)';
                 text.textContent = 'Скрыть детали';
@@ -975,13 +975,13 @@
         function filterReviews(course) {
             const filterBtns = document.querySelectorAll('.filter-btn');
             const reviewCards = document.querySelectorAll('.review-card');
-            
+
             // Update active button
             filterBtns.forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.closest('.filter-btn').classList.add('active');
-            
+
             // Filter reviews
             reviewCards.forEach(card => {
                 if (course === 'all' || card.dataset.course === course) {
@@ -1071,7 +1071,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {});
 
-        
+
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
@@ -1087,7 +1087,7 @@
             loadTheme();
             initAccessibility();
         });
-        
+
         // Accessibility improvements
         function initAccessibility() {
             // FAQ keyboard navigation and aria-expanded
@@ -1098,7 +1098,7 @@
                     const isActive = parent.classList.contains('active');
                     this.setAttribute('aria-expanded', isActive ? 'true' : 'false');
                 });
-                
+
                 // Enter and Space для открытия
                 button.addEventListener('keydown', function(e) {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -1107,7 +1107,7 @@
                     }
                 });
             });
-            
+
             // Smooth scroll для skip-to-content
             const skipLink = document.querySelector('.skip-to-content');
             if (skipLink) {
@@ -1125,6 +1125,8 @@
     </script>
 
     <!-- Common Auth Script (must load first) -->
+    <script src="/scripts/page-lifecycle.js"></script>
+    <script src="/scripts/http-client.js" defer></script>
     <script src="/scripts/auth.js" defer></script>
     <script src="/scripts/mobile-menu.js"></script>
     <script src="/scripts/websocket-utils.js" defer></script>
@@ -1136,5 +1138,6 @@
     <script src="/scripts/hero-animation.js" defer></script>
     <!-- Header Mobile Control - должен загружаться ПОСЛЕ всех скриптов, которые управляют хедером -->
     <script src="/scripts/header-mobile-control.js"></script>
+  <script src="/scripts/template-actions.js" defer></script>
 </body>
 </html>

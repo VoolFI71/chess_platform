@@ -32,30 +32,16 @@
 
     // Функция для очистки всех обработчиков событий
     clearAllEventListeners() {
-      // Используем EventListenerUtils, если доступен
-      if (window.EventListenerUtils) {
-        if (TasksState.eventListeners) {
-          TasksState.eventListeners.forEach((handlers, element) => {
-            if (element && element.parentNode) {
-              handlers.forEach(({ type, handler, options }) => {
-                window.EventListenerUtils.remove(element, type, handler, options);
-              });
-            }
-          });
-          TasksState.eventListeners.clear();
-        }
-      } else {
-        // Fallback для обратной совместимости
-        if (TasksState.eventListeners) {
-          TasksState.eventListeners.forEach((handlers, element) => {
-            if (element && element.parentNode) {
-              handlers.forEach(({ type, handler }) => {
-                element.removeEventListener(type, handler);
-              });
-            }
-          });
-          TasksState.eventListeners.clear();
-        }
+      if (!window.EventListenerUtils) throw new Error('EventListenerUtils is not initialized');
+      if (TasksState.eventListeners) {
+        TasksState.eventListeners.forEach((handlers, element) => {
+          if (element && element.parentNode) {
+            handlers.forEach(({ type, handler, options }) => {
+              window.EventListenerUtils.remove(element, type, handler, options);
+            });
+          }
+        });
+        TasksState.eventListeners.clear();
       }
     },
 

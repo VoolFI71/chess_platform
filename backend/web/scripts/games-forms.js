@@ -4,7 +4,7 @@
 // Initialize UI elements when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   // Проверяем авторизацию и настраиваем UI для анонимных пользователей
-  const isAuth = typeof window.isAuthenticated === 'function' ? window.isAuthenticated() : (typeof window.getAccessToken === 'function' && window.getAccessToken() !== null && window.getAccessToken() !== '');
+  const isAuth = window.isAuthenticated();
   
   // Блок выбора типа игры удален - тип игры определяется автоматически через getSelectedGameType()
   
@@ -295,9 +295,10 @@ if (friendIncrementSlider && friendIncrementValue) {
 
   const customGameForm = document.getElementById('customGameForm');
   if (customGameForm && minutesSlider && incrementSlider) {
-      // Используем FormUtils для обработки формы, если доступен
-      if (window.FormUtils && window.FormUtils.createFormSubmitHandler) {
-        const submitHandler = window.FormUtils.createFormSubmitHandler(
+      if (!window.FormUtils?.createFormSubmitHandler) {
+        throw new Error('FormUtils is not initialized');
+      }
+      const submitHandler = window.FormUtils.createFormSubmitHandler(
           customGameForm,
           async (formData) => {
             const minutes = parseInt(minutesSlider.value) || 5;
@@ -373,93 +374,7 @@ if (friendIncrementSlider && friendIncrementValue) {
             }
           }
         );
-        customGameForm.addEventListener('submit', submitHandler);
-      } else {
-        // Fallback для обратной совместимости
-        customGameForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-            
-            const submitBtn = customGameForm.querySelector('button[type="submit"]');
-            if (submitBtn) submitBtn.disabled = true;
-
-            try {
-                const minutes = parseInt(minutesSlider.value) || 5;
-                const increment = parseInt(incrementSlider.value) || 0;
-                const gameType = document.querySelector('#customGameForm .type-option.active');
-                if (!gameType) {
-                    if (submitBtn) submitBtn.disabled = false;
-              return;
-          }
-
-          const isRated = gameType.dataset.type === 'rated';
-          
-          // Получаем выбранный цвет
-          const colorOption = customGameForm.querySelector('.color-option.active');
-          let creatorColor = 'random';
-          if (colorOption) {
-              const selectedColor = colorOption.dataset.color;
-              if (selectedColor === 'random') {
-                  creatorColor = Math.random() < 0.5 ? 'white' : 'black';
-              } else {
-                  creatorColor = selectedColor;
-              }
-          }
-
-                const game = await window.createGame({
-                    minutes,
-                    increment,
-                    isRated,
-                    creatorColor: creatorColor,
-                    initialFen: 'startpos',
-                    onSuccess: (game) => {
-                        // Show share screen with QR code and link
-                        const customGameShareScreen = document.getElementById('customGameShareScreen');
-                        const customGameForm = document.getElementById('customGameForm');
-                        const customGameShareLink = document.getElementById('customGameShareLink');
-                        const customGameQrImage = document.getElementById('customGameQrImage');
-                        
-                        if (game && game.id) {
-                            // Generate share link
-                            const shareLink = `${window.location.origin}/match/${game.id}`;
-                            
-                            // Update link input
-                            if (customGameShareLink) {
-                                customGameShareLink.value = shareLink;
-                            }
-                            
-                            // Update QR code
-                            if (customGameQrImage) {
-                                const encoded = encodeURIComponent(shareLink);
-                                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&format=svg&data=${encoded}`;
-                                customGameQrImage.src = qrUrl;
-                                customGameQrImage.alt = 'QR-код приглашения';
-                            }
-                            
-                            // Hide form and show share screen
-                            if (customGameForm) customGameForm.style.display = 'none';
-                            if (customGameShareScreen) {
-                                customGameShareScreen.style.display = 'block';
-                                customGameShareScreen.classList.add('active');
-                            }
-                            
-                            // Start polling for second player
-                            startWaitingForOpponent(game.id);
-                        }
-                    },
-                    onError: (err, message) => {
-                        // Error already handled in createGame
-                        if (submitBtn) submitBtn.disabled = false;
-                    }
-                });
-                
-                if (!game && submitBtn) {
-                    submitBtn.disabled = false;
-              }
-          } catch (err) {
-              if (submitBtn) submitBtn.disabled = false;
-          }
-      });
-      }
+      customGameForm.addEventListener('submit', submitHandler);
   }
 
   const friendGameForm = document.getElementById('friendGameForm');
@@ -573,7 +488,7 @@ function startWaitingForOpponent(gameId) {
                 return;
             }
             
-            const res = await window.authedFetch(`/api/games/${gameId}`);
+            const res = await window.GamesApi.authedFetch(`/api/games/${gameId}`);
             if (!res.ok) {
                 // Game might have been deleted
                 if (res.status === 404) {
@@ -642,12 +557,9 @@ if (copyLinkBtn) {
                       window.showToast('Ссылка скопирована');
                   }
             } catch (err) {
-                // Fallback for older browsers
-                linkInput.select();
-                document.execCommand('copy');
-                  if (typeof window.showToast === 'function') {
-                      window.showToast('Ссылка скопирована');
-                  }
+                if (typeof window.showToast === 'function') {
+                    window.showToast('Не удалось скопировать ссылку', 'error');
+                }
             }
         }
     });
@@ -670,11 +582,8 @@ if (copyCustomGameLinkBtn) {
                     window.showToast('Ссылка скопирована');
                 }
             } catch (err) {
-                // Fallback for older browsers
-                linkInput.select();
-                document.execCommand('copy');
                 if (typeof window.showToast === 'function') {
-                    window.showToast('Ссылка скопирована');
+                    window.showToast('Не удалось скопировать ссылку', 'error');
                 }
             }
         }

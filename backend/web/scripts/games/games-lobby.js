@@ -9,7 +9,7 @@
     }
     
     try {
-      const res = await window.authedFetch('/api/games/?status=CREATED&limit=50');
+      const res = await window.GamesApi.authedFetch('/api/games/?status=CREATED&limit=50');
       if (!res.ok) throw new Error('Failed to load games');
       const games = await res.json();
       
@@ -104,8 +104,8 @@
       const rated = game.metadata?.rated ? 'Рейтинговая' : 'Товарищеская';
       
       // Используем getPlayerName для правильного отображения имен
-      const whitePlayer = window.getPlayerName ? window.getPlayerName(game, 'white') : (game.white_id ? `ID ${game.white_id}` : 'Ожидает белых');
-      const blackPlayer = window.getPlayerName ? window.getPlayerName(game, 'black') : (game.black_id ? `ID ${game.black_id}` : 'Ожидает чёрных');
+      const whitePlayer = window.getPlayerName(game, 'white');
+      const blackPlayer = window.getPlayerName(game, 'black');
       
       // Если игрок не присоединился, показываем "Ожидает..."
       const whiteDisplay = hasWhite ? whitePlayer : 'Ожидает белых';
@@ -148,7 +148,7 @@
     }
     
     try {
-      const res = await window.authedFetch('/api/games/?status=ACTIVE&limit=50');
+      const res = await window.GamesApi.authedFetch('/api/games/?status=ACTIVE&limit=50');
       if (!res.ok) throw new Error('Failed to load games');
       const games = await res.json();
       
@@ -206,8 +206,8 @@
         const minutes = Math.round((timeControl.initial_ms || 0) / 60000);
         const increment = Math.round((timeControl.increment_ms || 0) / 1000);
         const timeStr = `${minutes}+${increment}`;
-        const whitePlayer = window.getPlayerName ? window.getPlayerName(game, 'white') : '—';
-        const blackPlayer = window.getPlayerName ? window.getPlayerName(game, 'black') : '—';
+        const whitePlayer = window.getPlayerName(game, 'white');
+        const blackPlayer = window.getPlayerName(game, 'black');
         
         // Создаем структуру через DOM API для безопасности
         const liveBadge = document.createElement('div');
@@ -262,15 +262,14 @@
   }
 
   async function joinWaitingGame(gameId) {
-    const token = window.getAccessToken ? window.getAccessToken() : '';
-    if (!token) {
+    if (!window.isAuthenticated()) {
       if (window.showToast) window.showToast('Войдите в аккаунт, чтобы присоединиться', 'error');
       window.location.href = '/login';
       return;
     }
     
     try {
-      const res = await window.authedFetch(`/api/games/${gameId}/join`, {
+      const res = await window.GamesApi.authedFetch(`/api/games/${gameId}/join`, {
         method: 'POST'
       });
       

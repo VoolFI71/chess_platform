@@ -50,7 +50,7 @@
    * Получить parsed FEN из кеша или распарсить
    */
   function getParsedFen(state, fen, utils) {
-    if (!fen || !utils) return null;
+    if (!fen || !utils?.parseFen) throw new Error('FEN parser is not initialized');
     
     const cached = parsedFenCache.get(state);
     if (cached && cached.fen === fen) {
@@ -58,6 +58,7 @@
     }
     
     const parsed = utils.parseFen(fen);
+    if (!parsed?.board) throw new Error('Invalid FEN board');
     parsedFenCache.set(state, { fen, parsed, timestamp: Date.now() });
     return parsed;
   }
@@ -66,14 +67,15 @@
    * Инкрементальное обновление подсветки доступных целей
    * Оптимизировано для быстрой работы на мобильных устройствах
    */
-  function updateAvailableTargetsHighlight(state, targets, fen, utils) {
+  function updateAvailableTargetsHighlight(state, targets, fen, utils, previousTargets = state.availableTargets) {
     const cache = getSquareElementsCache(state);
     const stateBoardEl = getBoardElement(state);
+    if (!stateBoardEl) throw new Error('Board element is not registered');
+    if (!(targets instanceof Set)) throw new Error('Available targets must be a Set');
     
     // Получаем текущие активные целевые квадраты из состояния
-    const oldTargets = state.availableTargets || 
-                      (state.getAvailableTargets && state.getAvailableTargets()) || 
-                      new Set();
+    const oldTargets = previousTargets;
+    if (!(oldTargets instanceof Set)) throw new Error('Previous board targets must be a Set');
     
     // Удаляем подсветку только с тех клеток, которые больше не являются целями
     oldTargets.forEach(oldTarget => {
@@ -84,34 +86,6 @@
           const marker = squareEl.querySelector('.legal-move-indicator');
           if (marker) {
             marker.remove();
-          }
-        } else {
-          // Если элемент не найден в кеше, пытаемся найти через DOM
-          // Это может произойти, если кеш был очищен, но DOM еще не обновлен
-          const boardEl = stateBoardEl;
-          if (boardEl) {
-            const squareEl = boardEl.querySelector(`[data-square="${oldTarget}"]`);
-            if (squareEl) {
-              squareEl.classList.remove('legal-target', 'legal-target-capture');
-              const marker = squareEl.querySelector('.legal-move-indicator');
-              if (marker) {
-                marker.remove();
-              }
-              // Регистрируем в кеше для будущих обновлений
-              registerSquareElement(state, oldTarget, squareEl);
-            }
-          } else {
-            // Дополнительный поиск: ищем напрямую по data-square
-            const squareEl = document.querySelector(`[data-square="${oldTarget}"]`);
-            if (squareEl) {
-              squareEl.classList.remove('legal-target', 'legal-target-capture');
-              const marker = squareEl.querySelector('.legal-move-indicator');
-              if (marker) {
-                marker.remove();
-              }
-              // Регистрируем в кеше для будущих обновлений
-              registerSquareElement(state, oldTarget, squareEl);
-            }
           }
         }
       }
@@ -127,32 +101,14 @@
         // Пропускаем, если подсветка уже есть
         let targetEl = cache.get(targetSquare);
         
-        // Если элемент не найден в кеше, пытаемся найти через DOM
-        if (!targetEl) {
-          const boardEl = stateBoardEl;
-          if (boardEl) {
-            targetEl = boardEl.querySelector(`[data-square="${targetSquare}"]`);
-            if (targetEl) {
-              // Регистрируем в кеше для будущих обновлений
-              registerSquareElement(state, targetSquare, targetEl);
-            }
-          } else {
-            // Дополнительный поиск: ищем напрямую по data-square
-            targetEl = document.querySelector(`[data-square="${targetSquare}"]`);
-            if (targetEl) {
-              // Регистрируем в кеше для будущих обновлений
-              registerSquareElement(state, targetSquare, targetEl);
-            }
-          }
-        }
-        
         if (targetEl && !targetEl.classList.contains('legal-target')) {
           targetEl.classList.add('legal-target');
 
           // Проверяем, является ли это взятием
           let isCapture = false;
-          if (baseBoard && utils) {
-            const coords = utils.squareToCoords ? utils.squareToCoords(targetSquare) : null;
+          if (baseBoard) {
+            if (!utils?.squareToCoords) throw new Error('Square coordinate utility is not initialized');
+            const coords = utils.squareToCoords(targetSquare);
             if (coords) {
               const piece = baseBoard[coords.rank]?.[coords.file];
               if (piece && piece !== '') {
@@ -185,37 +141,18 @@
    */
   function resetSelectionIncremental(config) {
     const { state, setState, getFen, utils } = config;
-    if (!state) return;
+    if (!state) throw new Error('Board state is not initialized');
 
     // Получаем старые значения ПЕРЕД обновлением состояния
-    const oldSelected = state.selectedSquare || 
-                       (state.getSelectedSquare && state.getSelectedSquare()) || 
-                       null;
-    const oldTargets = state.availableTargets || 
-                      (state.getAvailableTargets && state.getAvailableTargets()) || 
-                      new Set();
-    
-    // Убеждаемся, что oldTargets - это Set
-    const oldTargetsSet = oldTargets instanceof Set ? oldTargets : new Set(oldTargets || []);
+    const oldSelected = state.selectedSquare;
+    const oldTargets = state.availableTargets;
+    if (!(oldTargets instanceof Set)) throw new Error('Board state has invalid available targets');
+    const oldTargetsSet = oldTargets;
 
     // Обновляем состояние
-    if (setState) {
-      setState({
-        selectedSquare: null,
-        availableTargets: new Set(),
-      }, 'resetSelection');
-    } else {
-      if (state.setSelectedSquare) {
-        state.setSelectedSquare(null);
-      } else {
-        state.selectedSquare = null;
-      }
-      if (state.setAvailableTargets) {
-        state.setAvailableTargets(new Set());
-      } else {
-        state.availableTargets = new Set();
-      }
-    }
+    state.selectedSquare = null;
+    state.availableTargets = new Set();
+    if (setState) setState({ selectedSquare: null, availableTargets: state.availableTargets }, 'resetSelection');
 
     // Удаляем подсветку выбранной фигуры
     if (oldSelected) {
@@ -226,7 +163,7 @@
     if (oldTargetsSet && oldTargetsSet.size > 0) {
       const fen = getFen ? getFen() : null;
       // Передаем пустой Set, чтобы удалить все подсветки
-      updateAvailableTargetsHighlight(state, new Set(), fen, utils);
+      updateAvailableTargetsHighlight(state, new Set(), fen, utils, oldTargetsSet);
     }
   }
 
@@ -243,36 +180,18 @@
    */
   function updateSelection(config) {
     const { state, setState, square, targets, getFen, utils } = config;
-    if (!state || !square || !targets) return;
+    if (!state || !square || !(targets instanceof Set)) throw new Error('Invalid board selection state');
 
     // Получаем старые значения ДО обновления состояния
-    const oldSelected = state.selectedSquare || 
-                       (state.getSelectedSquare && state.getSelectedSquare()) || 
-                       null;
-    const oldTargets = state.availableTargets || 
-                      (state.getAvailableTargets && state.getAvailableTargets()) || 
-                      new Set();
-    // Убеждаемся, что oldTargets - это Set
-    const oldTargetsSet = oldTargets instanceof Set ? oldTargets : new Set(oldTargets || []);
+    const oldSelected = state.selectedSquare;
+    const oldTargets = state.availableTargets;
+    if (!(oldTargets instanceof Set)) throw new Error('Board state has invalid available targets');
+    const oldTargetsSet = oldTargets;
 
     // Обновляем состояние
-    if (setState) {
-      setState({
-        selectedSquare: square,
-        availableTargets: targets,
-      }, 'updateSelection');
-    } else {
-      if (state.setSelectedSquare) {
-        state.setSelectedSquare(square);
-      } else {
-        state.selectedSquare = square;
-      }
-      if (state.setAvailableTargets) {
-        state.setAvailableTargets(targets);
-      } else {
-        state.availableTargets = targets;
-      }
-    }
+    state.selectedSquare = square;
+    state.availableTargets = targets;
+    if (setState) setState({ selectedSquare: square, availableTargets: targets }, 'updateSelection');
 
     // Убираем подсветку со старой выбранной фигуры (если была)
     if (oldSelected && oldSelected !== square) {
@@ -298,36 +217,17 @@
     
     // Также удаляем подсветки через DOM (на случай, если что-то не в кеше)
     // Ищем доску по разным возможным ID и классам для всех модулей
-    const boardEl = getBoardElement(state) ||
-                   document.getElementById('computerGameBoard') || 
-                   document.getElementById('boardGrid') ||
-                   document.getElementById('tasksBoard') ||
-                   document.querySelector('.chess-board') || 
-                   document.querySelector('.board-grid') ||
-                   document.querySelector('#boardGrid');
-    if (boardEl) {
-      const allLegalTargets = boardEl.querySelectorAll('.legal-target');
-      allLegalTargets.forEach(squareEl => {
-        squareEl.classList.remove('legal-target', 'legal-target-capture');
-        const marker = squareEl.querySelector('.legal-move-indicator');
-        if (marker) {
-          marker.remove();
-        }
-      });
-    } else {
-      // Если доска не найдена по ID, ищем все элементы с классом legal-target на странице
-      const allLegalTargets = document.querySelectorAll('.legal-target');
-      allLegalTargets.forEach(squareEl => {
-        squareEl.classList.remove('legal-target', 'legal-target-capture');
-        const marker = squareEl.querySelector('.legal-move-indicator');
-        if (marker) {
-          marker.remove();
-        }
-      });
-    }
+    const boardEl = getBoardElement(state);
+    if (!boardEl) throw new Error('Board element is not registered');
+    const allLegalTargets = boardEl.querySelectorAll('.legal-target');
+    allLegalTargets.forEach(squareEl => {
+      squareEl.classList.remove('legal-target', 'legal-target-capture');
+      const marker = squareEl.querySelector('.legal-move-indicator');
+      if (marker) marker.remove();
+    });
     
     // Теперь добавляем новые подсветки
-    updateAvailableTargetsHighlight(state, targets, fen, utils);
+    updateAvailableTargetsHighlight(state, targets, fen, utils, oldTargetsSet);
   }
 
   /**
@@ -358,34 +258,32 @@
       utils,
     } = config;
 
+    if (!state || typeof getMovesForSquare !== 'function' ||
+        typeof onMoveExecute !== 'function' || typeof onSelectionUpdate !== 'function' ||
+        typeof onSelectionReset !== 'function' || typeof getFen !== 'function' ||
+        !utils?.isMoveAllowed) {
+      throw new Error('Incomplete board click configuration');
+    }
+
     // Проверка возможности обработки клика
     if (canProcessClick && !canProcessClick()) {
       return;
     }
 
     const normalizedSquare = squareName.toLowerCase();
-    const selectedSquare = state.selectedSquare || 
-                          (state.getSelectedSquare && state.getSelectedSquare()) || 
-                          null;
-    const availableTargets = state.availableTargets || 
-                            (state.getAvailableTargets && state.getAvailableTargets()) || 
-                            new Set();
+    const selectedSquare = state.selectedSquare;
+    const availableTargets = state.availableTargets;
+    if (!(availableTargets instanceof Set)) throw new Error('Board state has invalid available targets');
 
     // Сценарий A: Уже выбрана фигура, клик на целевую клетку
     if (selectedSquare && availableTargets.has(normalizedSquare)) {
-      if (onMoveExecute) {
-        onMoveExecute(selectedSquare, normalizedSquare);
-      }
+      onMoveExecute(selectedSquare, normalizedSquare);
       return;
     }
 
     // Сценарий B: Клик на уже выбранную фигуру (отмена выбора)
     if (selectedSquare === normalizedSquare) {
-      if (onSelectionReset) {
-        onSelectionReset();
-      } else {
-        resetSelectionIncremental({ state, setState: config.setState, getFen, utils });
-      }
+      onSelectionReset();
       return;
     }
 
@@ -394,48 +292,12 @@
     
     if (!moves || moves.length === 0) {
       // Нет ходов - сбрасываем выбор
-      if (onSelectionReset) {
-        onSelectionReset();
-      } else {
-        resetSelectionIncremental({ state, setState: config.setState, getFen, utils });
-      }
+      onSelectionReset();
       return;
     }
 
     // Сценарий D: Выбор новой фигуры
-    if (onSelectionUpdate) {
-      onSelectionUpdate(normalizedSquare, moves);
-    } else {
-      // Стандартная обработка: фильтруем легальные ходы и обновляем выбор
-      const fen = getFen ? getFen() : null;
-      const playerColor = config.playerColor || 
-                         (state.getPlayerColor && state.getPlayerColor()) || 
-                         null;
-      
-      if (fen && utils && playerColor) {
-        // Фильтруем только легальные ходы
-        const legalMoves = moves.filter(uci => {
-          return utils.isMoveAllowed ? utils.isMoveAllowed(fen, playerColor, uci) : true;
-        });
-        
-        if (legalMoves.length > 0) {
-          const targets = new Set(legalMoves.map(m => {
-            // UCI формат: "e2e4", берем последние 2 символа
-            const uci = typeof m === 'string' ? m : m.uci || m.to || '';
-            return uci.slice(2, 4).toLowerCase();
-          }));
-          
-          updateSelection({
-            state,
-            setState: config.setState,
-            square: normalizedSquare,
-            targets,
-            getFen,
-            utils,
-          });
-        }
-      }
-    }
+    onSelectionUpdate(normalizedSquare, moves);
   }
 
   /**
@@ -487,7 +349,7 @@
       availableTargets = new Set(),
       highlightSet = new Set(),
       baseBoard = null,
-      getPieceSVG = null,
+      getPieceSVG,
       onSquareClick = null,
       customClasses = {},
       customPieceClasses = {},
@@ -534,21 +396,14 @@
       
       // Проверяем, является ли это взятием
       if (baseBoard) {
-        const coords = window.ChessMoveUtils?.squareToCoords?.(squareName);
-        if (coords) {
-          const occupant = baseBoard[coords.rank]?.[coords.file];
-          if (occupant && occupant !== '') {
-            isCaptureTarget = true;
-            square.classList.add('legal-target-capture');
-          }
-        } else {
-          // Fallback
-          const fileIdx = squareName.charCodeAt(0) - 97;
-          const rankIdx = 8 - Number.parseInt(squareName[1], 10);
-          if (baseBoard[rankIdx] && baseBoard[rankIdx][fileIdx] && baseBoard[rankIdx][fileIdx] !== '') {
-            isCaptureTarget = true;
-            square.classList.add('legal-target-capture');
-          }
+        if (!window.ChessMoveUtils?.squareToCoords) {
+          throw new Error('Square coordinate utility is not initialized');
+        }
+        const coords = window.ChessMoveUtils.squareToCoords(squareName);
+        const occupant = baseBoard[coords.rank]?.[coords.file];
+        if (occupant && occupant !== '') {
+          isCaptureTarget = true;
+          square.classList.add('legal-target-capture');
         }
       }
       
@@ -581,26 +436,11 @@
       // Отключаем pointer events для фигуры
       pieceEl.style.pointerEvents = 'none';
       
-      // Получаем SVG или текст фигуры
-      let pieceContent = null;
-      if (getPieceSVG) {
-        pieceContent = getPieceSVG(pieceStr);
-      } else if (window.getPieceSVG) {
-        pieceContent = window.getPieceSVG(pieceStr);
-      } else if (window.ChessPiecesSVG) {
-        pieceContent = window.ChessPiecesSVG[pieceStr];
-      }
+      // Получаем SVG фигуры из единого рендера
+      const pieceContent = getPieceSVG(pieceStr);
       
-      if (pieceContent) {
-        pieceEl.innerHTML = pieceContent;
-      } else {
-        // Fallback на Unicode
-        const PIECES = {
-          'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
-          'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
-        };
-        pieceEl.textContent = PIECES[pieceStr] || '';
-      }
+      if (!pieceContent) throw new Error(`SVG piece is not registered: ${pieceStr}`);
+      pieceEl.innerHTML = pieceContent;
       
       square.appendChild(pieceEl);
     }
@@ -684,12 +524,15 @@
       files,
       ranks,
       state,
-      getPieceSVG = null,
+      getPieceSVG,
       onSquareClick = null,
       options = {},
     } = config;
 
-    if (!boardEl) return;
+    if (!boardEl || !state || !Array.isArray(matrix) || !Array.isArray(files) || !Array.isArray(ranks)) {
+      throw new Error('Invalid board render configuration');
+    }
+    if (typeof getPieceSVG !== 'function') throw new Error('Piece SVG renderer is not initialized');
 
     const {
       selectedSquare = null,
@@ -709,10 +552,8 @@
     boardEl.innerHTML = '';
     
     // Запоминаем корневой элемент доски для этого состояния (важно для инкрементальной подсветки)
-    if (state) {
-      setBoardElement(state, boardEl);
-      clearSquareElementsCache(state);
-    }
+    setBoardElement(state, boardEl);
+    clearSquareElementsCache(state);
 
     // Рендерим квадраты
     matrix.forEach((row, rIdx) => {
@@ -806,7 +647,10 @@
    * @returns {Array<Array>} - Ориентированная матрица
    */
   function getOrientedMatrix(matrix, orientation) {
-    if (!matrix || !Array.isArray(matrix)) return [];
+    if (!Array.isArray(matrix)) throw new Error('Board matrix is invalid');
+    if (orientation !== 'white' && orientation !== 'black') {
+      throw new Error('Board orientation is invalid');
+    }
     if (orientation === 'white') return matrix;
     // Переворачиваем для черных: сначала переворачиваем ряды, потом элементы в каждом ряду
     return matrix.slice().reverse().map((row) => row.slice().reverse());
@@ -819,30 +663,22 @@
    * @returns {Array<Array>} - Матрица доски [rank][file]
    */
   function fenToMatrix(fen, utils) {
-    if (!fen || !utils) return [];
+    if (!fen || !utils?.parseFen) throw new Error('FEN parser is not initialized');
     
     const parsed = utils.parseFen(fen);
-    const board = parsed.board || [];
+    if (!parsed?.board || parsed.board.length !== 8) throw new Error('Invalid FEN board');
+    const board = parsed.board;
     
     // Преобразуем в матрицу [rank][file]
     const matrix = [];
     for (let rank = 0; rank < 8; rank++) {
       const row = [];
-      if (board[rank]) {
-        for (let file = 0; file < 8; file++) {
-          const piece = board[rank][file];
-          // Обрабатываем пустые клетки
-          if (piece && piece !== '' && piece !== ' ') {
-            row.push(piece);
-          } else {
-            row.push(null);
-          }
-        }
-      } else {
-        // Если ряда нет, заполняем null
-        for (let file = 0; file < 8; file++) {
-          row.push(null);
-        }
+      if (!Array.isArray(board[rank]) || board[rank].length !== 8) {
+        throw new Error('Invalid FEN row');
+      }
+      for (let file = 0; file < 8; file++) {
+        const piece = board[rank][file];
+        row.push(piece && piece !== '' && piece !== ' ' ? piece : null);
       }
       matrix.push(row);
     }
@@ -876,6 +712,6 @@
     renderBoardBase,
   };
 
-  // Для обратной совместимости: сохраняем старый экспорт
+  // Публичный алиас для страниц приложения
   window.ChessBoardCore = window.App.Chess.Board;
 })();
