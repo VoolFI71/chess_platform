@@ -5,10 +5,26 @@ services:
       POSTGRES_DB: chess
       POSTGRES_USER: chess
       POSTGRES_PASSWORD: chess
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chess -d chess"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
 
   migrations:
     build:
@@ -16,35 +32,10 @@ services:
       dockerfile: migrations_service/Dockerfile
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://chess:chess@db:5432/chess
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://chess:chess@db:5432/chess}
     restart: "no"
-
-  auth:
-    build:
-      context: .
-      dockerfile: auth_service/Dockerfile
-    depends_on:
-      db:
-        condition: service_started
-      migrations:
-        condition: service_completed_successfully
-      users:
-        condition: service_started
-      email:
-        condition: service_started
-    env_file:
-      - .env
-    environment:
-      METRICS_ENABLED: "true"
-      USERS_SERVICE_URL: ${USERS_SERVICE_URL}
-      EMAIL_SERVICE_URL: http://email:8000
-      EMAIL_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
-      USERS_INTERNAL_TOKEN: ${USERS_INTERNAL_TOKEN}
-    expose:
-      - "8000"
-    restart: unless-stopped
 
   users:
     build:
@@ -52,95 +43,19 @@ services:
       dockerfile: users_service/Dockerfile
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
       migrations:
         condition: service_completed_successfully
-    env_file:
-      - .env
     environment:
-      METRICS_ENABLED: "true"
-      USERS_INTERNAL_TOKEN: ${USERS_INTERNAL_TOKEN}
-      USERS_SERVICE_URL: http://users:8000
-      AUTH_INTERNAL_TOKEN: ${AUTH_INTERNAL_TOKEN}
-    expose:
-      - "8000"
-    restart: unless-stopped
-
-  payments:
-    build:
-      context: .
-      dockerfile: payments_service/Dockerfile
-    depends_on:
-      db:
-        condition: service_started
-      migrations:
-        condition: service_completed_successfully
-      auth:
-        condition: service_started
-    env_file:
-      - .env
-    environment:
-      METRICS_ENABLED: "true"
-    expose:
-      - "8000"
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    expose:
-      - "6379"
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-
-  games:
-    build:
-      context: .
-      dockerfile: games_service_go/Dockerfile
-    depends_on:
-      db:
-        condition: service_started
-      migrations:
-        condition: service_completed_successfully
-      users:
-        condition: service_started
-      redis:
-        condition: service_started
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://chess:chess@db:5432/chess?sslmode=disable
-      PORT: 8000
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://chess:chess@db:5432/chess}
       JWT_SECRET: ${JWT_SECRET}
-      REDIS_URL: redis://redis:6379/0
-      METRICS_ENABLED: "true"
-    expose:
-      - "8000"
-    restart: unless-stopped
-
-  computer_games:
-    build:
-      context: .
-      dockerfile: computer_games_service/Dockerfile
-    depends_on:
-      db:
-        condition: service_started
-      migrations:
-        condition: service_completed_successfully
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://chess:chess@db:5432/chess?sslmode=disable
-      PORT: 8000
-      JWT_SECRET: ${JWT_SECRET}
-      COMPUTER_GAMES_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
-      STOCKFISH_PATH: /usr/bin/stockfish
-      STOCKFISH_POOL_SIZE: 4
-      AI_DEFAULT_SKILL_LEVEL: 5
-      AI_DEFAULT_TIME_LIMIT_MS: 2000
-      METRICS_ENABLED: "true"
-    expose:
-      - "8000"
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      GAMES_SERVICE_URL: http://games:8000
+      GAMES_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      AUTH_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      NOTIFICATIONS_SERVICE_URL: http://notifications:8000
+      NOTIFICATIONS_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
     restart: unless-stopped
 
   email:
@@ -149,93 +64,126 @@ services:
       dockerfile: email_service_go/Dockerfile
     depends_on:
       db:
-        condition: service_started
-    env_file:
-      - .env
+        condition: service_healthy
     environment:
-      PORT: 8000
+      DATABASE_URL: ${GO_DATABASE_URL:-postgresql://chess:chess@db:5432/chess?sslmode=disable}
       INTERNAL_TOKEN: ${INTERNAL_TOKEN}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@chessmint.ru}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-ChessMint}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
-      FRONTEND_URL: ${FRONTEND_URL:-https://chessmint.ru}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
       FRONTEND_RESET_PASSWORD_PATH: ${FRONTEND_RESET_PASSWORD_PATH:-/reset-password}
-      DATABASE_URL: postgresql://chess:chess@db:5432/chess?sslmode=disable
-      METRICS_ENABLED: "true"
-    expose:
-      - "8000"
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
     restart: unless-stopped
 
-  notifications:
+  auth:
     build:
       context: .
-      dockerfile: notifications_service/Dockerfile
+      dockerfile: auth_service/Dockerfile
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
       migrations:
         condition: service_completed_successfully
       users:
         condition: service_started
-    env_file:
-      - .env
+      email:
+        condition: service_started
     environment:
-      METRICS_ENABLED: "true"
-    expose:
-      - "8000"
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://chess:chess@db:5432/chess}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-30}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      AUTH_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      USERS_SERVICE_URL: http://users:8000
+      USERS_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      EMAIL_SERVICE_URL: http://email:8000
+      EMAIL_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      MAILRU_OAUTH_CLIENT_ID: ${MAILRU_OAUTH_CLIENT_ID:-}
+      MAILRU_OAUTH_CLIENT_SECRET: ${MAILRU_OAUTH_CLIENT_SECRET:-}
+      MAILRU_OAUTH_REDIRECT_URI: ${MAILRU_OAUTH_REDIRECT_URI:-}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-}
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
     restart: unless-stopped
 
-  puzzles:
+  games:
     build:
       context: .
-      dockerfile: puzzles_service/Dockerfile
+      dockerfile: games_service_go/Dockerfile
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
+      redis:
+        condition: service_healthy
       migrations:
         condition: service_completed_successfully
-    env_file:
-      - .env
+      users:
+        condition: service_started
     environment:
-      METRICS_ENABLED: "true"
-    expose:
-      - "8000"
+      DATABASE_URL: ${GO_DATABASE_URL:-postgresql://chess:chess@db:5432/chess?sslmode=disable}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      GAMES_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      REDIS_URL: redis://redis:6379/0
+      WS_ALLOWED_ORIGINS: ${WS_ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+    restart: unless-stopped
+
+  computer_games:
+    build:
+      context: .
+      dockerfile: computer_games_service/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${GO_DATABASE_URL:-postgresql://chess:chess@db:5432/chess?sslmode=disable}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      COMPUTER_GAMES_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      WS_ALLOWED_ORIGINS: ${WS_ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+      STOCKFISH_POOL_SIZE: ${STOCKFISH_POOL_SIZE:-}
+      AI_DEFAULT_SKILL_LEVEL: ${AI_DEFAULT_SKILL_LEVEL:-}
+      AI_DEFAULT_TIME_LIMIT_MS: ${AI_DEFAULT_TIME_LIMIT_MS:-}
     restart: unless-stopped
 
   api:
     build: .
     depends_on:
       db:
-        condition: service_started
-      minio:
-        condition: service_started
-      auth:
-        condition: service_started
-      payments:
-        condition: service_started
-      games:
-        condition: service_started
-      computer_games:
-        condition: service_started
-      email:
-        condition: service_started
-      notifications:
-        condition: service_started
-      puzzles:
-        condition: service_started
-    env_file:
-      - .env
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://chess:chess@db:5432/chess}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       WEB_DIR: /app/backend/web
-      METRICS_ENABLED: "true"
-    expose:
-      - "8000"
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_USE_SSL: ${S3_USE_SSL:-false}
+      S3_BUCKET_VIDEOS: ${S3_BUCKET_VIDEOS:-}
+      S3_BUCKET_ASSETS: ${S3_BUCKET_ASSETS:-}
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
     volumes:
       - ./backend:/app/backend:ro
+    restart: unless-stopped
 
   gateway:
     image: nginx:alpine
@@ -246,144 +194,131 @@ services:
         condition: service_started
       users:
         condition: service_started
-      payments:
-        condition: service_started
       games:
         condition: service_started
       computer_games:
         condition: service_started
       email:
         condition: service_started
-      notifications:
-        condition: service_started
-      puzzles:
-        condition: service_started
-    environment:
-      VIRTUAL_HOST: ${LETSENCRYPT_DOMAIN}
-      VIRTUAL_PORT: 80
-      LETSENCRYPT_HOST: ${LETSENCRYPT_DOMAIN}
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
-    volumes:
-      - ./nginx/gateway.prod.conf:/etc/nginx/conf.d/default.conf:ro
-    restart: unless-stopped
-
-  nginx-proxy:
-    image: nginxproxy/nginx-proxy:latest
-    container_name: nginx-proxy
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:${GATEWAY_PORT:-8080}:80"
     volumes:
-      - nginx_certs:/etc/nginx/certs
-      - ./nginx/vhost.d:/etc/nginx/vhost.d
-      - ./nginx/html:/usr/share/nginx/html
-      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./nginx/${GATEWAY_CONFIG:-gateway.dev.conf}:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
 
-  acme-companion:
-    image: nginxproxy/acme-companion:latest
-    container_name: acme-companion
+  payments:
+    build:
+      context: .
+      dockerfile: payments_service/Dockerfile
     depends_on:
-      - nginx-proxy
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+      auth:
+        condition: service_started
     environment:
-      - DEFAULT_EMAIL=${LETSENCRYPT_EMAIL}
-      - NGINX_PROXY_CONTAINER=nginx-proxy
-    volumes:
-      - nginx_certs:/etc/nginx/certs
-      - ./nginx/vhost.d:/etc/nginx/vhost.d
-      - ./nginx/html:/usr/share/nginx/html
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - acme:/etc/acme.sh
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://chess:chess@db:5432/chess}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      PAYMENTS_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      YOOKASSA_SHOP_ID: ${YOOKASSA_SHOP_ID:-}
+      YOOKASSA_SECRET_KEY: ${YOOKASSA_SECRET_KEY:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
+    restart: unless-stopped
+
+  notifications:
+    build:
+      context: .
+      dockerfile: notifications_service/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+      users:
+        condition: service_started
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://chess:chess@db:5432/chess}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
+    restart: unless-stopped
+
+  puzzles:
+    build:
+      context: .
+      dockerfile: puzzles_service/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://chess:chess@db:5432/chess}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      PUZZLES_INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      PUZZLES_CSV_FILE_PATH: ${PUZZLES_CSV_FILE_PATH:-}
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
     restart: unless-stopped
 
   minio:
     image: minio/minio
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-chessmint}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-chessmint-secret}
+      - MINIO_ROOT_USER
+      - MINIO_ROOT_PASSWORD
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio-data:/data
-
-  # kafka:
-  #   image: apache/kafka:latest
-  #   environment:
-  #     KAFKA_NODE_ID: 1
-  #     KAFKA_PROCESS_ROLES: broker,controller
-  #     KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-  #     KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-  #     KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-  #     KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-  #     KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-  #     KAFKA_NUM_PARTITIONS: 1
-  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-  #     KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-  #     KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-  #     KAFKA_LOG_DIRS: /var/lib/kafka/data
-  #     KAFKA_KRAFT_CLUSTER_ID: muHc2VgSpKuTyL0Av89W3g
-  #   ports:
-  #     - "9092:9092"
-  #   volumes:
-  #     - kafka-data:/var/lib/kafka/data
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:v2.55.1
-    depends_on:
-      - api
     ports:
-      - "9090:9090"
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:11.2.0
     depends_on:
       - prometheus
       - loki
-    expose:
-      - "3000"  # Используем expose вместо ports для работы через nginx-proxy
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      # Используем поддомен для автоматического HTTPS через nginx-proxy
-      - GF_SERVER_ROOT_URL=https://grafana.chessmint.ru/
+      - GF_SECURITY_ADMIN_USER
+      - GF_SECURITY_ADMIN_PASSWORD
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000/}
+      - GF_SERVER_DOMAIN=${GRAFANA_DOMAIN:-localhost}
       - GF_SERVER_SERVE_FROM_SUB_PATH=false
-      - GF_SERVER_DOMAIN=grafana.chessmint.ru
-      - GF_SERVER_ROUTER_LOGGING=false
       - GF_ANALYTICS_REPORTING_ENABLED=false
       - GF_ANALYTICS_CHECK_FOR_UPDATES=false
-      - GF_SERVER_ENABLE_GZIP=true
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
-      # Отключаем логирование в консоль
       - GF_LOG_LEVEL=warn
       - GF_LOG_FILTERS=tsdb.loki:error
-      # Для работы с nginx-proxy (автоматический SSL через Let's Encrypt)
-      - VIRTUAL_HOST=grafana.chessmint.ru
-      - VIRTUAL_PORT=3000
-      - LETSENCRYPT_HOST=grafana.chessmint.ru
-      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana-data:/var/lib/grafana
-    logging:
-      driver: "none"
     restart: unless-stopped
 
   loki:
     image: grafana/loki:2.9.8
     command: ["-config.file=/etc/loki/loki-config.yml"]
     ports:
-      - "31000:3100"
+      - "127.0.0.1:${LOKI_PORT:-31000}:3100"
     volumes:
       - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
       - loki-data:/loki
-    logging:
-      driver: "none"
+    restart: unless-stopped
 
   promtail:
     image: grafana/promtail:2.9.8
@@ -394,18 +329,12 @@ services:
       - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    logging:
-      driver: "none"
+    restart: unless-stopped
 
 volumes:
   pgdata:
   redis-data:
-  loki-data:
-  grafana-data:
-  prometheus-data:
   minio-data:
-  kafka-data:
-  nginx_certs:
-  acme:
-
-
+  prometheus-data:
+  grafana-data:
+  loki-data:

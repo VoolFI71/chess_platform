@@ -36,8 +36,11 @@ SERVICE_TABLES = {
     "puzzles": ["puzzles", "puzzle_user_stats", "puzzle_attempts"],
 }
 
-GAMES_MIGRATION_VERSION = "0001_games"
 GAMES_MIGRATION_VERSION_TABLE = "schema_migrations_games"
+GAMES_MIGRATIONS = (
+    ("0001_games", "0001_games.sql"),
+    ("0002_games_performance", "0002_games_performance.sql"),
+)
 
 
 def wait_for_database(timeout: float = 60.0, retry_interval: float = 2.0) -> None:
@@ -125,10 +128,6 @@ def apply_service_migrations(service_name: str, service_dir: str, version_table:
 
 def apply_games_migrations(engine) -> None:
     """Apply the shared SQL schema used by both Go game services."""
-    migration_path = BASE_DIR / "migrations_service" / "sql" / "0001_games.sql"
-    if not migration_path.exists():
-        raise FileNotFoundError(f"Games migration not found: {migration_path}")
-
     with engine.begin() as conn:
         conn.execute(
             text(f"""
@@ -138,27 +137,31 @@ def apply_games_migrations(engine) -> None:
                 )
             """)
         )
-        already_applied = conn.execute(
-            text(
-                f"SELECT 1 FROM {GAMES_MIGRATION_VERSION_TABLE} "
-                "WHERE version_num = :version"
-            ),
-            {"version": GAMES_MIGRATION_VERSION},
-        ).first()
-        if already_applied:
-            logger.info("Games migrations are already up to date")
-            return
+        for version, filename in GAMES_MIGRATIONS:
+            migration_path = BASE_DIR / "migrations_service" / "sql" / filename
+            if not migration_path.exists():
+                raise FileNotFoundError(f"Games migration not found: {migration_path}")
 
-        logger.info("Applying games and moves schema migration...")
-        conn.exec_driver_sql(migration_path.read_text(encoding="utf-8"))
-        conn.execute(
-            text(
-                f"INSERT INTO {GAMES_MIGRATION_VERSION_TABLE} (version_num) "
-                "VALUES (:version)"
-            ),
-            {"version": GAMES_MIGRATION_VERSION},
-        )
-    logger.info("Games and moves schema migration applied successfully")
+            already_applied = conn.execute(
+                text(
+                    f"SELECT 1 FROM {GAMES_MIGRATION_VERSION_TABLE} "
+                    "WHERE version_num = :version"
+                ),
+                {"version": version},
+            ).first()
+            if already_applied:
+                continue
+
+            logger.info("Applying games migration %s...", version)
+            conn.exec_driver_sql(migration_path.read_text(encoding="utf-8"))
+            conn.execute(
+                text(
+                    f"INSERT INTO {GAMES_MIGRATION_VERSION_TABLE} (version_num) "
+                    "VALUES (:version)"
+                ),
+                {"version": version},
+            )
+    logger.info("Games migrations are up to date")
 
 
 def main() -> None:

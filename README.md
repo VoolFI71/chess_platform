@@ -52,22 +52,24 @@ graph TB
 
 Нужны Docker и Docker Compose. Для локальной разработки также полезны Python 3.12+ и Go 1.24+.
 
-1. Скопируйте `.env.example` в `.env` и замените секреты и SMTP-настройки.
-2. Запустите production-профиль:
+1. Скопируйте `.env.example` в `.env` и замените все значения-заглушки. Не используйте реальные секреты из старого `.env`: они должны быть отозваны и перевыпущены.
+2. Запустите весь проект одной командой: PostgreSQL, Redis, миграции, все микросервисы, MinIO, мониторинг и gateway.
 
    ```bash
-   docker compose up -d --build
+   docker compose up --build
    ```
 
-3. Для локальной разработки используйте:
+   Точка входа: http://localhost:8080. Порты сервисов данных наружу не публикуются.
+
+3. Для production используйте отдельный файл окружения и overlay:
 
    ```bash
-   docker compose -f docker-compose.local.yml up --build
+   docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml up -d --build
    ```
 
-Сервис `migrations` запускается до зависимых приложений и создаёт схему Python-сервисов, а также общие таблицы `games` и `moves`.
+   В `.env.production` задайте как минимум `GATEWAY_CONFIG=gateway.prod.conf`, `LETSENCRYPT_DOMAIN` и `LETSENCRYPT_EMAIL`.
 
-После запуска локальная точка входа — http://localhost:8080.
+Сервис `migrations` ждёт готовности PostgreSQL, затем создаёт схему Python-сервисов и общие таблицы `games` и `moves`. Зависимые сервисы запускаются только после успешных миграций.
 
 ## Структура проекта
 
@@ -87,8 +89,8 @@ graph TB
 ├── go_shared/                # общие Go-компоненты
 ├── nginx/
 ├── monitoring/
-├── docker-compose.yml
-└── docker-compose.local.yml
+├── docker-compose.yml          # базовый локальный запуск и профили
+└── docker-compose.prod.yml     # production overlay
 ```
 
 ## Конфигурация и безопасность
@@ -96,9 +98,9 @@ graph TB
 - JWT проверяется по `JWT_SECRET`, точному `JWT_ALGORITHM` и claim `type=access`.
 - Внутренние HTTP-вызовы используют единый заголовок `X-Internal-Token`; отсутствие секрета считается ошибкой конфигурации.
 - WebSocket-соединения принимаются только с origins из `WS_ALLOWED_ORIGINS`. Запросы без `Origin` разрешены для не-браузерных клиентов.
-- Секреты должны храниться в `.env` или секрет-хранилище и не должны попадать в git.
+- Секреты должны храниться в `.env` или секрет-хранилище и не должны попадать в git. `.env` не передаётся контейнерам целиком: каждый сервис получает только свои переменные.
 
-Для production заполните `LETSENCRYPT_DOMAIN`, `LETSENCRYPT_EMAIL`, SMTP-параметры и `WS_ALLOWED_ORIGINS`. Для локального запуска в примере уже указаны origins `localhost` и `127.0.0.1`.
+Для production заполните `LETSENCRYPT_DOMAIN`, `LETSENCRYPT_EMAIL`, SMTP-параметры, Grafana-учётные данные и `WS_ALLOWED_ORIGINS`. Для локального запуска в примере уже указаны origins `localhost` и `127.0.0.1`.
 
 ## Производительность
 

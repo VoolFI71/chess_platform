@@ -49,17 +49,9 @@ def get_url() -> str:
 	# Для миграций используем DATABASE_URL из переменных окружения
 	# Это позволяет избежать необходимости в jwt_secret и других полях Settings
 	database_url = os.getenv("DATABASE_URL")
-	if database_url:
-		return database_url
-	
-	# Fallback: пытаемся использовать get_settings (для локальной разработки)
-	try:
-		from app.config import get_settings  # noqa: E402
-		settings = get_settings()
-		return settings.database_url
-	except Exception:
-		# Если не удалось загрузить настройки, используем значение по умолчанию
-		return "postgresql://chess:chess@db:5432/chess"
+	if not database_url:
+		raise RuntimeError("DATABASE_URL is required to run auth migrations")
+	return database_url
 
 
 def run_migrations_offline() -> None:
