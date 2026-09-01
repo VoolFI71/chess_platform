@@ -97,40 +97,26 @@ async def get_aggregate_stats(
 	):
 		return _aggregate_cache
 	
-	# Кеш устарел или отсутствует - выполняем медленные COUNT(*) запросы
-	# Общее количество решений - считаем из таблицы PuzzleAttempt (более надежно)
-	# так как это источник истины для всех попыток решения
-	total_solutions_result = await db.execute(
-		select(func.count()).select_from(PuzzleAttempt).where(PuzzleAttempt.status == "success")
-	)
-	total_solutions = total_solutions_result.scalar()
-	if total_solutions is None:
-		total_solutions = 0
-	
-	# Альтернативный подсчет из PuzzleUserStats (для совместимости)
-	# Используем как fallback, если нужно
-	total_solutions_from_stats_result = await db.execute(
-		select(func.coalesce(func.sum(PuzzleUserStats.solved_count), 0))
-	)
-	total_solutions_from_stats = total_solutions_from_stats_result.scalar()
-	if total_solutions_from_stats is None:
-		total_solutions_from_stats = 0
-	
-	# Используем больший из двух значений (на случай рассинхронизации)
-	total_solutions = max(int(total_solutions), int(total_solutions_from_stats))
-	
-	# Общее количество задач в базе
-	total_puzzles_result = await db.execute(
-		select(func.count()).select_from(Puzzle)
-	)
-	total_puzzles = total_puzzles_result.scalar()
-	if total_puzzles is None:
-		total_puzzles = 0
+	# Оба агрегата получаем одним round-trip к БД.
+	aggregates = (
+		await db.execute(
+			select(
+				select(func.count())
+				.select_from(PuzzleAttempt)
+				.where(PuzzleAttempt.status == "success")
+				.scalar_subquery()
+				.label("total_solutions"),
+				select(func.count()).select_from(Puzzle).scalar_subquery().label("total_puzzles"),
+			)
+		)
+	).one()
+	total_solutions = int(aggregates.total_solutions or 0)
+	total_puzzles = int(aggregates.total_puzzles or 0)
 	
 	# Сохраняем в кеш
 	result = {
 		"total_solutions": total_solutions,
-		"total_puzzles": int(total_puzzles),
+		"total_puzzles": total_puzzles,
 	}
 	_aggregate_cache = result
 	_aggregate_cache_timestamp = now
@@ -242,4 +228,3 @@ async def get_user_theme_stats(
 		user_id=user_id,
 		themes=themes_list
 	)
-

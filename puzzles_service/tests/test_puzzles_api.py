@@ -22,8 +22,14 @@ def mock_puzzle():
 	puzzle.rating = 1500
 	puzzle.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 	puzzle.moves = ["e2e4", "e7e5"]
+	puzzle.move_count = 2
+	puzzle.rating_deviation = 50
+	puzzle.popularity = 10
+	puzzle.nb_plays = 100
+	puzzle.solved_count = 5
 	puzzle.themes = ["fork", "mateIn2"]
 	puzzle.opening_tags = ["kings_gambit"]
+	puzzle.game_url = None
 	return puzzle
 
 

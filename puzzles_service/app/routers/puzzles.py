@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func, select
@@ -19,12 +19,11 @@ settings = get_settings()
 
 @puzzles_router.get("/random", response_model=PuzzleResponse, response_model_exclude_none=True)
 async def get_random_puzzle(
+	response: Response,
 	rating_min: int | None = Query(default=None, ge=400),
 	rating_max: int | None = Query(default=None, le=3500),
 	themes: Sequence[str] | None = Query(default=None),
 	opening_tags: Sequence[str] | None = Query(default=None),
-	db: AsyncSession = Depends(get_db),
-	response: Response = Response(),
 ) -> PuzzleResponse:
 	filters = PuzzleFilters(
 		rating_min=rating_min,
@@ -84,7 +83,7 @@ async def get_daily_puzzle(
 	logger = logging.getLogger(__name__)
 	
 	# Получаем текущую дату в UTC
-	today = date.today()
+	today = datetime.now(timezone.utc).date()
 	
 	# Получаем или создаем задачу дня
 	daily_service = get_daily_puzzle_service()
@@ -110,21 +109,24 @@ async def get_daily_puzzle(
 			detail="Ошибка при загрузке метаданных задачи дня.",
 		)
 	
-	# Проверяем, решена ли задача текущим пользователем
-	is_solved = False
+	# Количество решений и статус текущего пользователя берём одним запросом.
+	summary_columns = [
+		func.count().label("today_solved_count"),
+	]
 	if current_user_id is not None:
-		solution_stmt = select(DailyPuzzleSolution).where(
-			DailyPuzzleSolution.user_id == current_user_id,
-			DailyPuzzleSolution.date == today,
+		summary_columns.insert(
+			0,
+			func.count(DailyPuzzleSolution.id)
+			.filter(DailyPuzzleSolution.user_id == current_user_id)
+			.label("user_solution_count"),
 		)
-		solution_result = await db.execute(solution_stmt)
-		is_solved = solution_result.scalar_one_or_none() is not None
-	
-	# Подсчитываем количество решений за сегодня
-	count_stmt = select(func.count()).select_from(DailyPuzzleSolution).where(
-		DailyPuzzleSolution.date == today
-	)
-	today_solved_count = await db.scalar(count_stmt) or 0
+	summary = (
+		await db.execute(
+			select(*summary_columns).where(DailyPuzzleSolution.date == today)
+		)
+	).one()
+	is_solved = bool(summary.user_solution_count) if current_user_id is not None else False
+	today_solved_count = int(summary.today_solved_count or 0)
 	
 	logger.info(
 		"Daily puzzle served for date %s: puzzle_id=%s, rating=%d, solved_count=%d",

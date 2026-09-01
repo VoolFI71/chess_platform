@@ -11,7 +11,6 @@ import (
 	"github.com/VoolFI71/go-arena"
 	"github.com/google/uuid"
 	"github.com/notnil/chess"
-	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -30,6 +29,14 @@ func NewGameService(db *database.DB) *GameService {
 		// Инициализируем пул арены: чанк 16КБ, без лимита на удержание (0)
 		arenaPool: arena.NewArenaPool(16*1024, 0),
 	}
+}
+
+func (s *GameService) GetAggregateStats(ctx context.Context) (int64, error) {
+	var totalGames int64
+	if err := s.db.WithContext(ctx).Model(&models.Game{}).Count(&totalGames).Error; err != nil {
+		return 0, fmt.Errorf("failed to count games: %w", err)
+	}
+	return totalGames, nil
 }
 
 type CreateGameRequest struct {
@@ -161,7 +168,7 @@ func (s *GameService) GetGameWithMoves(ctx context.Context, gameID uuid.UUID, mo
 		moves, err = s.GetMoves(ctx, gameID, 0)
 	}
 	if err != nil {
-		moves = []models.Move{}
+		return nil, fmt.Errorf("failed to get game moves: %w", err)
 	}
 
 	detail := &models.GameDetail{
@@ -1365,78 +1372,50 @@ func (s *GameService) MakeMove(ctx context.Context, gameID uuid.UUID, playerID *
 }
 
 func (s *GameService) GetUserGameStats(ctx context.Context, userID int) (*models.UserGameStats, error) {
-	// Получаем все завершенные партии пользователя
-	var games []models.Game
-	err := s.db.WithContext(ctx).Where(
-		"(white_id = ? OR black_id = ?) AND status = ?",
-		userID, userID, models.GameStatusFinished,
-	).Find(&games).Error
-	if err != nil {
-		return nil, fmt.Errorf("failed to get games: %w", err)
+	type aggregateStats struct {
+		Wins   int64
+		Losses int64
+		Draws  int64
+	}
+	type formatStatsRow struct {
+		Format string
+		Games  int64
+		Wins   int64
+		Losses int64
+		Draws  int64
 	}
 
-	// Функция для определения формата игры
-	getGameFormat := func(timeControlJSON datatypes.JSON) string {
-		if len(timeControlJSON) == 0 {
-			return "classical"
-		}
-		var tc models.TimeControl
-		if err := json.Unmarshal(timeControlJSON, &tc); err != nil {
-			return "classical"
-		}
-		initialMinutes := float64(tc.InitialMs) / 60000.0
+	const formatExpression = `CASE
+		WHEN time_control IS NULL OR NOT (time_control ? 'initial_ms') THEN 'classical'
+		WHEN (time_control->>'initial_ms')::bigint < 180000 THEN 'bullet'
+		WHEN (time_control->>'initial_ms')::bigint < 600000 THEN 'blitz'
+		WHEN (time_control->>'initial_ms')::bigint < 1800000 THEN 'rapid'
+		ELSE 'classical'
+	END`
+	const resultCounts = `
+		COUNT(*) FILTER (WHERE (white_id = ? AND result = ?) OR (black_id = ? AND result = ?)) AS wins,
+		COUNT(*) FILTER (WHERE (white_id = ? AND result = ?) OR (black_id = ? AND result = ?)) AS losses,
+		COUNT(*) FILTER (WHERE result = ?) AS draws`
 
-		if initialMinutes < 3 {
-			return "bullet"
-		} else if initialMinutes < 10 {
-			return "blitz"
-		} else if initialMinutes < 30 {
-			return "rapid"
-		}
-		return "classical"
+	var totals aggregateStats
+	if err := s.db.WithContext(ctx).Raw(
+		"SELECT "+resultCounts+" FROM games WHERE (white_id = ? OR black_id = ?) AND status = ?",
+		userID, models.ResultWhiteWin, userID, models.ResultBlackWin,
+		userID, models.ResultBlackWin, userID, models.ResultWhiteWin,
+		models.ResultDraw, userID, userID, models.GameStatusFinished,
+	).Scan(&totals).Error; err != nil {
+		return nil, fmt.Errorf("failed to aggregate game stats: %w", err)
 	}
 
-	// Подсчет статистики
-	type formatStat struct {
-		Games  int
-		Wins   int
-		Losses int
-		Draws  int
-	}
-	formatStats := map[string]*formatStat{
-		"blitz":     {},
-		"bullet":    {},
-		"rapid":     {},
-		"classical": {},
-	}
-
-	totalWins := 0
-	totalLosses := 0
-	totalDraws := 0
-
-	for _, game := range games {
-		formatType := getGameFormat(game.TimeControl)
-		formatStats[formatType].Games++
-
-		if game.Result != nil {
-			isWhite := game.WhiteID != nil && *game.WhiteID == userID
-
-			if *game.Result == models.ResultDraw {
-				formatStats[formatType].Draws++
-				totalDraws++
-			} else {
-				isWinner := (*game.Result == models.ResultWhiteWin && isWhite) ||
-					(*game.Result == models.ResultBlackWin && !isWhite)
-
-				if isWinner {
-					formatStats[formatType].Wins++
-					totalWins++
-				} else {
-					formatStats[formatType].Losses++
-					totalLosses++
-				}
-			}
-		}
+	var formatRows []formatStatsRow
+	if err := s.db.WithContext(ctx).Raw(
+		"SELECT "+formatExpression+" AS format, COUNT(*) AS games, "+resultCounts+
+			" FROM games WHERE (white_id = ? OR black_id = ?) AND status = ? GROUP BY format",
+		userID, models.ResultWhiteWin, userID, models.ResultBlackWin,
+		userID, models.ResultBlackWin, userID, models.ResultWhiteWin,
+		models.ResultDraw, userID, userID, models.GameStatusFinished,
+	).Scan(&formatRows).Error; err != nil {
+		return nil, fmt.Errorf("failed to aggregate game stats by format: %w", err)
 	}
 
 	// Получаем рейтинги пользователя из таблицы users
@@ -1447,7 +1426,7 @@ func (s *GameService) GetUserGameStats(ctx context.Context, userID int) (*models
 		PuzzleRating *int `gorm:"column:puzzle_rating"`
 	}
 	var ratings UserRatings
-	err = s.db.WithContext(ctx).Table("users").
+	err := s.db.WithContext(ctx).Table("users").
 		Select("blitz_rating, bullet_rating, rapid_rating, puzzle_rating").
 		Where("id = ?", userID).
 		First(&ratings).Error
@@ -1473,37 +1452,34 @@ func (s *GameService) GetUserGameStats(ctx context.Context, userID int) (*models
 		puzzleRating = *ratings.PuzzleRating
 	}
 
-	totalGames := totalWins + totalLosses + totalDraws
+	totalGames := int(totals.Wins + totals.Losses + totals.Draws)
 	overallWinRate := 0.0
 	if totalGames > 0 {
-		overallWinRate = float64(totalWins) / float64(totalGames) * 100.0
+		overallWinRate = float64(totals.Wins) / float64(totalGames) * 100.0
 	}
 
-	// Формируем список статистики по форматам
-	byFormat := []models.GameFormatStats{}
-	for fmt, stats := range formatStats {
-		if stats.Games > 0 {
-			winRate := 0.0
-			if stats.Games > 0 {
-				winRate = float64(stats.Wins) / float64(stats.Games) * 100.0
-			}
-			byFormat = append(byFormat, models.GameFormatStats{
-				Format:      fmt,
-				GamesPlayed: stats.Games,
-				Wins:        stats.Wins,
-				Losses:      stats.Losses,
-				Draws:       stats.Draws,
-				WinRate:     math.Trunc(winRate*10+0.5) / 10, // Округление до 1 знака
-			})
+	byFormat := make([]models.GameFormatStats, 0, len(formatRows))
+	for _, row := range formatRows {
+		winRate := 0.0
+		if row.Games > 0 {
+			winRate = float64(row.Wins) / float64(row.Games) * 100.0
 		}
+		byFormat = append(byFormat, models.GameFormatStats{
+			Format:      row.Format,
+			GamesPlayed: int(row.Games),
+			Wins:        int(row.Wins),
+			Losses:      int(row.Losses),
+			Draws:       int(row.Draws),
+			WinRate:     math.Trunc(winRate*10+0.5) / 10,
+		})
 	}
 
 	return &models.UserGameStats{
 		TotalGames:     totalGames,
-		TotalWins:      totalWins,
-		TotalLosses:    totalLosses,
-		TotalDraws:     totalDraws,
-		OverallWinRate: math.Trunc(overallWinRate*10+0.5) / 10, // Округление до 1 знака
+		TotalWins:      int(totals.Wins),
+		TotalLosses:    int(totals.Losses),
+		TotalDraws:     int(totals.Draws),
+		OverallWinRate: math.Trunc(overallWinRate*10+0.5) / 10,
 		BlitzRating:    blitzRating,
 		BulletRating:   bulletRating,
 		RapidRating:    rapidRating,

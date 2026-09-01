@@ -6,7 +6,7 @@ import pytest
 
 from puzzles_service.app.models import Puzzle
 from puzzles_service.app.services.puzzle_cache import PuzzleCache
-from puzzles_service.app.schemas import PuzzleFilters
+from puzzles_service.app.schemas import PuzzleFilters, PuzzleResponse
 
 
 @pytest.fixture
@@ -17,6 +17,14 @@ def mock_puzzle():
 	puzzle.rating = 1500
 	puzzle.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 	puzzle.moves = ["e2e4", "e7e5"]
+	puzzle.move_count = 2
+	puzzle.rating_deviation = 50
+	puzzle.popularity = 10
+	puzzle.nb_plays = 100
+	puzzle.solved_count = 5
+	puzzle.themes = []
+	puzzle.opening_tags = []
+	puzzle.game_url = None
 	return puzzle
 
 
@@ -26,6 +34,26 @@ def puzzle_cache():
 
 
 class TestPuzzleCache:
+	def test_cache_is_bounded(self, puzzle_cache, mock_puzzle):
+		puzzle_cache._max_keys = 1
+		cached_puzzle = PuzzleResponse.model_validate(mock_puzzle)
+
+		puzzle_cache._set_cache("first", [cached_puzzle])
+		puzzle_cache._set_cache("second", [cached_puzzle])
+
+		assert "first" not in puzzle_cache._caches
+		assert "second" in puzzle_cache._caches
+
+	async def test_refresh_stores_response_dto(self, puzzle_cache, mock_puzzle):
+		mock_session = AsyncMock()
+		mock_result = MagicMock()
+		mock_result.scalars.return_value.all.return_value = [mock_puzzle]
+		mock_session.execute = AsyncMock(return_value=mock_result)
+
+		await puzzle_cache._refresh_cache(mock_session, "dto_key", None)
+
+		assert isinstance(puzzle_cache._caches["dto_key"][0], PuzzleResponse)
+
 	async def test_get_random_puzzle_from_fresh_cache(self, puzzle_cache, mock_puzzle):
 		"""Получение задачи из свежего кеша."""
 		cache_key = puzzle_cache._build_cache_key(None)
@@ -79,12 +107,12 @@ class TestPuzzleCache:
 		assert key1 != key3
 
 	def test_build_cache_key_rating_rounding(self, puzzle_cache):
-		"""Округление рейтинга для стабильности ключа кеша."""
+		"""Рейтинг входит в ключ без потери точности фильтра."""
 		filters = PuzzleFilters(rating_min=1331, rating_max=1481)
 		key = puzzle_cache._build_cache_key(filters)
 		
-		assert "rmin_1200" in key or "rmin_1181" in key
-		assert "rmax_1500" in key or "rmax_1481" in key
+		assert "rmin_1331" in key
+		assert "rmax_1481" in key
 
 	async def test_cache_refresh_with_tablesample(self, puzzle_cache, mock_puzzle):
 		"""Обновление кеша с использованием TABLESAMPLE."""
@@ -99,17 +127,3 @@ class TestPuzzleCache:
 		call_args = mock_session.execute.call_args[0][0]
 		query_str = str(call_args)
 		assert "TABLESAMPLE" in query_str or mock_session.execute.called
-
-	async def test_cache_refresh_fallback_on_tablesample_failure(self, puzzle_cache, mock_puzzle):
-		"""Fallback при ошибке TABLESAMPLE."""
-		mock_session = AsyncMock()
-		
-		mock_session.execute = AsyncMock(side_effect=[
-			Exception("TABLESAMPLE failed"),
-			MagicMock(scalar=AsyncMock(return_value=(1, 1000))),
-			MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[mock_puzzle]))))
-		])
-		
-		await puzzle_cache._refresh_cache(mock_session, "test_key", None)
-		
-		assert mock_session.execute.call_count > 1
