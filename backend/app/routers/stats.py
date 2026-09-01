@@ -1,10 +1,15 @@
+import asyncio
 import os
+from typing import Any
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
+
+_STATS_TIMEOUT = httpx.Timeout(connect=2.0, read=5.0, write=5.0, pool=5.0)
+
 
 class GlobalStatsResponse(BaseModel):
     total_puzzle_solutions: int
@@ -13,104 +18,112 @@ class GlobalStatsResponse(BaseModel):
     total_puzzles: int
 
 
-async def _get_puzzles_stats() -> dict:
-    """Получить статистику из puzzles_service"""
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get("http://puzzles:8000/puzzles/stats/aggregate")
-            if response.status_code == 200:
-                return response.json()
-            return {"total_solutions": 0, "total_puzzles": 0}
-    except Exception:
-        return {"total_solutions": 0, "total_puzzles": 0}
-
-
-async def _get_games_stats() -> dict:
-    """Получить статистику из games_service"""
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get("http://games:8000/api/games/stats/aggregate")
-            if response.status_code == 200:
-                return response.json()
-            return {"total_games": 0}
-    except Exception:
-        return {"total_games": 0}
-
-
-async def _get_users_stats() -> dict:
-    """Получить статистику из users_service"""
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get("http://users:8000/api/users/stats/aggregate")
-            if response.status_code == 200:
-                return response.json()
-            return {"total_users": 0}
-    except Exception:
-        return {"total_users": 0}
-
-
-@router.get("/global", response_model=GlobalStatsResponse)
-async def get_global_stats() -> GlobalStatsResponse:
-    """
-    Получить общую статистику платформы:
-    - Общее количество решений задач
-    - Общее количество сыгранных партий
-    - Общее количество пользователей
-    - Общее количество задач
-    
-    Примечание: Эндпоинт доступен для локального использования, но не используется на фронтенде
-    """
-    puzzles_stats = await _get_puzzles_stats()
-    games_stats = await _get_games_stats()
-    users_stats = await _get_users_stats()
-    
-    return GlobalStatsResponse(
-        total_puzzle_solutions=puzzles_stats.get("total_solutions", 0),
-        total_games_played=games_stats.get("total_games", 0),
-        total_users=users_stats.get("total_users", 0),
-        total_puzzles=puzzles_stats.get("total_puzzles", 0),
-    )
-
-
 class OnlineStatsResponse(BaseModel):
     online_players: int
     active_games: int
 
 
-async def _get_online_stats() -> dict:
-    """Получить статистику онлайн из games_service"""
-    # Получаем внутренний токен для вызова games_service
-    # games_service использует GAMES_INTERNAL_TOKEN или INTERNAL_TOKEN
-    internal_token = os.getenv("GAMES_INTERNAL_TOKEN") or os.getenv("INTERNAL_TOKEN")
-    if not internal_token:
-        # Если токен не настроен, возвращаем дефолтные значения
-        return {"online_players": 0, "active_games": 0}
-    
+async def _fetch_stats(
+    client: httpx.AsyncClient,
+    *,
+    service_name: str,
+    url: str,
+    headers: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Fetch JSON from a dependent service without hiding failures as zeroes."""
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(
-                "http://games:8000/internal/stats/online",
-                headers={"X-Internal-Token": internal_token},
-            )
-            if response.status_code == 200:
-                return response.json()
-            return {"online_players": 0, "active_games": 0}
-    except Exception:
-        return {"online_players": 0, "active_games": 0}
+        response = await client.get(url, headers=headers)
+        response.raise_for_status()
+    except httpx.TimeoutException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail=f"{service_name} did not respond in time",
+        ) from exc
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"{service_name} returned HTTP {exc.response.status_code}",
+        ) from exc
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"{service_name} is unavailable",
+        ) from exc
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"{service_name} returned invalid JSON",
+        ) from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"{service_name} returned an invalid response",
+        )
+    return payload
+
+
+def _required_int(payload: dict[str, Any], key: str, service_name: str) -> int:
+    value = payload.get(key)
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"{service_name} response is missing integer field '{key}'",
+        )
+    return value
+
+
+@router.get("/global", response_model=GlobalStatsResponse)
+async def get_global_stats() -> GlobalStatsResponse:
+    """Return the aggregate platform statistics from their owning services."""
+    async with httpx.AsyncClient(timeout=_STATS_TIMEOUT) as client:
+        puzzles_stats, games_stats, users_stats = await asyncio.gather(
+            _fetch_stats(
+                client,
+                service_name="Puzzles service",
+                url="http://puzzles:8000/puzzles/stats/aggregate",
+            ),
+            _fetch_stats(
+                client,
+                service_name="Games service",
+                url="http://games:8000/api/games/stats/aggregate",
+            ),
+            _fetch_stats(
+                client,
+                service_name="Users service",
+                url="http://users:8000/api/users/stats/aggregate",
+            ),
+        )
+
+    return GlobalStatsResponse(
+        total_puzzle_solutions=_required_int(puzzles_stats, "total_solutions", "Puzzles service"),
+        total_games_played=_required_int(games_stats, "total_games", "Games service"),
+        total_users=_required_int(users_stats, "total_users", "Users service"),
+        total_puzzles=_required_int(puzzles_stats, "total_puzzles", "Puzzles service"),
+    )
 
 
 @router.get("/online", response_model=OnlineStatsResponse)
 async def get_online_stats() -> OnlineStatsResponse:
-    """
-    Получить статистику онлайн (без кэширования):
-    - Количество игроков онлайн (уникальных пользователей с активными WebSocket соединениями)
-    - Количество активных игр
-    
-    Примечание: Для real-time обновлений рекомендуется использовать WebSocket endpoint /ws/stats
-    """
-    stats = await _get_online_stats()
-    return OnlineStatsResponse(
-        online_players=stats.get("online_players", 0),
-        active_games=stats.get("active_games", 0),
-    )
+    """Return online player and active-game counts from games_service."""
+    internal_token = os.getenv("GAMES_INTERNAL_TOKEN") or os.getenv("INTERNAL_TOKEN")
+    if not internal_token:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Games service internal token is not configured",
+        )
 
+    async with httpx.AsyncClient(timeout=_STATS_TIMEOUT) as client:
+        stats = await _fetch_stats(
+            client,
+            service_name="Games service",
+            url="http://games:8000/internal/stats/online",
+            headers={"X-Internal-Token": internal_token},
+        )
+
+    return OnlineStatsResponse(
+        online_players=_required_int(stats, "online_players", "Games service"),
+        active_games=_required_int(stats, "active_games", "Games service"),
+    )

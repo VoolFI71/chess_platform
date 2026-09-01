@@ -312,6 +312,17 @@ func listGames(service *services.GameService) gin.HandlerFunc {
 	}
 }
 
+func getAggregateStats(service *services.GameService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		totalGames, err := service.GetAggregateStats(c.Request.Context())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load aggregate game stats"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"total_games": totalGames})
+	}
+}
+
 func getUserStats(service *services.GameService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDStr := c.Param("user_id")

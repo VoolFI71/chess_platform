@@ -70,24 +70,8 @@ func ValidateJWT(tokenString, secret, expectedAlgorithm string) (int, error) {
 		found = true
 	}
 
-	// Fallback to "user_id"
 	if !found {
-		if uidStr, ok := claims["user_id"].(string); ok {
-			if parsed, err := strconv.Atoi(uidStr); err == nil {
-				userID = parsed
-				found = true
-			}
-		} else if uidFloat, ok := claims["user_id"].(float64); ok {
-			userID = int(uidFloat)
-			found = true
-		} else if uidInt, ok := claims["user_id"].(int); ok {
-			userID = uidInt
-			found = true
-		}
-	}
-
-	if !found {
-		return 0, fmt.Errorf("user_id not found in token claims (sub or user_id)")
+		return 0, fmt.Errorf("sub not found in token claims")
 	}
 
 	return userID, nil
@@ -96,10 +80,7 @@ func ValidateJWT(tokenString, secret, expectedAlgorithm string) (int, error) {
 // AuthMiddleware requires a valid JWT token. Returns 401 if missing or invalid.
 func AuthMiddleware(cfg *AuthConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			tokenString = c.Query("token")
-		}
+		tokenString, _ := c.Cookie("access_token")
 
 		if tokenString == "" {
 			c.JSON(401, gin.H{"error": "unauthorized"})
@@ -119,14 +100,11 @@ func AuthMiddleware(cfg *AuthConfig) gin.HandlerFunc {
 	}
 }
 
-// OptionalAuthMiddleware tries JWT first, then falls back to X-Session-ID / session_id query.
+// OptionalAuthMiddleware accepts JWT cookies or anonymous X-Session-ID/session_id.
 // If neither is provided, continues without authentication (for public endpoints).
 func OptionalAuthMiddleware(cfg *AuthConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
-			tokenString = c.Query("token")
-		}
+		tokenString, _ := c.Cookie("access_token")
 
 		if tokenString != "" {
 			userID, err := ValidateJWT(tokenString, cfg.JWTSecret, cfg.JWTAlgorithm)
@@ -137,7 +115,7 @@ func OptionalAuthMiddleware(cfg *AuthConfig) gin.HandlerFunc {
 			}
 		}
 
-		// Fallback: session_id for anonymous users
+		// Anonymous access path: session_id for public endpoints
 		sessionID := c.GetHeader("X-Session-ID")
 		if sessionID == "" {
 			sessionID = c.Query("session_id")

@@ -27,6 +27,11 @@ app.include_router(stats.router)
 app.include_router(notifications.router)
 
 
+@app.on_event("shutdown")
+async def close_service_clients() -> None:
+    await notifications.close_notifications_client()
+
+
 # Frontend serving
 WEB_DIR = Path(settings.web_dir).resolve()
 
@@ -198,20 +203,6 @@ def serve_favicon_ico():
     if ico_path.is_file():
         response = FileResponse(str(ico_path))
         response.headers["Content-Type"] = "image/x-icon"
-        return response
-    
-    # Fallback 1: PNG файл (если ICO еще не создан)
-    png_path = WEB_DIR / "favicon.png"
-    if png_path.is_file():
-        response = FileResponse(str(png_path))
-        response.headers["Content-Type"] = "image/png"
-        return response
-    
-    # Fallback 2: SVG файл
-    svg_path = WEB_DIR / "favicon.svg"
-    if svg_path.is_file():
-        response = FileResponse(str(svg_path))
-        response.headers["Content-Type"] = "image/svg+xml; charset=utf-8"
         return response
     
     return JSONResponse({"detail": "Not Found"}, status_code=404)

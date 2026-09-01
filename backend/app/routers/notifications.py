@@ -4,16 +4,22 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
+from common import InternalServiceClient, ServiceClientNotConfigured
+
 from ..config import get_settings
 from ..security import CurrentUser, get_current_user
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
 settings = get_settings()
+_notifications_client = InternalServiceClient(
+    "Notifications service",
+    lambda: ("http://notifications:8000", os.getenv("INTERNAL_TOKEN") or settings.api_internal_token),
+    read_timeout=10.0,
+)
 
 
 class SendNotificationRequest(BaseModel):
-    """Схема для отправки уведомления"""
     user_id: int
     type: str
     title: str
@@ -21,65 +27,49 @@ class SendNotificationRequest(BaseModel):
     data: dict | None = None
 
 
+async def close_notifications_client() -> None:
+    await _notifications_client.close()
+
+
 @router.post("/send", status_code=status.HTTP_201_CREATED)
 async def send_notification(
     request: SendNotificationRequest,
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    """
-    Отправить уведомление другому пользователю.
-    Требует авторизации - только авторизованные пользователи могут отправлять уведомления.
-    """
-    # Получаем внутренний токен для вызова notifications_service
-    # Проверяем через переменную окружения, так как notifications_service использует INTERNAL_TOKEN
-    import os
-    internal_token = os.getenv("INTERNAL_TOKEN") or settings.api_internal_token
-    if not internal_token:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Notifications service is not configured (INTERNAL_TOKEN missing)",
-        )
-
-    # Вызываем notifications_service
-    notifications_service_url = "http://notifications:8000/api/notifications/"
-    
+    """Send an authenticated internal request to notifications_service."""
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                notifications_service_url,
-                json={
-                    "user_id": request.user_id,
-                    "type": request.type,
-                    "title": request.title,
-                    "message": request.message,
-                    "data": request.data,
-                },
-				headers={
-					"X-Internal-Token": internal_token,
-					"Content-Type": "application/json",
-                },
-            )
+        client = await _notifications_client.get()
+    except ServiceClientNotConfigured as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Notifications service is not configured",
+        ) from exc
 
-            if response.status_code == 201:
-                return response.json()
-            elif response.status_code == 401:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to authenticate with notifications service",
-                )
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Notifications service returned error: {response.status_code}",
-                )
-    except httpx.TimeoutException:
+    try:
+        response = await client.post(
+            "/api/notifications/",
+            json={
+                "user_id": request.user_id,
+                "type": request.type,
+                "title": request.title,
+                "message": request.message,
+                "data": request.data,
+            },
+        )
+        response.raise_for_status()
+        return response.json()
+    except httpx.TimeoutException as exc:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="Notifications service timeout",
-        )
-    except httpx.RequestError as e:
+        ) from exc
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Notifications service returned HTTP {exc.response.status_code}",
+        ) from exc
+    except httpx.RequestError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Failed to connect to notifications service: {str(e)}",
-        )
-
+            detail="Notifications service is unavailable",
+        ) from exc

@@ -2,8 +2,7 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Request, status
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy import select
@@ -18,9 +17,6 @@ from .services.users_api import fetch_user_by_id
 
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
-bearer_scheme = HTTPBearer(auto_error=True)
-
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
 	return pwd_context.verify(plain_password, hashed_password)
 
@@ -152,9 +148,11 @@ async def validate_refresh_token(db: AsyncSession, token: str) -> RefreshToken:
 
 
 async def get_current_user(
-	credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+	request: Request,
 ) -> UserOut:
-	token = credentials.credentials
+	token = request.cookies.get("access_token")
+	if not token:
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Требуется авторизация")
 	try:
 		payload = decode_token(token)
 	except JWTError:

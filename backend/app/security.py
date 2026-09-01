@@ -1,16 +1,12 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Request, status
 from jose import JWTError, jwt
 
 from common import make_internal_token_verifier
 
 from .config import get_settings
-
-
-bearer_scheme = HTTPBearer(auto_error=True)
 
 
 @dataclass
@@ -41,9 +37,12 @@ def decode_access_token(token: str) -> CurrentUser:
 
 
 async def get_current_user(
-	credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+	request: Request,
 ) -> CurrentUser:
-	return decode_access_token(credentials.credentials)
+	token = request.cookies.get("access_token")
+	if not token:
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Требуется авторизация")
+	return decode_access_token(token)
 
 
 async def get_current_user_id(current_user: CurrentUser = Depends(get_current_user)) -> int:

@@ -48,6 +48,7 @@ func NewRouter(db *database.DB, wsManager *realtime.ConnectionManager, statsMana
 		api.POST("/", middleware.OptionalAuthMiddleware(authCfg), createGame(gameService))
 		api.GET("", listGames(gameService))
 		api.GET("/", listGames(gameService))
+		api.GET("/stats/aggregate", getAggregateStats(gameService))
 		api.GET("/:game_id", getGame(gameService))
 		api.POST("/:game_id/join", middleware.OptionalAuthMiddleware(authCfg), joinGame(gameService, wsManager))
 		api.POST("/:game_id/resign", middleware.OptionalAuthMiddleware(authCfg), resignGame(gameService, wsManager))

@@ -3,9 +3,9 @@ import httpx
 import random
 import re
 import secrets
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, Response, status, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
@@ -18,10 +18,9 @@ from ..schemas import (
 	LoginInput,
 	PasswordResetRequest,
 	PasswordResetResponse,
-	RefreshInput,
+	AuthSuccess,
 	RegisterWithCodeRequest,
 	ResetPasswordRequest,
-	Token,
 	UserCreate,
 	UserOut,
 	VerifyResetCodeRequest,
@@ -42,6 +41,35 @@ USERNAME_ALLOWED_RE = re.compile(r"[^A-Za-z0-9_.-]+")
 
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+	"""Store application tokens in HttpOnly cookies while keeping JSON compatibility."""
+	settings = get_settings()
+	secure = settings.environment.lower() == "production"
+	response.set_cookie(
+		"access_token",
+		access_token,
+		max_age=settings.access_token_expire_minutes * 60,
+		http_only=True,
+		secure=secure,
+		samesite="lax",
+		path="/",
+	)
+	response.set_cookie(
+		"refresh_token",
+		refresh_token,
+		max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+		http_only=True,
+		secure=secure,
+		samesite="lax",
+		path="/api/auth",
+	)
+
+
+def _clear_auth_cookies(response: Response) -> None:
+	response.delete_cookie("access_token", path="/")
+	response.delete_cookie("refresh_token", path="/api/auth")
 
 
 def _generate_oauth_username() -> str:
@@ -214,8 +242,12 @@ async def register_verify_code(
 	return user
 
 
-@router.post("/login", response_model=Token)
-async def login(data: LoginInput, db: AsyncSession = Depends(get_db)) -> Token:
+@router.post("/login", response_model=AuthSuccess)
+async def login(
+	data: LoginInput,
+	response: Response,
+	db: AsyncSession = Depends(get_db),
+) -> AuthSuccess:
 	login_value = data.login.strip().lower()
 	user_data = await fetch_user_by_login(login_value)
 
@@ -232,13 +264,21 @@ async def login(data: LoginInput, db: AsyncSession = Depends(get_db)) -> Token:
 	access = create_access_token(user_id)
 	# ОПТИМИЗАЦИЯ: Передаем is_active в create_refresh_token для хранения в JWT payload
 	refresh = await create_refresh_token(db, user_id, is_active=is_active)
-	return Token(access_token=access, refresh_token=refresh)
+	_set_auth_cookies(response, access, refresh)
+	return AuthSuccess()
 
 
-@router.post("/refresh", response_model=Token)
-async def refresh(data: RefreshInput, db: AsyncSession = Depends(get_db)) -> Token:
+@router.post("/refresh", response_model=AuthSuccess)
+async def refresh(
+	request: Request,
+	response: Response,
+	db: AsyncSession = Depends(get_db),
+) -> AuthSuccess:
+	refresh_token_input = request.cookies.get("refresh_token")
+	if not refresh_token_input:
+		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh-токен отсутствует")
 	try:
-		token_record = await validate_refresh_token(db, data.refresh_token)
+		token_record = await validate_refresh_token(db, refresh_token_input)
 	except RefreshTokenError as exc:
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=exc.detail)
 
@@ -252,7 +292,7 @@ async def refresh(data: RefreshInput, db: AsyncSession = Depends(get_db)) -> Tok
 	# ОПТИМИЗАЦИЯ: Получаем is_active из payload старого токена для нового токена
 	from ..security import decode_token
 
-	payload = decode_token(data.refresh_token)
+	payload = decode_token(refresh_token_input)
 	is_active = payload.get("is_active", True)
 
 	access = create_access_token(token_record.user_id)
@@ -262,12 +302,18 @@ async def refresh(data: RefreshInput, db: AsyncSession = Depends(get_db)) -> Tok
 	)
 	# Один COMMIT для обеих операций (UPDATE старого токена + INSERT нового токена)
 	await db.commit()
-	return Token(access_token=access, refresh_token=refresh_token)
+	_set_auth_cookies(response, access, refresh_token)
+	return AuthSuccess()
 
 
 @router.get("/me", response_model=UserOut)
 async def me(current_user: UserOut = Depends(get_current_user)) -> UserOut:
 	return current_user
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response) -> None:
+	_clear_auth_cookies(response)
 
 
 @router.post("/request-password-reset", response_model=PasswordResetResponse)
@@ -472,7 +518,7 @@ async def mailru_callback(
 	Обрабатывает callback от Mail.ru после авторизации.
 	Обменивает code на access_token, получает данные пользователя,
 	создает/находит пользователя и выдает JWT токены.
-	Делает редирект на фронтенд с токенами в URL fragment (безопаснее, чем query params).
+	Делает редирект на фронтенд после установки HttpOnly-cookie.
 	"""
 	settings = get_settings()
 	
@@ -591,13 +637,9 @@ async def mailru_callback(
 		access = create_access_token(user_id)
 		refresh = await create_refresh_token(db, user_id, is_active=True)
 	
-	# Редиректим на фронтенд с токенами в URL fragment
-	# Фрагмент не отправляется на сервер, поэтому безопаснее
-	frontend_url = "/"  # Базовый URL фронтенда
-	token_fragment = f"access_token={quote(access)}&refresh_token={quote(refresh)}&token_type=bearer"
-	redirect_url = f"{frontend_url}#{token_fragment}"
-	
-	response = RedirectResponse(url=redirect_url)
+	# Токены уже установлены в HttpOnly-cookie; не передаём их через URL.
+	response = RedirectResponse(url="/")
+	_set_auth_cookies(response, access, refresh)
 	response.set_cookie("oauth_state", "", max_age=0)  # Очищаем cookie
 	return response
 
@@ -606,9 +648,10 @@ class MailruTokenRequest(BaseModel):
 	access_token: str = Field(..., description="Access token от Mail.ru SDK")
 
 
-@router.post("/mailru/token", response_model=Token)
+@router.post("/mailru/token", response_model=AuthSuccess)
 async def mailru_token(
 	request: MailruTokenRequest,
+	response: Response,
 	db: AsyncSession = Depends(get_db),
 ):
 	"""
@@ -692,7 +735,8 @@ async def mailru_token(
 		access = create_access_token(user_id)
 		refresh = await create_refresh_token(db, user_id, is_active=True)
 	
-	return Token(access_token=access, refresh_token=refresh)
+	_set_auth_cookies(response, access, refresh)
+	return AuthSuccess()
 
 
 # ========== Google OAuth ==========
@@ -753,7 +797,7 @@ async def google_callback(
 	Обрабатывает callback от Google после авторизации.
 	Обменивает code на access_token, получает данные пользователя,
 	создает/находит пользователя и выдает JWT токены.
-	Делает редирект на фронтенд с токенами в URL fragment.
+	Делает редирект на фронтенд после установки HttpOnly-cookie.
 	"""
 	settings = get_settings()
 	
@@ -872,12 +916,9 @@ async def google_callback(
 		access = create_access_token(user_id)
 		refresh = await create_refresh_token(db, user_id, is_active=True)
 	
-	# Редиректим на фронтенд с токенами в URL fragment
-	frontend_url = "/"  # Базовый URL фронтенда
-	token_fragment = f"access_token={quote(access)}&refresh_token={quote(refresh)}&token_type=bearer"
-	redirect_url = f"{frontend_url}#{token_fragment}"
-	
-	response = RedirectResponse(url=redirect_url)
+	# Токены уже установлены в HttpOnly-cookie; не передаём их через URL.
+	response = RedirectResponse(url="/")
+	_set_auth_cookies(response, access, refresh)
 	response.set_cookie("oauth_state", "", max_age=0)  # Очищаем cookie
 	return response
 
@@ -886,9 +927,10 @@ class GoogleTokenRequest(BaseModel):
 	access_token: str = Field(..., description="Access token от Google SDK")
 
 
-@router.post("/google/token", response_model=Token)
+@router.post("/google/token", response_model=AuthSuccess)
 async def google_token(
 	request: GoogleTokenRequest,
+	response: Response,
 	db: AsyncSession = Depends(get_db),
 ):
 	"""
@@ -972,7 +1014,5 @@ async def google_token(
 		access = create_access_token(user_id)
 		refresh = await create_refresh_token(db, user_id, is_active=True)
 	
-	return Token(access_token=access, refresh_token=refresh)
-
-
-
+	_set_auth_cookies(response, access, refresh)
+	return AuthSuccess()

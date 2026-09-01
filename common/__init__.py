@@ -1,5 +1,6 @@
 from .observability import configure_observability
 from .internal_auth import make_internal_token_verifier
+from .service_client import InternalServiceClient, ServiceClientNotConfigured
 from .kafka import (
     kafka_consumer,
     kafka_producer,
@@ -18,12 +19,13 @@ from .security import (
     optional_bearer_scheme,
 )
 from .config import BaseServiceSettings, make_get_settings
-from .notifications import send_notification
 from .logging_utils import setup_logging
 
 __all__ = [
     "configure_observability",
     "make_internal_token_verifier",
+    "InternalServiceClient",
+    "ServiceClientNotConfigured",
     "kafka_producer",
     "kafka_consumer",
     "KafkaNotConfiguredError",
@@ -46,7 +48,4 @@ __all__ = [
     # Config
     "BaseServiceSettings",
     "make_get_settings",
-    # Notifications
-    "send_notification",
 ]
-

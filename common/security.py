@@ -3,13 +3,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Request, status
 from jose import JWTError, jwt
-
-
-bearer_scheme = HTTPBearer(auto_error=True)
-optional_bearer_scheme = HTTPBearer(auto_error=False)
 
 
 @dataclass
@@ -71,11 +66,14 @@ def make_get_current_user(
 		Функция get_current_user для использования в Depends()
 	"""
 	async def get_current_user(
-		credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+		request: Request,
 	) -> CurrentUser:
 		settings = get_settings()
+		token = request.cookies.get("access_token")
+		if not token:
+			raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Требуется авторизация")
 		return decode_access_token(
-			credentials.credentials,
+			token,
 			settings.jwt_secret,
 			settings.jwt_algorithm,
 		)
@@ -116,14 +114,15 @@ def make_get_current_user_optional(
 		Функция get_current_user_optional для использования в Depends()
 	"""
 	async def get_current_user_optional(
-		credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer_scheme),
+		request: Request,
 	) -> CurrentUser | None:
-		if not credentials:
+		token = request.cookies.get("access_token")
+		if not token:
 			return None
 		settings = get_settings()
 		try:
 			return decode_access_token(
-				credentials.credentials,
+				token,
 				settings.jwt_secret,
 				settings.jwt_algorithm,
 			)
