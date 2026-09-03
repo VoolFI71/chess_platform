@@ -115,8 +115,87 @@ def upgrade() -> None:
     op.create_index("ix_puzzle_attempts_puzzle_id", "puzzle_attempts", ["puzzle_id"])
     op.create_index("ix_puzzle_attempts_user_id", "puzzle_attempts", ["user_id"])
 
+    op.create_index("ix_puzzles_themes_gin", "puzzles", ["themes"], postgresql_using="gin")
+    op.create_index(
+        "ix_puzzles_opening_tags_gin",
+        "puzzles",
+        ["opening_tags"],
+        postgresql_using="gin",
+    )
+    op.create_index("ix_puzzles_rating", "puzzles", ["rating"])
+    op.create_index("ix_puzzles_popularity", "puzzles", ["popularity"])
+    op.create_index("ix_puzzles_rating_puzzle_id", "puzzles", ["rating", "puzzle_id"])
+
+    op.create_table(
+        "daily_puzzles",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("puzzle_id", sa.String(length=16), nullable=False),
+        sa.Column("date", sa.Date(), nullable=False),
+        sa.Column("rating", sa.Integer(), nullable=False),
+        sa.Column(
+            "chosen_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.UniqueConstraint("date", name="uq_daily_puzzles_date"),
+    )
+    op.create_index("ix_daily_puzzles_puzzle_id", "daily_puzzles", ["puzzle_id"])
+
+    op.create_table(
+        "daily_puzzle_solutions",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column("date", sa.Date(), nullable=False),
+        sa.Column(
+            "solved_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.UniqueConstraint("user_id", "date", name="uq_daily_puzzle_solutions_user_date"),
+    )
+    op.create_index(
+        "ix_daily_puzzle_solutions_user_id",
+        "daily_puzzle_solutions",
+        ["user_id"],
+    )
+    op.create_index(
+        "ix_daily_puzzle_solutions_date",
+        "daily_puzzle_solutions",
+        ["date"],
+    )
+
+    op.create_index(
+        "ix_puzzle_attempts_user_created_at",
+        "puzzle_attempts",
+        ["user_id", "created_at"],
+    )
+    op.create_index(
+        "ix_puzzle_attempts_success",
+        "puzzle_attempts",
+        ["id"],
+        postgresql_where=sa.text("status = 'success'"),
+    )
+
 
 def downgrade() -> None:
+    op.drop_index("ix_puzzle_attempts_success", table_name="puzzle_attempts")
+    op.drop_index("ix_puzzle_attempts_user_created_at", table_name="puzzle_attempts")
+
+    op.drop_index("ix_daily_puzzle_solutions_date", table_name="daily_puzzle_solutions")
+    op.drop_index("ix_daily_puzzle_solutions_user_id", table_name="daily_puzzle_solutions")
+    op.drop_table("daily_puzzle_solutions")
+
+    op.drop_index("ix_daily_puzzles_puzzle_id", table_name="daily_puzzles")
+    op.drop_table("daily_puzzles")
+
+    op.drop_index("ix_puzzles_rating_puzzle_id", table_name="puzzles")
+    op.drop_index("ix_puzzles_popularity", table_name="puzzles")
+    op.drop_index("ix_puzzles_rating", table_name="puzzles")
+    op.drop_index("ix_puzzles_opening_tags_gin", table_name="puzzles")
+    op.drop_index("ix_puzzles_themes_gin", table_name="puzzles")
+
     op.drop_index("ix_puzzle_attempts_user_id", table_name="puzzle_attempts")
     op.drop_index("ix_puzzle_attempts_puzzle_id", table_name="puzzle_attempts")
     op.drop_table("puzzle_attempts")

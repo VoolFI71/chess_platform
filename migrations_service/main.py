@@ -39,7 +39,6 @@ SERVICE_TABLES = {
 GAMES_MIGRATION_VERSION_TABLE = "schema_migrations_games"
 GAMES_MIGRATIONS = (
     ("0001_games", "0001_games.sql"),
-    ("0002_games_performance", "0002_games_performance.sql"),
 )
 
 
